@@ -1,0 +1,36 @@
+## ──────────────────────────────────────────────
+## .gitignore — ProjectLedger.API (.NET / C#)
+## ──────────────────────────────────────────────
+
+# ── Secretos y credenciales ─────────────────────
+.env
+*.env
+appsettings.Production.json
+appsettings.Staging.json
+**/secrets.json
+
+# ── Build outputs ───────────────────────────────
+[Bb]in/
+[Oo]bj/
+
+# ── Visual Studio / VS Code ─────────────────────
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# ── NuGet ───────────────────────────────────────
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+
+# ── Logs ────────────────────────────────────────
+*.log
+logs/
+
+# ── OS ──────────────────────────────────────────
+.DS_Store
+Thumbs.db
