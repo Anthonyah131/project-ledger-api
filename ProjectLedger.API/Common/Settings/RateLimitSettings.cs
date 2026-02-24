@@ -1,4 +1,4 @@
-namespace ProjectLedger.API.Common;
+namespace ProjectLedger.API.Common.Settings;
 
 /// <summary>
 /// Configuración de Rate Limiting leída desde appsettings.json → sección "RateLimit".

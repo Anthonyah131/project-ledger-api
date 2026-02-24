@@ -1,9 +1,10 @@
 using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
-using ProjectLedger.API.Common;
+using ProjectLedger.API.Services;
 
 namespace ProjectLedger.API.Extensions;
 
@@ -52,6 +53,9 @@ public static class SecurityExtensions
             })
             .AddJwtBearer(options =>
             {
+                // Preservar nombres de claims JWT originales (sub, email, etc.)
+                options.MapInboundClaims = false;
+
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer           = true,
@@ -102,7 +106,36 @@ public static class SecurityExtensions
                 };
             });
 
-        services.AddAuthorization();
+        // ── Authorization Handlers ─────────────────────────────
+        services.AddScoped<IAuthorizationHandler, ProjectMemberHandler>();
+        services.AddScoped<IAuthorizationHandler, PlanPermissionHandler>();
+
+        services.AddAuthorization(options =>
+        {
+            // ── Project-level policies (multi-tenant) ────────────
+
+            // Policy: al menos viewer del proyecto
+            options.AddPolicy("ProjectViewer", policy =>
+                policy.Requirements.Add(new ProjectMemberRequirement(ProjectRoles.Viewer)));
+
+            // Policy: al menos editor del proyecto
+            options.AddPolicy("ProjectEditor", policy =>
+                policy.Requirements.Add(new ProjectMemberRequirement(ProjectRoles.Editor)));
+
+            // Policy: solo owner del proyecto
+            options.AddPolicy("ProjectOwner", policy =>
+                policy.Requirements.Add(new ProjectMemberRequirement(ProjectRoles.Owner)));
+
+            // ── Plan-level policies (feature gates) ──────────────
+            // Formato: "Plan:{PlanPermission}" — uno por cada permiso del plan.
+            // Uso: [Authorize(Policy = "Plan:CanExportData")]
+
+            foreach (var permission in Enum.GetValues<PlanPermission>())
+            {
+                options.AddPolicy($"Plan:{permission}", policy =>
+                    policy.Requirements.Add(new PlanPermissionRequirement(permission)));
+            }
+        });
 
         return services;
     }

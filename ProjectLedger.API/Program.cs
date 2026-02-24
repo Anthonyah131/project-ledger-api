@@ -1,3 +1,4 @@
+using Microsoft.OpenApi;
 using ProjectLedger.API.Extensions;
 using ProjectLedger.API.Middleware;
 
@@ -22,7 +23,31 @@ var builder = WebApplication.CreateBuilder(args);
 
 // ── Service Registration ────────────────────────────────────
 builder.Services.AddControllers();
-builder.Services.AddOpenApi();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title       = "Project Ledger API",
+        Version     = "v1",
+        Description = "API multi-tenant de contabilidad SaaS."
+    });
+
+    // Botón Authorize en Swagger UI para JWT
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name         = "Authorization",
+        Type         = SecuritySchemeType.Http,
+        Scheme       = "bearer",
+        BearerFormat = "JWT",
+        In           = ParameterLocation.Header,
+        Description  = "Pega el access token JWT aquí."
+    });
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+    });
+});
 
 // Database (CockroachDB / PostgreSQL)
 builder.Services.AddDatabase(builder.Configuration);
@@ -47,7 +72,8 @@ app.UseSecurityHeaders();
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 // 3. HTTPS redirect
@@ -57,7 +83,7 @@ app.UseHttpsRedirection();
 app.UseRateLimiter();
 
 // 5. CORS (antes de auth)
-app.UseCors(ProjectLedger.API.Common.CorsSettings.PolicyName);
+app.UseCors(CorsSettings.PolicyName);
 
 // 6. Auth pipeline
 app.UseAuthentication();

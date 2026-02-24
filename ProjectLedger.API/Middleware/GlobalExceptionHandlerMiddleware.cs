@@ -34,16 +34,33 @@ public class GlobalExceptionHandlerMiddleware
     private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
         context.Response.ContentType = "application/json";
-        context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+        var isDev = context.RequestServices.GetService<IHostEnvironment>()?.IsDevelopment() == true;
+
+        var (statusCode, message) = exception switch
+        {
+            PlanDeniedException => (StatusCodes.Status403Forbidden,
+                exception.Message),
+            PlanLimitExceededException => (StatusCodes.Status403Forbidden,
+                exception.Message),
+            ForbiddenAccessException => (StatusCodes.Status403Forbidden,
+                exception.Message),
+            UnauthorizedAccessException => (StatusCodes.Status401Unauthorized,
+                exception.Message),
+            KeyNotFoundException => (StatusCodes.Status404NotFound,
+                exception.Message),
+            ArgumentException => (StatusCodes.Status400BadRequest,
+                exception.Message),
+            _ => (StatusCodes.Status500InternalServerError,
+                "An unexpected error occurred. Please try again later.")
+        };
+
+        context.Response.StatusCode = statusCode;
 
         var response = new
         {
-            status = context.Response.StatusCode,
-            message = "An unexpected error occurred. Please try again later.",
-            // Solo mostrar detalles en desarrollo
-            detail = context.RequestServices.GetService<IHostEnvironment>()?.IsDevelopment() == true
-                ? exception.Message
-                : null
+            status = statusCode,
+            message,
+            detail = isDev && statusCode == 500 ? exception.Message : (string?)null
         };
 
         var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };

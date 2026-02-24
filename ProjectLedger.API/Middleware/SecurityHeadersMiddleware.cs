@@ -1,6 +1,3 @@
-using System.Net;
-using System.Text.Json;
-
 namespace ProjectLedger.API.Middleware;
 
 /// <summary>
@@ -16,12 +13,14 @@ public class SecurityHeadersMiddleware
     public async Task InvokeAsync(HttpContext context)
     {
         var headers = context.Response.Headers;
+        var isSwaggerPath = context.Request.Path.StartsWithSegments("/swagger");
 
         // Evita que el navegador haga MIME-type sniffing
         headers["X-Content-Type-Options"] = "nosniff";
 
-        // Protección contra clickjacking
-        headers["X-Frame-Options"] = "DENY";
+        // Protección contra clickjacking (Swagger UI necesita poder renderizar)
+        if (!isSwaggerPath)
+            headers["X-Frame-Options"] = "DENY";
 
         // Habilita protección XSS en navegadores legacy
         headers["X-XSS-Protection"] = "1; mode=block";
@@ -32,8 +31,10 @@ public class SecurityHeadersMiddleware
         // Política de referrer conservadora
         headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
 
-        // Content Security Policy básica para una REST API pura
-        headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'";
+        // CSP: más permisiva en /swagger para que Swagger UI cargue sus assets
+        headers["Content-Security-Policy"] = isSwaggerPath
+            ? "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"
+            : "default-src 'none'; frame-ancestors 'none'";
 
         // Elimina el header que revela que es ASP.NET
         headers.Remove("Server");
