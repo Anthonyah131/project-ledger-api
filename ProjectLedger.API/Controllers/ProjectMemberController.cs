@@ -25,15 +25,21 @@ public class ProjectMemberController : ControllerBase
     private readonly IProjectMemberService _memberService;
     private readonly IUserService _userService;
     private readonly IProjectAccessService _accessService;
+    private readonly IProjectService _projectService;
+    private readonly IEmailService _emailService;
 
     public ProjectMemberController(
         IProjectMemberService memberService,
         IUserService userService,
-        IProjectAccessService accessService)
+        IProjectAccessService accessService,
+        IProjectService projectService,
+        IEmailService emailService)
     {
         _memberService = memberService;
         _userService = userService;
         _accessService = accessService;
+        _projectService = projectService;
+        _emailService = emailService;
     }
 
     // ── GET /api/projects/{projectId}/members ───────────────
@@ -94,6 +100,14 @@ public class ProjectMemberController : ControllerBase
         };
 
         await _memberService.AddMemberAsync(member, ct);
+
+        // Enviar notificación por correo (fire-and-forget)
+        var project = await _projectService.GetByIdAsync(projectId, ct);
+        var ownerUser = await _userService.GetByIdAsync(User.GetRequiredUserId(), ct);
+        _ = _emailService.SendProjectSharedEmailAsync(
+            targetUser.UsrEmail, targetUser.UsrFullName,
+            project?.PrjName ?? "Proyecto", role,
+            ownerUser?.UsrFullName ?? "Un usuario", ct);
 
         // Reload para obtener nav properties
         var members = await _memberService.GetByProjectIdAsync(projectId, ct);
@@ -156,7 +170,24 @@ public class ProjectMemberController : ControllerBase
         CancellationToken ct)
     {
         var userId = User.GetRequiredUserId();
+
+        // Obtener datos del miembro ANTES de eliminarlo (para el correo)
+        var membersBeforeRemoval = await _memberService.GetByProjectIdAsync(projectId, ct);
+        var removedMember = membersBeforeRemoval.FirstOrDefault(m => m.PrmId == memberId);
+
         await _memberService.RemoveMemberAsync(memberId, userId, ct);
+
+        // Enviar notificación por correo (fire-and-forget)
+        if (removedMember?.User is not null)
+        {
+            var project = await _projectService.GetByIdAsync(projectId, ct);
+            var ownerUser = await _userService.GetByIdAsync(userId, ct);
+            _ = _emailService.SendProjectAccessRevokedEmailAsync(
+                removedMember.User.UsrEmail, removedMember.User.UsrFullName,
+                project?.PrjName ?? "Proyecto",
+                ownerUser?.UsrFullName ?? "Un usuario", ct);
+        }
+
         return NoContent();
     }
 }

@@ -30,7 +30,10 @@ public static class ExpenseMappingExtensions
         AltExchangeRate = entity.ExpAltExchangeRate,
         AltAmount = entity.ExpAltAmount,
         CreatedAt = entity.ExpCreatedAt,
-        UpdatedAt = entity.ExpUpdatedAt
+        UpdatedAt = entity.ExpUpdatedAt,
+        IsDeleted = entity.ExpIsDeleted,
+        DeletedAt = entity.ExpDeletedAt,
+        DeletedByUserId = entity.ExpDeletedByUserId
     };
 
     // ── Request → Entity ────────────────────────────────────
@@ -84,6 +87,43 @@ public static class ExpenseMappingExtensions
             : null;
         entity.ExpUpdatedAt = DateTime.UtcNow;
     }
+
+    // ── Create from template ────────────────────────────────
+
+    /// <summary>
+    /// Crea un gasto real (IsTemplate = false) a partir de una plantilla.
+    /// Reutiliza categoría, método de pago, moneda, descripción, exchange rate y alt currency.
+    /// </summary>
+    public static Expense ToEntityFromTemplate(
+        this Expense template,
+        Guid projectId,
+        Guid userId,
+        CreateFromTemplateRequest request) => new()
+    {
+        ExpId = Guid.NewGuid(),
+        ExpProjectId = projectId,
+        ExpCreatedByUserId = userId,
+        ExpCategoryId = template.ExpCategoryId,
+        ExpPaymentMethodId = template.ExpPaymentMethodId,
+        ExpObligationId = request.ObligationId,
+        ExpOriginalAmount = request.OriginalAmount ?? template.ExpOriginalAmount,
+        ExpOriginalCurrency = template.ExpOriginalCurrency,
+        ExpExchangeRate = template.ExpExchangeRate,
+        ExpConvertedAmount = (request.OriginalAmount ?? template.ExpOriginalAmount) * template.ExpExchangeRate,
+        ExpTitle = template.ExpTitle,
+        ExpDescription = template.ExpDescription,
+        ExpExpenseDate = request.ExpenseDate ?? DateOnly.FromDateTime(DateTime.UtcNow),
+        ExpReceiptNumber = null,
+        ExpNotes = request.Notes,
+        ExpIsTemplate = false,
+        ExpAltCurrency = template.ExpAltCurrency,
+        ExpAltExchangeRate = template.ExpAltExchangeRate,
+        ExpAltAmount = template.ExpAltCurrency is not null && template.ExpAltExchangeRate.HasValue
+            ? (request.OriginalAmount ?? template.ExpOriginalAmount) * template.ExpAltExchangeRate.Value
+            : null,
+        ExpCreatedAt = DateTime.UtcNow,
+        ExpUpdatedAt = DateTime.UtcNow
+    };
 
     // ── Collection helpers ──────────────────────────────────
 

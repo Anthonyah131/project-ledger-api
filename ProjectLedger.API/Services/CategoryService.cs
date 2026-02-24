@@ -12,15 +12,18 @@ public class CategoryService : ICategoryService
     private readonly ICategoryRepository _categoryRepo;
     private readonly IProjectRepository _projectRepo;
     private readonly IPlanAuthorizationService _planAuth;
+    private readonly IAuditLogService _auditLog;
 
     public CategoryService(
         ICategoryRepository categoryRepo,
         IProjectRepository projectRepo,
-        IPlanAuthorizationService planAuth)
+        IPlanAuthorizationService planAuth,
+        IAuditLogService auditLog)
     {
         _categoryRepo = categoryRepo;
         _projectRepo = projectRepo;
         _planAuth = planAuth;
+        _auditLog = auditLog;
     }
 
     public async Task<Category?> GetByIdAsync(Guid id, CancellationToken ct = default)
@@ -48,6 +51,9 @@ public class CategoryService : ICategoryService
         await _categoryRepo.AddAsync(category, ct);
         await _categoryRepo.SaveChangesAsync(ct);
 
+        _ = _auditLog.LogAsync("Category", category.CatId, "create", project.PrjOwnerUserId,
+            newValues: new { category.CatId, category.CatName, category.CatProjectId }, ct: ct);
+
         return category;
     }
 
@@ -56,6 +62,9 @@ public class CategoryService : ICategoryService
         category.CatUpdatedAt = DateTime.UtcNow;
         _categoryRepo.Update(category);
         await _categoryRepo.SaveChangesAsync(ct);
+
+        _ = _auditLog.LogAsync("Category", category.CatId, "update", category.CatProjectId,
+            newValues: new { category.CatName, category.CatDescription }, ct: ct);
     }
 
     public async Task SoftDeleteAsync(Guid id, Guid deletedByUserId, CancellationToken ct = default)
@@ -66,6 +75,11 @@ public class CategoryService : ICategoryService
         if (category.CatIsDeleted)
             throw new KeyNotFoundException($"Category '{id}' not found.");
 
+        if (category.CatIsDefault)
+            throw new InvalidOperationException(
+                "No se puede eliminar la categoría por defecto 'General'. " +
+                "Puedes renombrarla o crear otras categorías.");
+
         category.CatIsDeleted = true;
         category.CatDeletedAt = DateTime.UtcNow;
         category.CatDeletedByUserId = deletedByUserId;
@@ -73,5 +87,8 @@ public class CategoryService : ICategoryService
 
         _categoryRepo.Update(category);
         await _categoryRepo.SaveChangesAsync(ct);
+
+        _ = _auditLog.LogAsync("Category", id, "delete", deletedByUserId,
+            oldValues: new { category.CatName }, ct: ct);
     }
 }

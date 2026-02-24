@@ -45,6 +45,7 @@ public static class UserMappingExtensions
         Id = entity.UsrId,
         Email = entity.UsrEmail,
         FullName = entity.UsrFullName,
+        IsActive = entity.UsrIsActive,
         IsAdmin = entity.UsrIsAdmin,
         AvatarUrl = entity.UsrAvatarUrl
     };

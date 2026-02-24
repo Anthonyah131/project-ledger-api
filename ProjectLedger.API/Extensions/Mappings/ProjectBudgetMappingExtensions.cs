@@ -20,6 +20,15 @@ public static class ProjectBudgetMappingExtensions
             ? Math.Round(spentAmount / entity.PjbTotalBudget * 100, 2)
             : 0m;
 
+        // Multi-level alert thresholds
+        var alertLevel = spentPct switch
+        {
+            >= 100m => "exceeded",
+            >= 90m  => "critical",
+            >= 70m  => "warning",
+            _       => "normal"
+        };
+
         return new ProjectBudgetResponse
         {
             Id = entity.PjbId,
@@ -30,6 +39,7 @@ public static class ProjectBudgetMappingExtensions
             RemainingAmount = remaining < 0 ? 0 : remaining,
             SpentPercentage = spentPct,
             IsAlertTriggered = spentPct >= entity.PjbAlertPercentage,
+            AlertLevel = alertLevel,
             CreatedAt = entity.PjbCreatedAt,
             UpdatedAt = entity.PjbUpdatedAt
         };

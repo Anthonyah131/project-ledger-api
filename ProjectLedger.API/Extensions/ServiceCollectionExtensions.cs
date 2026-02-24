@@ -64,6 +64,9 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        // Email
+        services.AddScoped<IEmailService, EmailService>();
+
         // Autenticación y tokens
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IAuthService, AuthService>();

@@ -42,6 +42,7 @@ public class UserAuthInfo
     public Guid Id { get; set; }
     public string Email { get; set; } = null!;
     public string FullName { get; set; } = null!;
+    public bool IsActive { get; set; }
     public bool IsAdmin { get; set; }
     public string? AvatarUrl { get; set; }
 }

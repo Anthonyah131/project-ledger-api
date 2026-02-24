@@ -29,6 +29,11 @@ public class ProjectBudgetResponse
     public decimal SpentPercentage { get; set; }
     public bool IsAlertTriggered { get; set; }
 
+    /// <summary>
+    /// Multi-level alert: normal (&lt;70%), warning (70-89%), critical (90-99%), exceeded (≥100%).
+    /// </summary>
+    public string AlertLevel { get; set; } = "normal";
+
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

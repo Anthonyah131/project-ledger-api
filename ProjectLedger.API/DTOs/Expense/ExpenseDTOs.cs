@@ -50,6 +50,19 @@ public class UpdateExpenseRequest
     public decimal? AltExchangeRate { get; set; }
 }
 
+/// <summary>
+/// Request para crear un gasto real a partir de una plantilla.
+/// Permite sobreescribir monto, fecha y obligación;
+/// el resto se toma de la plantilla.
+/// </summary>
+public class CreateFromTemplateRequest
+{
+    public decimal? OriginalAmount { get; set; }
+    public DateOnly? ExpenseDate { get; set; }
+    public Guid? ObligationId { get; set; }
+    public string? Notes { get; set; }
+}
+
 // ── Responses ───────────────────────────────────────────────
 
 /// <summary>Respuesta con los datos de un gasto.</summary>
@@ -81,4 +94,9 @@ public class ExpenseResponse
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+
+    // ── Soft delete info (solo visible con includeDeleted=true) ──
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    public Guid? DeletedByUserId { get; set; }
 }

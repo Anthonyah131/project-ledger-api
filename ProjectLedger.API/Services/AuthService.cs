@@ -23,6 +23,7 @@ public class AuthService : IAuthService
     private readonly IPlanRepository _planRepo;
     private readonly IJwtTokenService _jwtTokenService;
     private readonly JwtSettings _jwtSettings;
+    private readonly IEmailService _emailService;
     private readonly ILogger<AuthService> _logger;
 
     // BCrypt work factor — 12 es buen balance entre seguridad y rendimiento
@@ -34,6 +35,7 @@ public class AuthService : IAuthService
         IPlanRepository planRepo,
         IJwtTokenService jwtTokenService,
         IOptions<JwtSettings> jwtSettings,
+        IEmailService emailService,
         ILogger<AuthService> logger)
     {
         _userRepo = userRepo;
@@ -41,6 +43,7 @@ public class AuthService : IAuthService
         _planRepo = planRepo;
         _jwtTokenService = jwtTokenService;
         _jwtSettings = jwtSettings.Value;
+        _emailService = emailService;
         _logger = logger;
     }
 
@@ -71,7 +74,7 @@ public class AuthService : IAuthService
             UsrPasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password, BcryptWorkFactor),
             UsrFullName = request.FullName.Trim(),
             UsrPlanId = defaultPlan.PlnId,
-            UsrIsActive = true,
+            UsrIsActive = false,   // Nuevo usuario inicia DESACTIVADO — el admin lo activa
             UsrIsAdmin = false,
             UsrLastLoginAt = DateTime.UtcNow,
             UsrCreatedAt = DateTime.UtcNow,
@@ -97,7 +100,11 @@ public class AuthService : IAuthService
         await _refreshTokenRepo.AddAsync(refreshTokenEntity, ct);
         await _userRepo.SaveChangesAsync(ct);
 
-        _logger.LogInformation("New user registered: {UserId}", user.UsrId);
+        _logger.LogInformation("New user registered (inactive): {UserId}", user.UsrId);
+
+        // Enviar correos de notificación (fire-and-forget, no bloquean el registro)
+        _ = _emailService.SendWelcomeEmailAsync(user.UsrEmail, user.UsrFullName, ct);
+        _ = _emailService.SendNewUserNotificationToAdminAsync(user.UsrEmail, user.UsrFullName, ct);
 
         return BuildAuthResponse(user, accessToken, rawRefreshToken);
     }
@@ -117,30 +124,24 @@ public class AuthService : IAuthService
             return null;
         }
 
-        // 2. Verificar que la cuenta esté activa
-        if (!user.UsrIsActive)
-        {
-            _logger.LogWarning("Login failed: inactive account {UserId}", user.UsrId);
-            return null;
-        }
-
-        // 3. Verificar password con BCrypt (timing-safe)
+        // 2. Verificar password con BCrypt (timing-safe)
+        //    Nota: usuarios desactivados SÍ pueden hacer login (solo lectura).
         if (!BCrypt.Net.BCrypt.Verify(request.Password, user.UsrPasswordHash))
         {
             _logger.LogWarning("Login failed: invalid password for {UserId}", user.UsrId);
             return null;
         }
 
-        // 4. Actualizar last login
+        // 3. Actualizar last login
         user.UsrLastLoginAt = DateTime.UtcNow;
         user.UsrUpdatedAt = DateTime.UtcNow;
         _userRepo.Update(user);
 
-        // 5. Generar tokens
+        // 4. Generar tokens
         var accessToken = _jwtTokenService.GenerateAccessToken(user);
         var rawRefreshToken = _jwtTokenService.GenerateRefreshToken();
 
-        // 6. Persistir refresh token
+        // 5. Persistir refresh token
         var refreshTokenEntity = new RefreshToken
         {
             RtkId = Guid.NewGuid(),

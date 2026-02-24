@@ -12,16 +12,22 @@ public class ProjectService : IProjectService
 {
     private readonly IProjectRepository _projectRepo;
     private readonly IProjectMemberRepository _memberRepo;
+    private readonly ICategoryRepository _categoryRepo;
     private readonly IPlanAuthorizationService _planAuth;
+    private readonly IAuditLogService _auditLog;
 
     public ProjectService(
         IProjectRepository projectRepo,
         IProjectMemberRepository memberRepo,
-        IPlanAuthorizationService planAuth)
+        ICategoryRepository categoryRepo,
+        IPlanAuthorizationService planAuth,
+        IAuditLogService auditLog)
     {
         _projectRepo = projectRepo;
         _memberRepo = memberRepo;
+        _categoryRepo = categoryRepo;
         _planAuth = planAuth;
+        _auditLog = auditLog;
     }
 
     public async Task<Project?> GetByIdAsync(Guid id, CancellationToken ct = default)
@@ -62,7 +68,24 @@ public class ProjectService : IProjectService
         };
 
         await _memberRepo.AddAsync(ownerMember, ct);
+
+        // Crear categoría por defecto "General"
+        var defaultCategory = new Category
+        {
+            CatId = Guid.NewGuid(),
+            CatProjectId = project.PrjId,
+            CatName = "General",
+            CatDescription = "Categoría por defecto del proyecto.",
+            CatIsDefault = true,
+            CatCreatedAt = DateTime.UtcNow,
+            CatUpdatedAt = DateTime.UtcNow
+        };
+        await _categoryRepo.AddAsync(defaultCategory, ct);
+
         await _projectRepo.SaveChangesAsync(ct);
+
+        _ = _auditLog.LogAsync("Project", project.PrjId, "create", project.PrjOwnerUserId,
+            newValues: new { project.PrjId, project.PrjName, project.PrjCurrencyCode }, ct: ct);
 
         return project;
     }
@@ -72,6 +95,9 @@ public class ProjectService : IProjectService
         project.PrjUpdatedAt = DateTime.UtcNow;
         _projectRepo.Update(project);
         await _projectRepo.SaveChangesAsync(ct);
+
+        _ = _auditLog.LogAsync("Project", project.PrjId, "update", project.PrjOwnerUserId,
+            newValues: new { project.PrjName, project.PrjDescription }, ct: ct);
     }
 
     public async Task SoftDeleteAsync(Guid id, Guid deletedByUserId, CancellationToken ct = default)
@@ -86,5 +112,8 @@ public class ProjectService : IProjectService
 
         _projectRepo.Update(project);
         await _projectRepo.SaveChangesAsync(ct);
+
+        _ = _auditLog.LogAsync("Project", id, "delete", deletedByUserId,
+            oldValues: new { project.PrjName }, ct: ct);
     }
 }

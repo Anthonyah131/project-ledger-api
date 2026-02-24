@@ -4,16 +4,18 @@ using ProjectLedger.API.Repositories;
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Servicio de usuarios. Gestión de perfil, soft delete.
+/// Servicio de usuarios. Gestión de perfil, soft delete, activación/desactivación.
 /// La autenticación (login/register) se maneja en AuthService.
 /// </summary>
 public class UserService : IUserService
 {
     private readonly IUserRepository _userRepo;
+    private readonly IEmailService _emailService;
 
-    public UserService(IUserRepository userRepo)
+    public UserService(IUserRepository userRepo, IEmailService emailService)
     {
         _userRepo = userRepo;
+        _emailService = emailService;
     }
 
     public async Task<User?> GetByIdAsync(Guid id, CancellationToken ct = default)
@@ -58,5 +60,44 @@ public class UserService : IUserService
 
         _userRepo.Update(user);
         await _userRepo.SaveChangesAsync(ct);
+    }
+
+    // ── Admin operations ────────────────────────────────────
+
+    public async Task<IReadOnlyList<User>> GetAllAsync(bool includeDeleted = false, CancellationToken ct = default)
+        => await _userRepo.GetAllUsersAsync(includeDeleted, ct);
+
+    public async Task<bool> ActivateAsync(Guid userId, CancellationToken ct = default)
+    {
+        var user = await _userRepo.GetByIdAsync(userId, ct);
+        if (user is null || user.UsrIsDeleted) return false;
+        if (user.UsrIsActive) return true; // Ya está activo
+
+        user.UsrIsActive = true;
+        user.UsrUpdatedAt = DateTime.UtcNow;
+        _userRepo.Update(user);
+        await _userRepo.SaveChangesAsync(ct);
+
+        // Notificar al usuario por correo
+        _ = _emailService.SendAccountActivatedEmailAsync(user.UsrEmail, user.UsrFullName, ct);
+
+        return true;
+    }
+
+    public async Task<bool> DeactivateAsync(Guid userId, CancellationToken ct = default)
+    {
+        var user = await _userRepo.GetByIdAsync(userId, ct);
+        if (user is null || user.UsrIsDeleted) return false;
+        if (!user.UsrIsActive) return true; // Ya está desactivado
+
+        user.UsrIsActive = false;
+        user.UsrUpdatedAt = DateTime.UtcNow;
+        _userRepo.Update(user);
+        await _userRepo.SaveChangesAsync(ct);
+
+        // Notificar al usuario por correo
+        _ = _emailService.SendAccountDeactivatedEmailAsync(user.UsrEmail, user.UsrFullName, ct);
+
+        return true;
     }
 }

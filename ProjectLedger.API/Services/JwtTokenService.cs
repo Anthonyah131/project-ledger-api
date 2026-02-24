@@ -34,7 +34,8 @@ public class JwtTokenService : IJwtTokenService
             new Claim(JwtRegisteredClaimNames.Name,  user.UsrFullName),
             new Claim(JwtRegisteredClaimNames.Jti,   Guid.NewGuid().ToString()),
             new Claim("plan_id",   user.UsrPlanId.ToString()),
-            new Claim("is_admin",  user.UsrIsAdmin.ToString().ToLower())
+            new Claim("is_admin",  user.UsrIsAdmin.ToString().ToLower()),
+            new Claim("is_active", user.UsrIsActive.ToString().ToLower())
         };
 
         var token = new JwtSecurityToken(

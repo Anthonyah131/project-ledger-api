@@ -45,10 +45,77 @@ public class ExpenseController : ControllerBase
     [Authorize(Policy = "ProjectViewer")]
     [ProducesResponseType(typeof(IEnumerable<ExpenseResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> GetByProject(Guid projectId, CancellationToken ct)
+    public async Task<IActionResult> GetByProject(
+        Guid projectId,
+        [FromQuery] bool includeDeleted = false,
+        CancellationToken ct = default)
     {
-        var expenses = await _expenseService.GetByProjectIdAsync(projectId, ct);
+        // Solo Editor+ puede ver gastos eliminados
+        if (includeDeleted)
+        {
+            var userId = User.GetRequiredUserId();
+            await _accessService.ValidateAccessAsync(userId, projectId, ProjectRoles.Editor, ct);
+        }
+
+        var expenses = await _expenseService.GetByProjectIdAsync(projectId, includeDeleted, ct);
         return Ok(expenses.ToResponse());
+    }
+
+    // ── GET /api/projects/{projectId}/expenses/templates ───
+
+    /// <summary>
+    /// Lista todas las plantillas de gasto del proyecto.
+    /// Las plantillas no son movimientos financieros reales.
+    /// </summary>
+    /// <response code="200">Lista de plantillas.</response>
+    [HttpGet("templates")]
+    [Authorize(Policy = "ProjectViewer")]
+    [ProducesResponseType(typeof(IEnumerable<ExpenseResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetTemplates(Guid projectId, CancellationToken ct)
+    {
+        var templates = await _expenseService.GetTemplatesByProjectIdAsync(projectId, ct);
+        return Ok(templates.ToResponse());
+    }
+
+    // ── POST /api/projects/{projectId}/expenses/from-template/{templateId}
+
+    /// <summary>
+    /// Crea un gasto real a partir de una plantilla existente.
+    /// Reutiliza: categoría, método de pago, moneda, descripción, exchange rate, alt currency.
+    /// El usuario puede sobreescribir monto y fecha.
+    /// </summary>
+    /// <response code="201">Gasto creado desde la plantilla.</response>
+    /// <response code="404">Plantilla no encontrada o no pertenece al proyecto.</response>
+    /// <response code="400">El gasto origen no es una plantilla.</response>
+    [HttpPost("from-template/{templateId:guid}")]
+    [Authorize(Policy = "ProjectEditor")]
+    [ProducesResponseType(typeof(ExpenseResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CreateFromTemplate(
+        Guid projectId,
+        Guid templateId,
+        [FromBody] CreateFromTemplateRequest request,
+        CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var template = await _expenseService.GetByIdAsync(templateId, ct);
+        if (template is null || template.ExpProjectId != projectId)
+            return NotFound(new { message = "Template not found in this project." });
+
+        if (!template.ExpIsTemplate)
+            return BadRequest(new { message = "The specified expense is not a template." });
+
+        var userId = User.GetRequiredUserId();
+        var expense = template.ToEntityFromTemplate(projectId, userId, request);
+        await _expenseService.CreateAsync(expense, ct);
+
+        return CreatedAtAction(
+            nameof(GetById),
+            new { projectId, expenseId = expense.ExpId },
+            expense.ToResponse());
     }
 
     // ── GET /api/projects/{projectId}/expenses/{expenseId} ──

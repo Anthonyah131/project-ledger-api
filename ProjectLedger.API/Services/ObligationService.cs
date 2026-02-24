@@ -9,10 +9,12 @@ namespace ProjectLedger.API.Services;
 public class ObligationService : IObligationService
 {
     private readonly IObligationRepository _obligationRepo;
+    private readonly IAuditLogService _auditLog;
 
-    public ObligationService(IObligationRepository obligationRepo)
+    public ObligationService(IObligationRepository obligationRepo, IAuditLogService auditLog)
     {
         _obligationRepo = obligationRepo;
+        _auditLog = auditLog;
     }
 
     public async Task<Obligation?> GetByIdAsync(Guid id, CancellationToken ct = default)
@@ -32,6 +34,9 @@ public class ObligationService : IObligationService
         await _obligationRepo.AddAsync(obligation, ct);
         await _obligationRepo.SaveChangesAsync(ct);
 
+        _ = _auditLog.LogAsync("Obligation", obligation.OblId, "create", obligation.OblCreatedByUserId,
+            newValues: new { obligation.OblId, obligation.OblTitle, obligation.OblTotalAmount }, ct: ct);
+
         return obligation;
     }
 
@@ -40,6 +45,9 @@ public class ObligationService : IObligationService
         obligation.OblUpdatedAt = DateTime.UtcNow;
         _obligationRepo.Update(obligation);
         await _obligationRepo.SaveChangesAsync(ct);
+
+        _ = _auditLog.LogAsync("Obligation", obligation.OblId, "update", obligation.OblCreatedByUserId,
+            newValues: new { obligation.OblTitle, obligation.OblTotalAmount, obligation.OblDueDate }, ct: ct);
     }
 
     public async Task SoftDeleteAsync(Guid id, Guid deletedByUserId, CancellationToken ct = default)
@@ -57,5 +65,8 @@ public class ObligationService : IObligationService
 
         _obligationRepo.Update(obligation);
         await _obligationRepo.SaveChangesAsync(ct);
+
+        _ = _auditLog.LogAsync("Obligation", id, "delete", deletedByUserId,
+            oldValues: new { obligation.OblTitle }, ct: ct);
     }
 }

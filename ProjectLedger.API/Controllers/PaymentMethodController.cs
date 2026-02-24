@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ProjectLedger.API.DTOs.Expense;
 using ProjectLedger.API.DTOs.PaymentMethod;
 using ProjectLedger.API.Extensions.Mappings;
 using ProjectLedger.API.Services;
@@ -22,10 +23,14 @@ namespace ProjectLedger.API.Controllers;
 public class PaymentMethodController : ControllerBase
 {
     private readonly IPaymentMethodService _paymentMethodService;
+    private readonly IExpenseService _expenseService;
 
-    public PaymentMethodController(IPaymentMethodService paymentMethodService)
+    public PaymentMethodController(
+        IPaymentMethodService paymentMethodService,
+        IExpenseService expenseService)
     {
         _paymentMethodService = paymentMethodService;
+        _expenseService = expenseService;
     }
 
     // ── GET /api/payment-methods ────────────────────────────
@@ -145,5 +150,28 @@ public class PaymentMethodController : ControllerBase
 
         await _paymentMethodService.SoftDeleteAsync(id, userId, ct);
         return NoContent();
+    }
+
+    // ── GET /api/payment-methods/{id}/expenses ────────────
+
+    /// <summary>
+    /// Obtiene todos los movimientos (gastos) de un método de pago,
+    /// cruzando todos los proyectos del usuario.
+    /// </summary>
+    /// <response code="200">Lista de gastos asociados al método de pago.</response>
+    /// <response code="404">Método de pago no encontrado.</response>
+    [HttpGet("{id:guid}/expenses")]
+    [ProducesResponseType(typeof(IEnumerable<ExpenseResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetExpensesByPaymentMethod(Guid id, CancellationToken ct)
+    {
+        var userId = User.GetRequiredUserId();
+        var pm = await _paymentMethodService.GetByIdAsync(id, ct);
+
+        if (pm is null || pm.PmtOwnerUserId != userId)
+            return NotFound(new { message = "Payment method not found." });
+
+        var expenses = await _expenseService.GetByPaymentMethodIdAsync(id, ct);
+        return Ok(expenses.ToResponse());
     }
 }

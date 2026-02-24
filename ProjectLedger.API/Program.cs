@@ -1,5 +1,6 @@
 using Microsoft.OpenApi;
 using ProjectLedger.API.Extensions;
+using ProjectLedger.API.Filters;
 using ProjectLedger.API.Middleware;
 
 // ── Load .env file into environment variables ───────────────
@@ -22,7 +23,13 @@ if (File.Exists(envFile))
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Service Registration ────────────────────────────────────
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    // Filtro global: usuarios desactivados solo pueden leer (GET)
+    options.Filters.Add<ActiveUserWriteFilter>();
+    // Filtro global: admin solo puede acceder a rutas de administración
+    options.Filters.Add<AdminIsolationFilter>();
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -51,6 +58,21 @@ builder.Services.AddSwaggerGen(options =>
 
 // Database (CockroachDB / PostgreSQL)
 builder.Services.AddDatabase(builder.Configuration);
+
+// Email
+builder.Services.Configure<EmailSettings>(
+    builder.Configuration.GetSection(EmailSettings.SectionName));
+// Resolver placeholders ${ENV_VAR} en las settings de email
+builder.Services.PostConfigure<EmailSettings>(settings =>
+{
+    settings.SmtpUser     = Resolve(settings.SmtpUser);
+    settings.SmtpPassword = Resolve(settings.SmtpPassword);
+    settings.FromEmail    = string.IsNullOrEmpty(settings.FromEmail) ? settings.SmtpUser : Resolve(settings.FromEmail);
+    static string Resolve(string value) =>
+        value.StartsWith("${") && value.EndsWith("}")
+            ? Environment.GetEnvironmentVariable(value[2..^1]) ?? string.Empty
+            : value;
+});
 
 // Security
 builder.Services.AddJwtAuthentication(builder.Configuration);

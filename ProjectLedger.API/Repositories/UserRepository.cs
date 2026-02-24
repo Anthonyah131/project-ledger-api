@@ -15,4 +15,11 @@ public class UserRepository : Repository<User>, IUserRepository
     public async Task<bool> EmailExistsAsync(string email, CancellationToken ct = default)
         => await DbSet.AnyAsync(
             u => u.UsrEmail == email && !u.UsrIsDeleted, ct);
+
+    public async Task<IReadOnlyList<User>> GetAllUsersAsync(bool includeDeleted = false, CancellationToken ct = default)
+        => await DbSet
+            .Where(u => includeDeleted || !u.UsrIsDeleted)
+            .Include(u => u.Plan)
+            .OrderByDescending(u => u.UsrCreatedAt)
+            .ToListAsync(ct);
 }
