@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ProjectLedger.API.DTOs.Common;
 using ProjectLedger.API.DTOs.Expense;
 using ProjectLedger.API.Extensions.Mappings;
 using ProjectLedger.API.Services;
@@ -37,16 +38,17 @@ public class ExpenseController : ControllerBase
     // ── GET /api/projects/{projectId}/expenses ──────────────
 
     /// <summary>
-    /// Lista todos los gastos del proyecto. Requiere al menos ser viewer.
+    /// Lista todos los gastos del proyecto con paginación.
     /// </summary>
-    /// <response code="200">Lista de gastos del proyecto.</response>
+    /// <response code="200">Lista paginada de gastos del proyecto.</response>
     /// <response code="403">Sin acceso al proyecto.</response>
     [HttpGet]
     [Authorize(Policy = "ProjectViewer")]
-    [ProducesResponseType(typeof(IEnumerable<ExpenseResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResponse<ExpenseResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetByProject(
         Guid projectId,
+        [FromQuery] PagedRequest pagination,
         [FromQuery] bool includeDeleted = false,
         CancellationToken ct = default)
     {
@@ -57,8 +59,14 @@ public class ExpenseController : ControllerBase
             await _accessService.ValidateAccessAsync(userId, projectId, ProjectRoles.Editor, ct);
         }
 
-        var expenses = await _expenseService.GetByProjectIdAsync(projectId, includeDeleted, ct);
-        return Ok(expenses.ToResponse());
+        var (items, totalCount) = await _expenseService.GetByProjectIdPagedAsync(
+            projectId, includeDeleted, pagination.Skip, pagination.PageSize,
+            pagination.SortBy, pagination.IsDescending, ct);
+
+        var response = PagedResponse<ExpenseResponse>.Create(
+            items.ToResponse().ToList(), totalCount, pagination);
+
+        return Ok(response);
     }
 
     // ── GET /api/projects/{projectId}/expenses/templates ───

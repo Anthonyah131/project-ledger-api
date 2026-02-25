@@ -26,5 +26,5 @@ public class EmailSettings
     public string AdminEmail { get; set; } = string.Empty;
 
     /// <summary>Si true, los correos se loguean en consola en lugar de enviarse (dev mode).</summary>
-    public bool UseFakeProvider { get; set; } = true;
+    public bool UseFakeProvider { get; set; } = false;
 }

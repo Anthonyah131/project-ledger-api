@@ -275,6 +275,7 @@ public class AuthService : IAuthService
                 Id = user.UsrId,
                 Email = user.UsrEmail,
                 FullName = user.UsrFullName,
+                IsActive = user.UsrIsActive,
                 IsAdmin = user.UsrIsAdmin,
                 AvatarUrl = user.UsrAvatarUrl
             }

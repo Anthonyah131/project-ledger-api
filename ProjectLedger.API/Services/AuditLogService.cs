@@ -55,6 +55,14 @@ public class AuditLogService : IAuditLogService
         string entityName, Guid entityId, CancellationToken ct = default)
         => await _auditLogRepo.GetByEntityAsync(entityName, entityId, ct);
 
+    public async Task<(IReadOnlyList<AuditLog> Items, int TotalCount)> GetByEntityPagedAsync(
+        string entityName, Guid entityId, int skip, int take, CancellationToken ct = default)
+        => await _auditLogRepo.GetByEntityPagedAsync(entityName, entityId, skip, take, ct);
+
     public async Task<IEnumerable<AuditLog>> GetByUserIdAsync(Guid userId, CancellationToken ct = default)
         => await _auditLogRepo.GetByUserIdAsync(userId, ct);
+
+    public async Task<(IReadOnlyList<AuditLog> Items, int TotalCount)> GetByUserIdPagedAsync(
+        Guid userId, int skip, int take, CancellationToken ct = default)
+        => await _auditLogRepo.GetByUserIdPagedAsync(userId, skip, take, ct);
 }

@@ -43,7 +43,10 @@ public static class SecurityExtensions
             opts.SecretKey = secretKey;
         });
 
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
+        {
+            KeyId = "ProjectLedger-HS256"
+        };
 
         services
             .AddAuthentication(options =>

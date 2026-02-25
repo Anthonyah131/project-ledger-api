@@ -67,6 +67,10 @@ public class UserService : IUserService
     public async Task<IReadOnlyList<User>> GetAllAsync(bool includeDeleted = false, CancellationToken ct = default)
         => await _userRepo.GetAllUsersAsync(includeDeleted, ct);
 
+    public async Task<(IReadOnlyList<User> Items, int TotalCount)> GetAllPagedAsync(
+        bool includeDeleted, int skip, int take, string? sortBy, bool descending, CancellationToken ct = default)
+        => await _userRepo.GetAllUsersPagedAsync(includeDeleted, skip, take, sortBy, descending, ct);
+
     public async Task<bool> ActivateAsync(Guid userId, CancellationToken ct = default)
     {
         var user = await _userRepo.GetByIdAsync(userId, ct);

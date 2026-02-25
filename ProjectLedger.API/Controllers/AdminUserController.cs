@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.Admin;
+using ProjectLedger.API.DTOs.Common;
 using ProjectLedger.API.Extensions.Mappings;
 using ProjectLedger.API.Services;
 
@@ -42,23 +43,31 @@ public class AdminUserController : ControllerBase
     // ── GET /api/admin/users ────────────────────────────────
 
     /// <summary>
-    /// Lista todos los usuarios del sistema (solo admin).
+    /// Lista todos los usuarios del sistema con paginación (solo admin).
     /// </summary>
+    /// <param name="pagination">Parámetros de paginación (page, pageSize, sortBy, sortDirection).</param>
     /// <param name="includeDeleted">Si true, incluye usuarios con soft-delete.</param>
-    /// <response code="200">Lista de usuarios.</response>
+    /// <response code="200">Lista paginada de usuarios.</response>
     /// <response code="403">No es administrador.</response>
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<AdminUserResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResponse<AdminUserResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetAll(
+        [FromQuery] PagedRequest pagination,
         [FromQuery] bool includeDeleted = false,
         CancellationToken ct = default)
     {
         if (!IsAdmin())
             return Forbid();
 
-        var users = await _userService.GetAllAsync(includeDeleted, ct);
-        return Ok(users.Select(u => u.ToAdminResponse()));
+        var (items, totalCount) = await _userService.GetAllPagedAsync(
+            includeDeleted, pagination.Skip, pagination.PageSize,
+            pagination.SortBy, pagination.IsDescending, ct);
+
+        var response = PagedResponse<AdminUserResponse>.Create(
+            items.Select(u => u.ToAdminResponse()).ToList(), totalCount, pagination);
+
+        return Ok(response);
     }
 
     // ── GET /api/admin/users/{id} ───────────────────────────

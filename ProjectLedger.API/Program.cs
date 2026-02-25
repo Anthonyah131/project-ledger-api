@@ -74,6 +74,18 @@ builder.Services.PostConfigure<EmailSettings>(settings =>
             : value;
 });
 
+// Resolver placeholder ${JWT_SECRET_KEY} en JwtSettings (igual que EmailSettings)
+builder.Services.PostConfigure<JwtSettings>(settings =>
+{
+    if (!string.IsNullOrEmpty(settings.SecretKey)
+        && settings.SecretKey.StartsWith("${")
+        && settings.SecretKey.EndsWith("}"))
+    {
+        settings.SecretKey = Environment.GetEnvironmentVariable(
+            settings.SecretKey[2..^1]) ?? settings.SecretKey;
+    }
+});
+
 // Security
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddCorsPolicy(builder.Configuration);

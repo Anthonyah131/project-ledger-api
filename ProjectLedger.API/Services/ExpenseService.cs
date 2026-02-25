@@ -41,6 +41,10 @@ public class ExpenseService : IExpenseService
     public async Task<IEnumerable<Expense>> GetByProjectIdAsync(Guid projectId, bool includeDeleted, CancellationToken ct = default)
         => await _expenseRepo.GetByProjectIdAsync(projectId, includeDeleted, ct);
 
+    public async Task<(IReadOnlyList<Expense> Items, int TotalCount)> GetByProjectIdPagedAsync(
+        Guid projectId, bool includeDeleted, int skip, int take, string? sortBy, bool descending, CancellationToken ct = default)
+        => await _expenseRepo.GetByProjectIdPagedAsync(projectId, includeDeleted, skip, take, sortBy, descending, ct);
+
     public async Task<IEnumerable<Expense>> GetByCategoryIdAsync(Guid categoryId, CancellationToken ct = default)
         => await _expenseRepo.GetByCategoryIdAsync(categoryId, ct);
 
@@ -184,4 +188,8 @@ public class ExpenseService : IExpenseService
     public async Task<IEnumerable<Expense>> GetByPaymentMethodIdAsync(
         Guid paymentMethodId, CancellationToken ct = default)
         => await _expenseRepo.GetByPaymentMethodIdAsync(paymentMethodId, ct);
+
+    public async Task<(IReadOnlyList<Expense> Items, int TotalCount)> GetByPaymentMethodIdPagedAsync(
+        Guid paymentMethodId, int skip, int take, string? sortBy, bool descending, CancellationToken ct = default)
+        => await _expenseRepo.GetByPaymentMethodIdPagedAsync(paymentMethodId, skip, take, sortBy, descending, ct);
 }

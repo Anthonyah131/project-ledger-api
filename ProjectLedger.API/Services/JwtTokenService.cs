@@ -21,10 +21,23 @@ public class JwtTokenService : IJwtTokenService
         _settings = settings.Value;
     }
 
+    // Resuelve el placeholder ${VAR} igual que SecurityExtensions — garantiza
+    // que firma y validación usen exactamente los mismos bytes de clave.
+    private string ResolveSecretKey()
+    {
+        var raw = _settings.SecretKey;
+        if (!string.IsNullOrEmpty(raw) && raw.StartsWith("${") && raw.EndsWith("}"))
+            raw = Environment.GetEnvironmentVariable(raw[2..^1]) ?? raw;
+        return raw;
+    }
+
     /// <inheritdoc />
     public string GenerateAccessToken(User user)
     {
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.SecretKey));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(ResolveSecretKey()))
+        {
+            KeyId = "ProjectLedger-HS256"
+        };
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var claims = new[]
@@ -61,7 +74,7 @@ public class JwtTokenService : IJwtTokenService
     public Guid? GetUserIdFromExpiredToken(string token)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.SecretKey));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(ResolveSecretKey()));
 
         var validationParams = new TokenValidationParameters
         {

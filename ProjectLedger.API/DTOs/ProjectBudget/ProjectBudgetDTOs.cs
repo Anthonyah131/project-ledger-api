@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace ProjectLedger.API.DTOs.ProjectBudget;
 
 // ── Requests ────────────────────────────────────────────────
@@ -9,8 +11,12 @@ namespace ProjectLedger.API.DTOs.ProjectBudget;
 /// </summary>
 public class SetProjectBudgetRequest
 {
+    [Required]
+    [Range(0.01, 99999999999999.99, ErrorMessage = "TotalBudget must be greater than 0.")]
     public decimal TotalBudget { get; set; }
-    public decimal AlertPercentage { get; set; } = 80.00m;     // 1-100%
+
+    [Range(1.00, 100.00, ErrorMessage = "AlertPercentage must be between 1 and 100.")]
+    public decimal AlertPercentage { get; set; } = 80.00m;
 }
 
 // ── Responses ───────────────────────────────────────────────

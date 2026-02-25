@@ -12,6 +12,7 @@ public interface IUserService
 
     // ── Admin operations ────────────────────────────────────
     Task<IReadOnlyList<User>> GetAllAsync(bool includeDeleted = false, CancellationToken ct = default);
+    Task<(IReadOnlyList<User> Items, int TotalCount)> GetAllPagedAsync(bool includeDeleted, int skip, int take, string? sortBy, bool descending, CancellationToken ct = default);
     Task<bool> ActivateAsync(Guid userId, CancellationToken ct = default);
     Task<bool> DeactivateAsync(Guid userId, CancellationToken ct = default);
 }

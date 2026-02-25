@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace ProjectLedger.API.DTOs.User;
 
 // ── Requests ────────────────────────────────────────────────
@@ -5,14 +7,24 @@ namespace ProjectLedger.API.DTOs.User;
 /// <summary>Request para actualizar perfil. Solo campos que el usuario puede cambiar.</summary>
 public class UpdateProfileRequest
 {
+    [Required]
+    [StringLength(255, MinimumLength = 1, ErrorMessage = "FullName must be between 1 and 255 characters.")]
     public string FullName { get; set; } = null!;
+
+    [Url(ErrorMessage = "AvatarUrl must be a valid URL.")]
     public string? AvatarUrl { get; set; }
 }
 
 /// <summary>Request para cambiar contraseña.</summary>
 public class ChangePasswordRequest
 {
+    [Required]
+    [MinLength(1, ErrorMessage = "CurrentPassword is required.")]
     public string CurrentPassword { get; set; } = null!;
+
+    [Required]
+    [MinLength(8, ErrorMessage = "NewPassword must be at least 8 characters.")]
+    [StringLength(128, ErrorMessage = "NewPassword cannot exceed 128 characters.")]
     public string NewPassword { get; set; } = null!;
 }
 

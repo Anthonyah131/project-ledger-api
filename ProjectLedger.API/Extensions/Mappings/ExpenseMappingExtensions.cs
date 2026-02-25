@@ -49,7 +49,7 @@ public static class ExpenseMappingExtensions
         ExpOriginalAmount = request.OriginalAmount,
         ExpOriginalCurrency = request.OriginalCurrency,
         ExpExchangeRate = request.ExchangeRate,
-        ExpConvertedAmount = request.OriginalAmount * request.ExchangeRate,
+        ExpConvertedAmount = request.ConvertedAmount ?? request.OriginalAmount * request.ExchangeRate,
         ExpTitle = request.Title,
         ExpDescription = request.Description,
         ExpExpenseDate = request.ExpenseDate,
@@ -74,7 +74,7 @@ public static class ExpenseMappingExtensions
         entity.ExpOriginalAmount = request.OriginalAmount;
         entity.ExpOriginalCurrency = request.OriginalCurrency;
         entity.ExpExchangeRate = request.ExchangeRate;
-        entity.ExpConvertedAmount = request.OriginalAmount * request.ExchangeRate;
+        entity.ExpConvertedAmount = request.ConvertedAmount ?? request.OriginalAmount * request.ExchangeRate;
         entity.ExpTitle = request.Title;
         entity.ExpDescription = request.Description;
         entity.ExpExpenseDate = request.ExpenseDate;

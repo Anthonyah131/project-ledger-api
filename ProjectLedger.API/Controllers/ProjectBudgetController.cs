@@ -126,11 +126,6 @@ public class ProjectBudgetController : ControllerBase
 
     // ── Private Helpers ─────────────────────────────────────
 
-    private async Task<decimal> CalculateSpentAmountAsync(Guid projectId, CancellationToken ct)
-    {
-        var expenses = await _expenseRepo.GetByProjectIdAsync(projectId, ct);
-        return expenses
-            .Where(e => !e.ExpIsTemplate)
-            .Sum(e => e.ExpConvertedAmount);
-    }
+    private Task<decimal> CalculateSpentAmountAsync(Guid projectId, CancellationToken ct)
+        => _expenseRepo.GetSpentAmountByProjectIdAsync(projectId, ct);
 }

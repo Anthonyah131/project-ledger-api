@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ProjectLedger.API.DTOs.Common;
 using ProjectLedger.API.DTOs.Obligation;
 using ProjectLedger.API.Extensions.Mappings;
 using ProjectLedger.API.Repositories;
@@ -39,24 +40,36 @@ public class ObligationController : ControllerBase
     // ── GET /api/projects/{projectId}/obligations ───────────
 
     /// <summary>
-    /// Lista todas las obligaciones del proyecto con montos pagados calculados.
+    /// Lista todas las obligaciones del proyecto con montos pagados calculados (paginado).
     /// </summary>
-    /// <response code="200">Lista de obligaciones.</response>
+    /// <response code="200">Lista paginada de obligaciones.</response>
     [HttpGet]
     [Authorize(Policy = "ProjectViewer")]
-    [ProducesResponseType(typeof(IEnumerable<ObligationResponse>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetByProject(Guid projectId, CancellationToken ct)
+    [ProducesResponseType(typeof(PagedResponse<ObligationResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetByProject(
+        Guid projectId,
+        [FromQuery] PagedRequest pagination,
+        CancellationToken ct)
     {
-        var obligations = await _obligationService.GetByProjectIdAsync(projectId, ct);
-        var responses = new List<ObligationResponse>();
+        var (items, totalCount) = await _obligationService.GetByProjectIdPagedAsync(
+            projectId, pagination.Skip, pagination.PageSize,
+            pagination.SortBy, pagination.IsDescending, ct);
 
-        foreach (var obl in obligations)
+        // Single batch query instead of N+1
+        var obligationIds = items.Select(o => o.OblId).ToList();
+        var paidAmounts = await _expenseRepo.GetPaidAmountsByObligationIdsAsync(obligationIds, ct);
+
+        var responses = new List<ObligationResponse>();
+        foreach (var obl in items)
         {
-            var paidAmount = await CalculatePaidAmountAsync(obl.OblId, ct);
+            paidAmounts.TryGetValue(obl.OblId, out var paidAmount);
             responses.Add(obl.ToResponse(paidAmount));
         }
 
-        return Ok(responses);
+        var response = PagedResponse<ObligationResponse>.Create(
+            responses, totalCount, pagination);
+
+        return Ok(response);
     }
 
     // ── GET /api/projects/{projectId}/obligations/{obligationId}

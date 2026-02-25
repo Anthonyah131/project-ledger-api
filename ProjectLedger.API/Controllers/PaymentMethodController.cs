@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ProjectLedger.API.DTOs.Common;
 using ProjectLedger.API.DTOs.Expense;
 using ProjectLedger.API.DTOs.PaymentMethod;
 using ProjectLedger.API.Extensions.Mappings;
@@ -155,15 +156,18 @@ public class PaymentMethodController : ControllerBase
     // ── GET /api/payment-methods/{id}/expenses ────────────
 
     /// <summary>
-    /// Obtiene todos los movimientos (gastos) de un método de pago,
+    /// Obtiene todos los movimientos (gastos) de un método de pago (paginado),
     /// cruzando todos los proyectos del usuario.
     /// </summary>
-    /// <response code="200">Lista de gastos asociados al método de pago.</response>
+    /// <response code="200">Lista paginada de gastos asociados al método de pago.</response>
     /// <response code="404">Método de pago no encontrado.</response>
     [HttpGet("{id:guid}/expenses")]
-    [ProducesResponseType(typeof(IEnumerable<ExpenseResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResponse<ExpenseResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetExpensesByPaymentMethod(Guid id, CancellationToken ct)
+    public async Task<IActionResult> GetExpensesByPaymentMethod(
+        Guid id,
+        [FromQuery] PagedRequest pagination,
+        CancellationToken ct)
     {
         var userId = User.GetRequiredUserId();
         var pm = await _paymentMethodService.GetByIdAsync(id, ct);
@@ -171,7 +175,13 @@ public class PaymentMethodController : ControllerBase
         if (pm is null || pm.PmtOwnerUserId != userId)
             return NotFound(new { message = "Payment method not found." });
 
-        var expenses = await _expenseService.GetByPaymentMethodIdAsync(id, ct);
-        return Ok(expenses.ToResponse());
+        var (items, totalCount) = await _expenseService.GetByPaymentMethodIdPagedAsync(
+            id, pagination.Skip, pagination.PageSize,
+            pagination.SortBy, pagination.IsDescending, ct);
+
+        var response = PagedResponse<ExpenseResponse>.Create(
+            items.ToResponse().ToList(), totalCount, pagination);
+
+        return Ok(response);
     }
 }

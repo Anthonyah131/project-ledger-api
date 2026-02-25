@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace ProjectLedger.API.DTOs.Admin;
 
 // ── Requests ────────────────────────────────────────────────
@@ -5,8 +7,13 @@ namespace ProjectLedger.API.DTOs.Admin;
 /// <summary>Request para que el admin edite información de un usuario.</summary>
 public class AdminUpdateUserRequest
 {
+    [Required]
+    [StringLength(255, MinimumLength = 1, ErrorMessage = "FullName must be between 1 and 255 characters.")]
     public string FullName { get; set; } = null!;
+
+    [Url(ErrorMessage = "AvatarUrl must be a valid URL.")]
     public string? AvatarUrl { get; set; }
+
     public Guid? PlanId { get; set; }
 }
 

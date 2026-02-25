@@ -26,6 +26,10 @@ public class ObligationService : IObligationService
     public async Task<IEnumerable<Obligation>> GetByProjectIdAsync(Guid projectId, CancellationToken ct = default)
         => await _obligationRepo.GetByProjectIdAsync(projectId, ct);
 
+    public async Task<(IReadOnlyList<Obligation> Items, int TotalCount)> GetByProjectIdPagedAsync(
+        Guid projectId, int skip, int take, string? sortBy, bool descending, CancellationToken ct = default)
+        => await _obligationRepo.GetByProjectIdPagedAsync(projectId, skip, take, sortBy, descending, ct);
+
     public async Task<Obligation> CreateAsync(Obligation obligation, CancellationToken ct = default)
     {
         obligation.OblCreatedAt = DateTime.UtcNow;
