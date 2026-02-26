@@ -28,6 +28,7 @@ public class User
     public User? DeletedByUser { get; set; }
 
     public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
+    public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = [];
     public ICollection<ExternalAuthProvider> ExternalAuthProviders { get; set; } = [];
     public ICollection<Project> OwnedProjects { get; set; } = [];
     public ICollection<ProjectMember> ProjectMemberships { get; set; } = [];

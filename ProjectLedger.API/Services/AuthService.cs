@@ -20,6 +20,7 @@ public class AuthService : IAuthService
 {
     private readonly IUserRepository _userRepo;
     private readonly IRefreshTokenRepository _refreshTokenRepo;
+    private readonly IPasswordResetTokenRepository _passwordResetTokenRepo;
     private readonly IPlanRepository _planRepo;
     private readonly IJwtTokenService _jwtTokenService;
     private readonly JwtSettings _jwtSettings;
@@ -32,6 +33,7 @@ public class AuthService : IAuthService
     public AuthService(
         IUserRepository userRepo,
         IRefreshTokenRepository refreshTokenRepo,
+        IPasswordResetTokenRepository passwordResetTokenRepo,
         IPlanRepository planRepo,
         IJwtTokenService jwtTokenService,
         IOptions<JwtSettings> jwtSettings,
@@ -40,6 +42,7 @@ public class AuthService : IAuthService
     {
         _userRepo = userRepo;
         _refreshTokenRepo = refreshTokenRepo;
+        _passwordResetTokenRepo = passwordResetTokenRepo;
         _planRepo = planRepo;
         _jwtTokenService = jwtTokenService;
         _jwtSettings = jwtSettings.Value;
@@ -247,7 +250,82 @@ public class AuthService : IAuthService
 
         _logger.LogInformation("All refresh tokens revoked for user {UserId}", userId);
     }
+    // ── Forgot Password ─────────────────────────────────────────
 
+    /// <inheritdoc />
+    public async Task<bool> ForgotPasswordAsync(string email, CancellationToken ct = default)
+    {
+        var normalizedEmail = email.ToLowerInvariant().Trim();
+        var user = await _userRepo.GetByEmailAsync(normalizedEmail, ct);
+
+        // Siempre retornar true: no revelar si el email existe
+        if (user == null || user.UsrIsDeleted)
+        {
+            _logger.LogWarning("Password reset requested for unknown email: {Email}", normalizedEmail);
+            return true;
+        }
+
+        // Invalidar códigos anteriores (uno activo a la vez)
+        await _passwordResetTokenRepo.InvalidateAllByUserIdAsync(user.UsrId, ct);
+
+        // Generar OTP de 6 dígitos
+        var rawCode = Random.Shared.Next(100000, 999999).ToString("D6");
+        var tokenEntity = new PasswordResetToken
+        {
+            PrtId       = Guid.NewGuid(),
+            PrtUserId   = user.UsrId,
+            PrtCodeHash = HashCode(rawCode),
+            PrtExpiresAt = DateTime.UtcNow.AddMinutes(15),
+            PrtCreatedAt = DateTime.UtcNow
+        };
+
+        await _passwordResetTokenRepo.AddAsync(tokenEntity, ct);
+        await _passwordResetTokenRepo.SaveChangesAsync(ct);
+
+        // Enviar OTP por email (fire-and-forget)
+        _ = _emailService.SendPasswordResetEmailAsync(user.UsrEmail, user.UsrFullName, rawCode, ct);
+
+        _logger.LogInformation("Password reset OTP generated for user {UserId}", user.UsrId);
+        return true;
+    }
+
+    // ── Reset Password ──────────────────────────────────────────
+
+    /// <inheritdoc />
+    public async Task<bool> ResetPasswordAsync(ResetPasswordRequest request, CancellationToken ct = default)
+    {
+        var normalizedEmail = request.Email.ToLowerInvariant().Trim();
+        var user = await _userRepo.GetByEmailAsync(normalizedEmail, ct);
+
+        if (user == null || user.UsrIsDeleted)
+        {
+            _logger.LogWarning("Password reset attempt for unknown email: {Email}", normalizedEmail);
+            return false;
+        }
+
+        // Buscar token válido (no usado, no expirado) por hash del código
+        var codeHash = HashCode(request.OtpCode);
+        var token = await _passwordResetTokenRepo.GetActiveByCodeHashAsync(codeHash, ct);
+
+        if (token == null || token.PrtUserId != user.UsrId)
+        {
+            _logger.LogWarning("Invalid or expired OTP for user {UserId}", user.UsrId);
+            return false;
+        }
+
+        // Actualizar contraseña
+        user.UsrPasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword, BcryptWorkFactor);
+        user.UsrUpdatedAt    = DateTime.UtcNow;
+        _userRepo.Update(user);
+
+        // Marcar el token como usado e invalidar todos los demás
+        await _passwordResetTokenRepo.InvalidateAllByUserIdAsync(user.UsrId, ct);
+        await _passwordResetTokenRepo.SaveChangesAsync(ct);
+        await _userRepo.SaveChangesAsync(ct);
+
+        _logger.LogInformation("Password reset successful for user {UserId}", user.UsrId);
+        return true;
+    }
     // ── Private Helpers ─────────────────────────────────────
 
     /// <summary>
@@ -257,6 +335,15 @@ public class AuthService : IAuthService
     private static string HashRefreshToken(string token)
     {
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));
+        return Convert.ToBase64String(bytes);
+    }
+
+    /// <summary>
+    /// Hash SHA-256 genérico para códigos OTP y otros tokens cortos.
+    /// </summary>
+    private static string HashCode(string code)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(code));
         return Convert.ToBase64String(bytes);
     }
 

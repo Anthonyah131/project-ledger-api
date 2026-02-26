@@ -139,6 +139,25 @@ public class EmailService : IEmailService
         await SendAsync(toEmail, subject, body, ct);
     }
 
+    // ── Password reset OTP ────────────────────────────────────
+
+    public async Task SendPasswordResetEmailAsync(
+        string toEmail, string fullName, string otpCode, CancellationToken ct = default)
+    {
+        var subject = "Código para restablecer tu contraseña — Project Ledger";
+        var body = $"""
+            <h2>Hola {fullName}</h2>
+            <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta.</p>
+            <p>Usa el siguiente código de verificación. Es válido por <strong>15 minutos</strong>.</p>
+            <h1 style="letter-spacing: 8px; font-size: 48px; color: #2563EB;">{otpCode}</h1>
+            <p>Si no solicitaste este cambio, ignora este correo. Tu contraseña no será modificada.</p>
+            <br/>
+            <p>— El equipo de Project Ledger</p>
+            """;
+
+        await SendAsync(toEmail, subject, body, ct);
+    }
+
     // ── Core send method ────────────────────────────────────────
 
     private async Task SendAsync(string to, string subject, string htmlBody, CancellationToken ct)

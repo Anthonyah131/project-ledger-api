@@ -63,7 +63,7 @@ VALUES
     -- Límites
     '{
         "max_projects": 2,
-        "max_expenses_per_month": 30,
+        "max_expenses": 30,
         "max_categories_per_project": 5,
         "max_payment_methods": 2,
         "max_team_members_per_project": 0
@@ -102,7 +102,7 @@ VALUES
     -- Límites
     '{
         "max_projects": 10,
-        "max_expenses_per_month": 200,
+        "max_expenses": 200,
         "max_categories_per_project": 20,
         "max_payment_methods": 10,
         "max_team_members_per_project": 5
@@ -141,7 +141,7 @@ VALUES
     -- Sin límites (null = ilimitado)
     '{
         "max_projects": null,
-        "max_expenses_per_month": null,
+        "max_expenses": null,
         "max_categories_per_project": null,
         "max_payment_methods": null,
         "max_team_members_per_project": null
@@ -152,6 +152,48 @@ VALUES
 )
 
 ON CONFLICT (pln_slug) DO NOTHING;
+
+-- ============================================================
+-- SEED: Usuarios de prueba
+-- ============================================================
+-- Contraseña de ambos usuarios: 123  (BCrypt work factor 12)
+-- ============================================================
+
+INSERT INTO public.users (
+    usr_id,
+    usr_email,
+    usr_password_hash,
+    usr_full_name,
+    usr_plan_id,
+    usr_is_active,
+    usr_is_admin,
+    usr_created_at,
+    usr_updated_at
+)
+VALUES
+(
+    gen_random_uuid(),
+    'anthonyah131@gmail.com',
+    '$2a$12$gO9ZBRRBE3be9HNHq1Kfz.xFUkRQYVv0hU971I5zW7GXmSv2msloO',  -- 123
+    'Anthony (Admin)',
+    (SELECT pln_id FROM public.plans WHERE pln_slug = 'premium'),
+    true,   -- activo
+    true,   -- es admin
+    now(),
+    now()
+),
+(
+    gen_random_uuid(),
+    'anthonyah1312@gmail.com',
+    '$2a$12$RpgoT4yZ/ApAQ6sROAF7WOy.WVei9eUsJQXTUz561jxws5K54KHxu',  -- 123
+    'Anthony (Usuario)',
+    (SELECT pln_id FROM public.plans WHERE pln_slug = 'free'),
+    true,   -- activo
+    false,  -- usuario normal
+    now(),
+    now()
+)
+ON CONFLICT (usr_email) DO NOTHING;
 
 -- ============================================================
 -- VERIFICACIÓN
@@ -165,3 +207,8 @@ ON CONFLICT (pln_slug) DO NOTHING;
 --        pln_limits
 -- FROM public.plans
 -- ORDER BY pln_display_order;
+
+-- SELECT usr_email, usr_full_name, usr_is_admin, usr_is_active, p.pln_slug
+-- FROM public.users u
+-- JOIN public.plans p ON p.pln_id = u.usr_plan_id
+-- WHERE usr_email IN ('anthonyah131@gmail.com', 'anthonyah1312@gmail.com');

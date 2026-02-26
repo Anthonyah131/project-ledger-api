@@ -21,4 +21,17 @@ public interface IAuthService
 
     /// <summary>Revoca todos los refresh tokens del usuario (logout de todos los dispositivos).</summary>
     Task RevokeAllTokensAsync(Guid userId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Inicia el flujo de restablecimiento de contraseña.
+    /// Genera un OTP de 6 dígitos, lo guarda hasheado y envía el correo.
+    /// Siempre retorna true para no revelar si el email existe.
+    /// </summary>
+    Task<bool> ForgotPasswordAsync(string email, CancellationToken ct = default);
+
+    /// <summary>
+    /// Restablece la contraseña usando el código OTP recibido por correo.
+    /// Retorna false si el código es inválido, expirado o ya fue usado.
+    /// </summary>
+    Task<bool> ResetPasswordAsync(ResetPasswordRequest request, CancellationToken ct = default);
 }

@@ -165,4 +165,53 @@ public class AuthController : ControllerBase
             email  = User.GetEmail()
         });
     }
-}
+    // ── POST /api/auth/forgot-password ──────────────────────────────
+
+    /// <summary>
+    /// Inicia el flujo de restablecimiento de contraseña.
+    /// Envía un código OTP de 6 dígitos al correo registrado.
+    /// Siempre retorna 200 para no revelar si el email existe.
+    /// </summary>
+    /// <response code="200">Solicitud procesada (ver correo).</response>
+    /// <response code="400">Datos inválidos.</response>
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ForgotPassword(
+        [FromBody] ForgotPasswordRequest request,
+        CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        await _authService.ForgotPasswordAsync(request.Email, ct);
+
+        // Respuesta genérica: nunca revelar si el email existe
+        return Ok(new { message = "If that email is registered, you will receive a reset code shortly." });
+    }
+
+    // ── POST /api/auth/reset-password ───────────────────────────────
+
+    /// <summary>
+    /// Restablece la contraseña usando el código OTP recibido por correo.
+    /// </summary>
+    /// <response code="200">Contraseña actualizada correctamente.</response>
+    /// <response code="400">Datos inválidos o código OTP incorrecto/expirado.</response>
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ResetPassword(
+        [FromBody] ResetPasswordRequest request,
+        CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var success = await _authService.ResetPasswordAsync(request, ct);
+        if (!success)
+            return BadRequest(new { message = "Invalid, expired, or already used OTP code." });
+
+        return Ok(new { message = "Password updated successfully." });
+    }}

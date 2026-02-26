@@ -22,4 +22,7 @@ public interface IEmailService
 
     /// <summary>Notifica al usuario que su acceso a un proyecto fue revocado.</summary>
     Task SendProjectAccessRevokedEmailAsync(string toEmail, string fullName, string projectName, string revokedByName, CancellationToken ct = default);
+
+    /// <summary>Envía el código OTP de restablecimiento de contraseña al usuario.</summary>
+    Task SendPasswordResetEmailAsync(string toEmail, string fullName, string otpCode, CancellationToken ct = default);
 }

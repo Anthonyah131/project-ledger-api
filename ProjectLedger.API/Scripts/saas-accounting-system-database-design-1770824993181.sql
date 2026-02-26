@@ -164,7 +164,33 @@ CREATE TABLE public.refresh_tokens (
 
 
 -- ============================================================
--- 5. EXTERNAL_AUTH_PROVIDERS  (OAuth – Google, Microsoft, etc.)
+-- 5. PASSWORD_RESET_TOKENS  (Restablecimiento de contraseña vía OTP)
+-- ============================================================
+-- Almacena códigos OTP de un solo uso para el flujo de reset de contraseña.
+-- El código nunca se guarda en texto plano; solo su hash SHA-256.
+-- Al generar un nuevo código, la app debe marcar los anteriores como usados
+-- (prt_used_at) o dejar que expiren naturalmente.
+--
+-- Flujo:
+--   1. POST /auth/forgot-password → genera OTP (6 dígitos),
+--      guarda hash + expiración, envía OTP por email al usuario.
+--   2. POST /auth/reset-password  → recibe OTP + nueva contraseña,
+--      hashea el código, busca token válido (no usado, no expirado),
+--      actualiza password en users, marca prt_used_at = now().
+-- ============================================================
+CREATE TABLE public.password_reset_tokens (
+    prt_id          uuid            NOT NULL DEFAULT gen_random_uuid(),  -- PK · Identificador único del token
+    prt_user_id     uuid            NOT NULL,                            -- FK → users · Usuario que solicitó el reset
+    prt_code_hash   text            NOT NULL,                            -- Hash SHA-256 del código OTP (nunca en texto plano)
+    prt_expires_at  timestamptz     NOT NULL,                            -- Fecha/hora de expiración del código OTP
+    prt_used_at     timestamptz,                                         -- Fecha en que fue utilizado; NULL = aún no usado
+    prt_created_at  timestamptz     NOT NULL DEFAULT now(),              -- Fecha de creación del registro
+    CONSTRAINT password_reset_tokens_pkey PRIMARY KEY (prt_id),
+    CONSTRAINT password_reset_tokens_user_id_fkey FOREIGN KEY (prt_user_id) REFERENCES public.users (usr_id)
+);
+
+-- ============================================================
+-- 6. EXTERNAL_AUTH_PROVIDERS  (OAuth – Google, Microsoft, etc.)
 -- ============================================================
 -- Vincula usuarios con cuentas externas (OAuth).
 -- Permite login con Google, Microsoft, GitHub, Facebook, etc.
@@ -196,7 +222,7 @@ CREATE TABLE public.external_auth_providers (
 );
 
 -- ============================================================
--- 6. PROJECTS  (Req 3)
+-- 7. PROJECTS  (Req 3)
 -- ============================================================
 -- prj_deleted_at / prj_deleted_by_user_id → auditoría de soft delete.
 -- ============================================================
@@ -218,7 +244,7 @@ CREATE TABLE public.projects (
 );
 
 -- ============================================================
--- 7. PROJECT_MEMBERS  (Req 3.3)
+-- 8. PROJECT_MEMBERS  (Req 3.3)
 -- ============================================================
 CREATE TABLE public.project_members (
     prm_id          uuid            NOT NULL DEFAULT gen_random_uuid(),  -- PK · Identificador único de la membresía
@@ -244,7 +270,7 @@ CREATE UNIQUE INDEX idx_prm_project_user_active
     WHERE prm_is_deleted = false;
 
 -- ============================================================
--- 8. CATEGORIES  (Req 4)
+-- 9. CATEGORIES  (Req 4)
 -- ============================================================
 -- cat_is_default: marca la categoría "General" creada automáticamente.
 -- cat_budget_amount: presupuesto opcional por categoría (NULL = sin presupuesto).
@@ -274,7 +300,7 @@ CREATE UNIQUE INDEX idx_cat_project_name_active
     WHERE cat_is_deleted = false;
 
 -- ============================================================
--- 9. PAYMENT_METHODS  (Req 8)
+-- 10. PAYMENT_METHODS  (Req 8)
 -- ============================================================
 -- Métodos de pago pertenecen al USUARIO (no al proyecto).
 -- Req 8.2: permite ver movimientos de una cuenta cruzando proyectos.
@@ -301,7 +327,7 @@ CREATE TABLE public.payment_methods (
 );
 
 -- ============================================================
--- 10. EXPENSES  (Req 5 + Req 7 + Req 9)
+-- 11. EXPENSES  (Req 5 + Req 7 + Req 9)
 -- ============================================================
 -- LÓGICA DE CONVERSIÓN DE MONEDA:
 --   El proyecto tiene una moneda base (prj_currency_code).
@@ -380,7 +406,7 @@ CREATE TABLE public.expenses (
 );
 
 -- ============================================================
--- 11. OBLIGATIONS  (Módulo de deudas)
+-- 12. OBLIGATIONS  (Módulo de deudas)
 -- ============================================================
 -- Representa una deuda/obligación financiera dentro de un proyecto.
 -- El ESTADO NO se persiste en la DB; se calcula dinámicamente en la
@@ -428,7 +454,7 @@ ALTER TABLE public.expenses
     ADD CONSTRAINT expenses_obligation_id_fkey FOREIGN KEY (exp_obligation_id) REFERENCES public.obligations (obl_id);
 
 -- ============================================================
--- 12. AUDIT_LOGS  (Req 6)
+-- 13. AUDIT_LOGS  (Req 6)
 -- ============================================================
 -- Registro de auditoría para toda entidad relevante.
 -- aud_old_values / aud_new_values → snapshots JSONB.
@@ -451,7 +477,7 @@ CREATE TABLE public.audit_logs (
 -- Nota: 'associate' cubre la acción de vincular un expense a una obligation.
 
 -- ============================================================
--- 13. PROJECT_BUDGETS  (Req 10)
+-- 14. PROJECT_BUDGETS  (Req 10)
 -- ============================================================
 -- Presupuesto global del proyecto con umbral de alerta.
 -- Opcional: un proyecto puede no tener presupuesto.
@@ -483,7 +509,7 @@ CREATE UNIQUE INDEX idx_pjb_project_active
     WHERE pjb_is_deleted = false;
 
 -- ============================================================
--- 14. INDICES
+-- 15. INDICES
 -- ============================================================
 -- currencies
 CREATE INDEX idx_cur_is_active ON public.currencies (cur_is_active);
@@ -500,6 +526,11 @@ CREATE INDEX idx_pln_is_active ON public.plans (pln_is_active);
 CREATE INDEX idx_rtk_user_id ON public.refresh_tokens (rtk_user_id);
 
 CREATE INDEX idx_rtk_expires_at ON public.refresh_tokens (rtk_expires_at);
+
+-- password_reset_tokens
+CREATE INDEX idx_prt_user_id ON public.password_reset_tokens (prt_user_id);
+
+CREATE INDEX idx_prt_expires_at ON public.password_reset_tokens (prt_expires_at);
 
 -- external_auth_providers  (provider+provider_user_id ya tiene UNIQUE index implícito)
 CREATE INDEX idx_eap_user_id ON public.external_auth_providers (eap_user_id);
