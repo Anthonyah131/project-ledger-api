@@ -36,10 +36,11 @@ public class CreateExpenseRequest
 
     /// <summary>
     /// Monto convertido a la moneda del proyecto. Es el valor que se usa para totales y cálculos.
-    /// Si no se envía, se calcula automáticamente como OriginalAmount × ExchangeRate.
+    /// El front es responsable de enviarlo calculado.
     /// </summary>
+    [Required]
     [Range(0.01, 99999999999999.99, ErrorMessage = "ConvertedAmount must be greater than 0.")]
-    public decimal? ConvertedAmount { get; set; }
+    public decimal ConvertedAmount { get; set; }
 
     // ── Datos descriptivos ──────────────────────────────────
 
@@ -66,6 +67,9 @@ public class CreateExpenseRequest
 
     [Range(0.000001, 999999999999.999999, ErrorMessage = "AltExchangeRate must be greater than 0.")]
     public decimal? AltExchangeRate { get; set; }
+
+    [Range(0.01, 99999999999999.99, ErrorMessage = "AltAmount must be greater than 0.")]
+    public decimal? AltAmount { get; set; }
 }
 
 /// <summary>Request para actualizar un gasto.</summary>
@@ -91,10 +95,11 @@ public class UpdateExpenseRequest
 
     /// <summary>
     /// Monto convertido a la moneda del proyecto. Es el valor que se usa para totales y cálculos.
-    /// Si no se envía, se calcula automáticamente como OriginalAmount × ExchangeRate.
+    /// El front es responsable de enviarlo calculado.
     /// </summary>
+    [Required]
     [Range(0.01, 99999999999999.99, ErrorMessage = "ConvertedAmount must be greater than 0.")]
-    public decimal? ConvertedAmount { get; set; }
+    public decimal ConvertedAmount { get; set; }
 
     [Required]
     [StringLength(255, MinimumLength = 1, ErrorMessage = "Title must be between 1 and 255 characters.")]
@@ -116,6 +121,9 @@ public class UpdateExpenseRequest
 
     [Range(0.000001, 999999999999.999999, ErrorMessage = "AltExchangeRate must be greater than 0.")]
     public decimal? AltExchangeRate { get; set; }
+
+    [Range(0.01, 99999999999999.99, ErrorMessage = "AltAmount must be greater than 0.")]
+    public decimal? AltAmount { get; set; }
 }
 
 /// <summary>
@@ -127,6 +135,12 @@ public class CreateFromTemplateRequest
 {
     [Range(0.01, 99999999999999.99, ErrorMessage = "OriginalAmount must be greater than 0.")]
     public decimal? OriginalAmount { get; set; }
+
+    [Range(0.01, 99999999999999.99, ErrorMessage = "ConvertedAmount must be greater than 0.")]
+    public decimal? ConvertedAmount { get; set; }
+
+    [Range(0.01, 99999999999999.99, ErrorMessage = "AltAmount must be greater than 0.")]
+    public decimal? AltAmount { get; set; }
 
     public DateOnly? ExpenseDate { get; set; }
     public Guid? ObligationId { get; set; }

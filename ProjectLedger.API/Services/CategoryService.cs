@@ -51,7 +51,7 @@ public class CategoryService : ICategoryService
         await _categoryRepo.AddAsync(category, ct);
         await _categoryRepo.SaveChangesAsync(ct);
 
-        _ = _auditLog.LogAsync("Category", category.CatId, "create", project.PrjOwnerUserId,
+        await _auditLog.LogAsync("Category", category.CatId, "create", project.PrjOwnerUserId,
             newValues: new { category.CatId, category.CatName, category.CatProjectId }, ct: ct);
 
         return category;
@@ -63,7 +63,7 @@ public class CategoryService : ICategoryService
         _categoryRepo.Update(category);
         await _categoryRepo.SaveChangesAsync(ct);
 
-        _ = _auditLog.LogAsync("Category", category.CatId, "update", category.CatProjectId,
+        await _auditLog.LogAsync("Category", category.CatId, "update", category.CatProjectId,
             newValues: new { category.CatName, category.CatDescription }, ct: ct);
     }
 
@@ -88,7 +88,7 @@ public class CategoryService : ICategoryService
         _categoryRepo.Update(category);
         await _categoryRepo.SaveChangesAsync(ct);
 
-        _ = _auditLog.LogAsync("Category", id, "delete", deletedByUserId,
+        await _auditLog.LogAsync("Category", id, "delete", deletedByUserId,
             oldValues: new { category.CatName }, ct: ct);
     }
 }

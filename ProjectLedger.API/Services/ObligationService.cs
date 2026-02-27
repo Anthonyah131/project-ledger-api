@@ -38,7 +38,7 @@ public class ObligationService : IObligationService
         await _obligationRepo.AddAsync(obligation, ct);
         await _obligationRepo.SaveChangesAsync(ct);
 
-        _ = _auditLog.LogAsync("Obligation", obligation.OblId, "create", obligation.OblCreatedByUserId,
+        await _auditLog.LogAsync("Obligation", obligation.OblId, "create", obligation.OblCreatedByUserId,
             newValues: new { obligation.OblId, obligation.OblTitle, obligation.OblTotalAmount }, ct: ct);
 
         return obligation;
@@ -50,7 +50,7 @@ public class ObligationService : IObligationService
         _obligationRepo.Update(obligation);
         await _obligationRepo.SaveChangesAsync(ct);
 
-        _ = _auditLog.LogAsync("Obligation", obligation.OblId, "update", obligation.OblCreatedByUserId,
+        await _auditLog.LogAsync("Obligation", obligation.OblId, "update", obligation.OblCreatedByUserId,
             newValues: new { obligation.OblTitle, obligation.OblTotalAmount, obligation.OblDueDate }, ct: ct);
     }
 
@@ -70,7 +70,7 @@ public class ObligationService : IObligationService
         _obligationRepo.Update(obligation);
         await _obligationRepo.SaveChangesAsync(ct);
 
-        _ = _auditLog.LogAsync("Obligation", id, "delete", deletedByUserId,
+        await _auditLog.LogAsync("Obligation", id, "delete", deletedByUserId,
             oldValues: new { obligation.OblTitle }, ct: ct);
     }
 }

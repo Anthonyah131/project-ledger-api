@@ -84,7 +84,7 @@ public class ProjectService : IProjectService
 
         await _projectRepo.SaveChangesAsync(ct);
 
-        _ = _auditLog.LogAsync("Project", project.PrjId, "create", project.PrjOwnerUserId,
+        await _auditLog.LogAsync("Project", project.PrjId, "create", project.PrjOwnerUserId,
             newValues: new { project.PrjId, project.PrjName, project.PrjCurrencyCode }, ct: ct);
 
         return project;
@@ -96,7 +96,7 @@ public class ProjectService : IProjectService
         _projectRepo.Update(project);
         await _projectRepo.SaveChangesAsync(ct);
 
-        _ = _auditLog.LogAsync("Project", project.PrjId, "update", project.PrjOwnerUserId,
+        await _auditLog.LogAsync("Project", project.PrjId, "update", project.PrjOwnerUserId,
             newValues: new { project.PrjName, project.PrjDescription }, ct: ct);
     }
 
@@ -113,7 +113,7 @@ public class ProjectService : IProjectService
         _projectRepo.Update(project);
         await _projectRepo.SaveChangesAsync(ct);
 
-        _ = _auditLog.LogAsync("Project", id, "delete", deletedByUserId,
+        await _auditLog.LogAsync("Project", id, "delete", deletedByUserId,
             oldValues: new { project.PrjName }, ct: ct);
     }
 }

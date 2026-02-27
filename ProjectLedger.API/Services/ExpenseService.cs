@@ -91,25 +91,17 @@ public class ExpenseService : IExpenseService
             // Bloquear sobre-pago: monto pagado + nuevo gasto no puede exceder el total
             var existingPayments = await _expenseRepo.GetByObligationIdAsync(obligation.OblId, ct);
             var currentPaid = existingPayments.Sum(e => e.ExpConvertedAmount);
-            var newConverted = expense.ExpOriginalAmount * expense.ExpExchangeRate;
 
             if (currentPaid >= obligation.OblTotalAmount)
                 throw new InvalidOperationException(
                     "This obligation is already fully paid. No additional payments are allowed.");
 
-            if (currentPaid + newConverted > obligation.OblTotalAmount)
+            if (currentPaid + expense.ExpConvertedAmount > obligation.OblTotalAmount)
                 throw new InvalidOperationException(
                     $"Payment would exceed the obligation total. " +
                     $"Remaining: {obligation.OblTotalAmount - currentPaid:F2}, " +
-                    $"Attempted: {newConverted:F2}.");
+                    $"Attempted: {expense.ExpConvertedAmount:F2}.");
         }
-
-        // Calcular monto convertido
-        expense.ExpConvertedAmount = expense.ExpOriginalAmount * expense.ExpExchangeRate;
-
-        // Calcular monto alternativo si aplica
-        if (expense.ExpAltCurrency is not null && expense.ExpAltExchangeRate.HasValue)
-            expense.ExpAltAmount = expense.ExpOriginalAmount * expense.ExpAltExchangeRate.Value;
 
         expense.ExpCreatedAt = DateTime.UtcNow;
         expense.ExpUpdatedAt = DateTime.UtcNow;
@@ -118,13 +110,13 @@ public class ExpenseService : IExpenseService
         await _expenseRepo.SaveChangesAsync(ct);
 
         // Auditar creación del gasto
-        _ = _auditLog.LogAsync("Expense", expense.ExpId, "create", expense.ExpCreatedByUserId,
+        await _auditLog.LogAsync("Expense", expense.ExpId, "create", expense.ExpCreatedByUserId,
             newValues: new { expense.ExpId, expense.ExpTitle, expense.ExpConvertedAmount, expense.ExpProjectId }, ct: ct);
 
         // Auditar asociación a obligación si aplica
         if (expense.ExpObligationId.HasValue)
         {
-            _ = _auditLog.LogAsync("Obligation", expense.ExpObligationId.Value, "associate",
+            await _auditLog.LogAsync("Obligation", expense.ExpObligationId.Value, "associate",
                 expense.ExpCreatedByUserId,
                 newValues: new { ExpenseId = expense.ExpId, Amount = expense.ExpConvertedAmount }, ct: ct);
         }
@@ -134,12 +126,6 @@ public class ExpenseService : IExpenseService
 
     public async Task UpdateAsync(Expense expense, CancellationToken ct = default)
     {
-        // Recalcular montos
-        expense.ExpConvertedAmount = expense.ExpOriginalAmount * expense.ExpExchangeRate;
-        expense.ExpAltAmount = expense.ExpAltCurrency is not null && expense.ExpAltExchangeRate.HasValue
-            ? expense.ExpOriginalAmount * expense.ExpAltExchangeRate.Value
-            : null;
-
         // Validar sobre-pago si el gasto está vinculado a una obligación
         if (expense.ExpObligationId.HasValue)
         {
@@ -181,7 +167,7 @@ public class ExpenseService : IExpenseService
         _expenseRepo.Update(expense);
         await _expenseRepo.SaveChangesAsync(ct);
 
-        _ = _auditLog.LogAsync("Expense", id, "delete", deletedByUserId,
+        await _auditLog.LogAsync("Expense", id, "delete", deletedByUserId,
             oldValues: new { expense.ExpTitle, expense.ExpConvertedAmount }, ct: ct);
     }
 

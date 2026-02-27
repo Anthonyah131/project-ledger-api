@@ -49,7 +49,7 @@ public static class ExpenseMappingExtensions
         ExpOriginalAmount = request.OriginalAmount,
         ExpOriginalCurrency = request.OriginalCurrency,
         ExpExchangeRate = request.ExchangeRate,
-        ExpConvertedAmount = request.ConvertedAmount ?? request.OriginalAmount * request.ExchangeRate,
+        ExpConvertedAmount = request.ConvertedAmount,
         ExpTitle = request.Title,
         ExpDescription = request.Description,
         ExpExpenseDate = request.ExpenseDate,
@@ -58,9 +58,7 @@ public static class ExpenseMappingExtensions
         ExpIsTemplate = request.IsTemplate,
         ExpAltCurrency = request.AltCurrency,
         ExpAltExchangeRate = request.AltExchangeRate,
-        ExpAltAmount = request.AltCurrency is not null && request.AltExchangeRate.HasValue
-            ? request.OriginalAmount * request.AltExchangeRate.Value
-            : null,
+        ExpAltAmount = request.AltAmount,
         ExpCreatedAt = DateTime.UtcNow,
         ExpUpdatedAt = DateTime.UtcNow
     };
@@ -74,7 +72,7 @@ public static class ExpenseMappingExtensions
         entity.ExpOriginalAmount = request.OriginalAmount;
         entity.ExpOriginalCurrency = request.OriginalCurrency;
         entity.ExpExchangeRate = request.ExchangeRate;
-        entity.ExpConvertedAmount = request.ConvertedAmount ?? request.OriginalAmount * request.ExchangeRate;
+        entity.ExpConvertedAmount = request.ConvertedAmount;
         entity.ExpTitle = request.Title;
         entity.ExpDescription = request.Description;
         entity.ExpExpenseDate = request.ExpenseDate;
@@ -82,9 +80,7 @@ public static class ExpenseMappingExtensions
         entity.ExpNotes = request.Notes;
         entity.ExpAltCurrency = request.AltCurrency;
         entity.ExpAltExchangeRate = request.AltExchangeRate;
-        entity.ExpAltAmount = request.AltCurrency is not null && request.AltExchangeRate.HasValue
-            ? request.OriginalAmount * request.AltExchangeRate.Value
-            : null;
+        entity.ExpAltAmount = request.AltAmount;
         entity.ExpUpdatedAt = DateTime.UtcNow;
     }
 
@@ -109,7 +105,7 @@ public static class ExpenseMappingExtensions
         ExpOriginalAmount = request.OriginalAmount ?? template.ExpOriginalAmount,
         ExpOriginalCurrency = template.ExpOriginalCurrency,
         ExpExchangeRate = template.ExpExchangeRate,
-        ExpConvertedAmount = (request.OriginalAmount ?? template.ExpOriginalAmount) * template.ExpExchangeRate,
+        ExpConvertedAmount = request.ConvertedAmount ?? template.ExpConvertedAmount,
         ExpTitle = template.ExpTitle,
         ExpDescription = template.ExpDescription,
         ExpExpenseDate = request.ExpenseDate ?? DateOnly.FromDateTime(DateTime.UtcNow),
@@ -118,9 +114,7 @@ public static class ExpenseMappingExtensions
         ExpIsTemplate = false,
         ExpAltCurrency = template.ExpAltCurrency,
         ExpAltExchangeRate = template.ExpAltExchangeRate,
-        ExpAltAmount = template.ExpAltCurrency is not null && template.ExpAltExchangeRate.HasValue
-            ? (request.OriginalAmount ?? template.ExpOriginalAmount) * template.ExpAltExchangeRate.Value
-            : null,
+        ExpAltAmount = request.AltAmount ?? template.ExpAltAmount,
         ExpCreatedAt = DateTime.UtcNow,
         ExpUpdatedAt = DateTime.UtcNow
     };
