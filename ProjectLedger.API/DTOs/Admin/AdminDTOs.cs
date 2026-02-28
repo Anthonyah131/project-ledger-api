@@ -15,6 +15,9 @@ public class AdminUpdateUserRequest
     public string? AvatarUrl { get; set; }
 
     public Guid? PlanId { get; set; }
+
+    /// <summary>Si se envía, otorga o revoca permisos de administrador global.</summary>
+    public bool? IsAdmin { get; set; }
 }
 
 // ── Responses ───────────────────────────────────────────────

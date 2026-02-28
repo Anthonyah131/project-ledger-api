@@ -33,6 +33,8 @@ public static class AdminMappingExtensions
         entity.UsrAvatarUrl = request.AvatarUrl;
         if (request.PlanId.HasValue)
             entity.UsrPlanId = request.PlanId.Value;
+        if (request.IsAdmin.HasValue)
+            entity.UsrIsAdmin = request.IsAdmin.Value;
         entity.UsrUpdatedAt = DateTime.UtcNow;
     }
 }
