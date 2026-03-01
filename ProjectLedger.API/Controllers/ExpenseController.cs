@@ -26,13 +26,16 @@ public class ExpenseController : ControllerBase
 {
     private readonly IExpenseService _expenseService;
     private readonly IProjectAccessService _accessService;
+    private readonly IPlanAuthorizationService _planAuth;
 
     public ExpenseController(
         IExpenseService expenseService,
-        IProjectAccessService accessService)
+        IProjectAccessService accessService,
+        IPlanAuthorizationService planAuth)
     {
         _expenseService = expenseService;
         _accessService = accessService;
+        _planAuth = planAuth;
     }
 
     // ── GET /api/projects/{projectId}/expenses ──────────────
@@ -118,6 +121,9 @@ public class ExpenseController : ControllerBase
 
         var userId = User.GetRequiredUserId();
         var expense = template.ToEntityFromTemplate(projectId, userId, request);
+
+        await _planAuth.ValidateProjectWriteAccessAsync(projectId, userId, ct);
+
         await _expenseService.CreateAsync(expense, ct);
 
         return CreatedAtAction(
@@ -175,6 +181,9 @@ public class ExpenseController : ControllerBase
         // ⚠️ userId del JWT — NUNCA del request body
         var userId = User.GetRequiredUserId();
 
+        // Validar que el plan del owner permite escritura (y sharing si es miembro)
+        await _planAuth.ValidateProjectWriteAccessAsync(projectId, userId, ct);
+
         // Validación imperativa extra (defensa en profundidad)
         await _accessService.ValidateAccessAsync(userId, projectId, ProjectRoles.Editor, ct);
 
@@ -213,6 +222,7 @@ public class ExpenseController : ControllerBase
             return BadRequest(ModelState);
 
         var userId = User.GetRequiredUserId();
+        await _planAuth.ValidateProjectWriteAccessAsync(projectId, userId, ct);
         await _accessService.ValidateAccessAsync(userId, projectId, ProjectRoles.Editor, ct);
 
         var expense = await _expenseService.GetByIdAsync(expenseId, ct);
@@ -243,6 +253,7 @@ public class ExpenseController : ControllerBase
         CancellationToken ct)
     {
         var userId = User.GetRequiredUserId();
+        await _planAuth.ValidateProjectWriteAccessAsync(projectId, userId, ct);
         await _accessService.ValidateAccessAsync(userId, projectId, ProjectRoles.Editor, ct);
 
         var expense = await _expenseService.GetByIdAsync(expenseId, ct);

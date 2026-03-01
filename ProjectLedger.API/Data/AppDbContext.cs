@@ -26,6 +26,7 @@ public class AppDbContext : DbContext
     public DbSet<Obligation> Obligations => Set<Obligation>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<ProjectBudget> ProjectBudgets => Set<ProjectBudget>();
+    public DbSet<ProjectPaymentMethod> ProjectPaymentMethods => Set<ProjectPaymentMethod>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -18,15 +18,20 @@ public class PlanAuthorizationService : IPlanAuthorizationService
 {
     private readonly IUserRepository _userRepo;
     private readonly IPlanRepository _planRepo;
+    private readonly IProjectRepository _projectRepo;
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
     };
 
-    public PlanAuthorizationService(IUserRepository userRepo, IPlanRepository planRepo)
+    public PlanAuthorizationService(
+        IUserRepository userRepo,
+        IPlanRepository planRepo,
+        IProjectRepository projectRepo)
     {
         _userRepo = userRepo;
         _planRepo = planRepo;
+        _projectRepo = projectRepo;
     }
 
     // ── Permisos booleanos ──────────────────────────────────
@@ -108,6 +113,38 @@ public class PlanAuthorizationService : IPlanAuthorizationService
                 [PlanLimits.MaxTeamMembersPerProject] = limits?.MaxTeamMembersPerProject
             }
         };
+    }
+
+    // ── Validación de escritura en proyecto ─────────────────
+
+    /// <inheritdoc />
+    public async Task ValidateProjectWriteAccessAsync(
+        Guid projectId, Guid actingUserId, CancellationToken ct = default)
+    {
+        var project = await _projectRepo.GetByIdAsync(projectId, ct)
+            ?? throw new KeyNotFoundException($"Project '{projectId}' not found.");
+
+        if (project.PrjIsDeleted)
+            throw new KeyNotFoundException($"Project '{projectId}' not found.");
+
+        // El plan del OWNER gobierna todo el proyecto
+        var ownerPlan = await GetUserPlanAsync(project.PrjOwnerUserId, ct);
+
+        // 1. El plan del owner debe permitir ediciones
+        if (!EvaluatePermission(ownerPlan, PlanPermission.CanEditProjects))
+            throw new PlanDeniedException(PlanPermission.CanEditProjects, ownerPlan.PlnName);
+
+        // 2. Si el que actúa NO es el owner → es un miembro compartido
+        //    El plan del owner debe permitir compartir proyectos
+        if (actingUserId != project.PrjOwnerUserId)
+        {
+            if (!EvaluatePermission(ownerPlan, PlanPermission.CanShareProjects))
+                throw new PlanDeniedException(
+                    $"The project owner's current plan '{ownerPlan.PlnName}' no longer includes " +
+                    $"the '{nameof(PlanPermission.CanShareProjects)}' feature. " +
+                    $"Shared members cannot create or modify resources in this project. " +
+                    $"Contact the project owner to upgrade their plan.");
+        }
     }
 
     // ═══════════════════════════════════════════════════════════

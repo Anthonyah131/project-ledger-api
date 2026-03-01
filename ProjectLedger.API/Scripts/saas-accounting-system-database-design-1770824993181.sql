@@ -327,6 +327,37 @@ CREATE TABLE public.payment_methods (
 );
 
 -- ============================================================
+-- 10b. PROJECT_PAYMENT_METHODS  (Vinculación de payment methods a proyectos)
+-- ============================================================
+-- Tabla intermedia que asocia métodos de pago con proyectos.
+-- Permite que miembros de un proyecto compartido usen los métodos
+-- de pago del dueño (o de cualquier usuario con métodos vinculados).
+--
+-- Flujo:
+--   1. Al crear un proyecto, se pueden vincular métodos de pago del owner.
+--   2. El owner puede agregar/quitar métodos de pago del proyecto en cualquier momento.
+--   3. Cuando un miembro crea un gasto, solo puede usar los métodos vinculados al proyecto.
+--   4. Los métodos de pago siguen perteneciendo al usuario original (tabla payment_methods).
+--
+-- Sin soft delete: si se desvincula, se elimina físicamente el registro.
+-- ============================================================
+CREATE TABLE public.project_payment_methods (
+    ppm_id                  uuid            NOT NULL DEFAULT gen_random_uuid(),  -- PK · Identificador único de la vinculación
+    ppm_project_id          uuid            NOT NULL,                            -- FK → projects · Proyecto al que se vincula
+    ppm_payment_method_id   uuid            NOT NULL,                            -- FK → payment_methods · Método de pago vinculado
+    ppm_added_by_user_id    uuid            NOT NULL,                            -- FK → users · Quién agregó la vinculación (owner)
+    ppm_created_at          timestamptz     NOT NULL DEFAULT now(),              -- Fecha de vinculación
+    CONSTRAINT project_payment_methods_pkey PRIMARY KEY (ppm_id),
+    CONSTRAINT project_payment_methods_project_id_fkey FOREIGN KEY (ppm_project_id) REFERENCES public.projects (prj_id),
+    CONSTRAINT project_payment_methods_payment_method_id_fkey FOREIGN KEY (ppm_payment_method_id) REFERENCES public.payment_methods (pmt_id),
+    CONSTRAINT project_payment_methods_added_by_user_id_fkey FOREIGN KEY (ppm_added_by_user_id) REFERENCES public.users (usr_id)
+);
+
+-- UNIQUE: un método de pago solo puede vincularse una vez a un proyecto
+CREATE UNIQUE INDEX idx_ppm_project_payment_method
+    ON public.project_payment_methods (ppm_project_id, ppm_payment_method_id);
+
+-- ============================================================
 -- 11. EXPENSES  (Req 5 + Req 7 + Req 9)
 -- ============================================================
 -- LÓGICA DE CONVERSIÓN DE MONEDA:
@@ -558,6 +589,11 @@ CREATE INDEX idx_cat_is_deleted ON public.categories (cat_is_deleted);
 CREATE INDEX idx_pmt_owner_user_id ON public.payment_methods (pmt_owner_user_id);
 
 CREATE INDEX idx_pmt_is_deleted ON public.payment_methods (pmt_is_deleted);
+
+-- project_payment_methods  (UNIQUE index ya creado inline)
+CREATE INDEX idx_ppm_project_id ON public.project_payment_methods (ppm_project_id);
+
+CREATE INDEX idx_ppm_payment_method_id ON public.project_payment_methods (ppm_payment_method_id);
 
 -- expenses  (todas las FK + date + obligation)
 CREATE INDEX idx_exp_project_id ON public.expenses (exp_project_id);

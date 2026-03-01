@@ -56,6 +56,24 @@ public interface IPlanAuthorizationService
         int currentCount,
         CancellationToken ct = default);
 
+    // ── Validación de escritura en proyecto ─────────────────
+
+    /// <summary>
+    /// Valida que el plan del dueño del proyecto permite operaciones de escritura.
+    /// <list type="bullet">
+    ///   <item>Siempre verifica <see cref="PlanPermission.CanEditProjects"/> del owner.</item>
+    ///   <item>Si el usuario que actúa NO es el owner (miembro compartido),
+    ///         también verifica <see cref="PlanPermission.CanShareProjects"/>.</item>
+    /// </list>
+    /// Lanza <see cref="PlanDeniedException"/> si no cumple.
+    /// Escenario clave: si el owner hizo downgrade a Free, los miembros compartidos
+    /// ya no pueden crear/editar/eliminar recursos del proyecto.
+    /// </summary>
+    Task ValidateProjectWriteAccessAsync(
+        Guid projectId,
+        Guid actingUserId,
+        CancellationToken ct = default);
+
     // ── Carga completa del plan ─────────────────────────────
 
     /// <summary>

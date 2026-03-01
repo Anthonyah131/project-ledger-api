@@ -56,6 +56,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
         services.AddScoped<IProjectBudgetRepository, ProjectBudgetRepository>();
         services.AddScoped<IExternalAuthProviderRepository, ExternalAuthProviderRepository>();
+        services.AddScoped<IProjectPaymentMethodRepository, ProjectPaymentMethodRepository>();
 
         return services;
     }
@@ -89,6 +90,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IObligationService, ObligationService>();
         services.AddScoped<IAuditLogService, AuditLogService>();
         services.AddScoped<IProjectBudgetService, ProjectBudgetService>();
+        services.AddScoped<IProjectPaymentMethodService, ProjectPaymentMethodService>();
 
         return services;
     }

@@ -25,15 +25,18 @@ public class ProjectBudgetController : ControllerBase
     private readonly IProjectBudgetService _budgetService;
     private readonly IExpenseRepository _expenseRepo;
     private readonly IProjectAccessService _accessService;
+    private readonly IPlanAuthorizationService _planAuth;
 
     public ProjectBudgetController(
         IProjectBudgetService budgetService,
         IExpenseRepository expenseRepo,
-        IProjectAccessService accessService)
+        IProjectAccessService accessService,
+        IPlanAuthorizationService planAuth)
     {
         _budgetService = budgetService;
         _expenseRepo = expenseRepo;
         _accessService = accessService;
+        _planAuth = planAuth;
     }
 
     // ── GET /api/projects/{projectId}/budget ────────────────
@@ -80,6 +83,9 @@ public class ProjectBudgetController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
+        var userId = User.GetRequiredUserId();
+        await _planAuth.ValidateProjectWriteAccessAsync(projectId, userId, ct);
+
         var existing = await _budgetService.GetActiveByProjectIdAsync(projectId, ct);
         var spent = await CalculateSpentAmountAsync(projectId, ct);
 
@@ -115,6 +121,7 @@ public class ProjectBudgetController : ControllerBase
     public async Task<IActionResult> Delete(Guid projectId, CancellationToken ct)
     {
         var userId = User.GetRequiredUserId();
+        await _planAuth.ValidateProjectWriteAccessAsync(projectId, userId, ct);
 
         var budget = await _budgetService.GetActiveByProjectIdAsync(projectId, ct);
         if (budget is null)

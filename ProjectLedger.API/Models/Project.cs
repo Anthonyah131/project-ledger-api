@@ -29,4 +29,5 @@ public class Project
     public ICollection<Expense> Expenses { get; set; } = [];
     public ICollection<Obligation> Obligations { get; set; } = [];
     public ICollection<ProjectBudget> Budgets { get; set; } = [];
+    public ICollection<ProjectPaymentMethod> ProjectPaymentMethods { get; set; } = [];
 }

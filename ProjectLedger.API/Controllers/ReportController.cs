@@ -22,15 +22,18 @@ public class ReportController : ControllerBase
     private readonly IExpenseRepository _expenseRepo;
     private readonly IProjectService _projectService;
     private readonly IProjectAccessService _accessService;
+    private readonly IPlanAuthorizationService _planAuth;
 
     public ReportController(
         IExpenseRepository expenseRepo,
         IProjectService projectService,
-        IProjectAccessService accessService)
+        IProjectAccessService accessService,
+        IPlanAuthorizationService planAuth)
     {
         _expenseRepo = expenseRepo;
         _projectService = projectService;
         _accessService = accessService;
+        _planAuth = planAuth;
     }
 
     // ── GET /api/projects/{projectId}/reports/summary ───────
@@ -110,11 +113,21 @@ public class ReportController : ControllerBase
     /// Compara el gasto del mes actual vs el mes anterior.
     /// </summary>
     /// <response code="200">Comparación mensual.</response>
+    /// <response code="403">Plan no permite reportes avanzados.</response>
     [HttpGet("month-comparison")]
     [Authorize(Policy = "ProjectViewer")]
     [ProducesResponseType(typeof(MonthComparisonResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetMonthComparison(Guid projectId, CancellationToken ct)
     {
+        // Reportes avanzados requieren plan del owner del proyecto
+        var project = await _projectService.GetByIdAsync(projectId, ct);
+        if (project is null)
+            return NotFound(new { message = "Project not found." });
+
+        await _planAuth.ValidatePermissionAsync(
+            project.PrjOwnerUserId, PlanPermission.CanUseAdvancedReports, ct);
+
         var now = DateTime.UtcNow;
         var currentMonth = new DateOnly(now.Year, now.Month, 1);
         var previousMonth = currentMonth.AddMonths(-1);
@@ -168,11 +181,21 @@ public class ReportController : ControllerBase
     /// Ordenado por mayor crecimiento absoluto.
     /// </summary>
     /// <response code="200">Lista de categorías con crecimiento.</response>
+    /// <response code="403">Plan no permite reportes avanzados.</response>
     [HttpGet("category-growth")]
     [Authorize(Policy = "ProjectViewer")]
     [ProducesResponseType(typeof(IEnumerable<CategoryGrowthResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetCategoryGrowth(Guid projectId, CancellationToken ct)
     {
+        // Reportes avanzados requieren plan del owner del proyecto
+        var project = await _projectService.GetByIdAsync(projectId, ct);
+        if (project is null)
+            return NotFound(new { message = "Project not found." });
+
+        await _planAuth.ValidatePermissionAsync(
+            project.PrjOwnerUserId, PlanPermission.CanUseAdvancedReports, ct);
+
         var now = DateTime.UtcNow;
         var currentMonth = new DateOnly(now.Year, now.Month, 1);
         var previousMonth = currentMonth.AddMonths(-1);

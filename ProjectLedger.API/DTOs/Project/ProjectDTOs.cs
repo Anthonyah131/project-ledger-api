@@ -75,3 +75,26 @@ public class UpdateMemberRoleRequest
     [RegularExpression(@"^(editor|viewer)$", ErrorMessage = "Role must be 'editor' or 'viewer'.")]
     public string Role { get; set; } = null!;
 }
+
+// ── Project Payment Methods ─────────────────────────────────
+
+/// <summary>Request para vincular un método de pago a un proyecto.</summary>
+public class LinkPaymentMethodRequest
+{
+    [Required]
+    public Guid PaymentMethodId { get; set; }
+}
+
+/// <summary>Respuesta de un método de pago vinculado a un proyecto.</summary>
+public class ProjectPaymentMethodResponse
+{
+    public Guid Id { get; set; }
+    public Guid PaymentMethodId { get; set; }
+    public string PaymentMethodName { get; set; } = null!;
+    public string Type { get; set; } = null!;
+    public string Currency { get; set; } = null!;
+    public string? BankName { get; set; }
+    public string? AccountNumber { get; set; }
+    public string OwnerUserName { get; set; } = null!;
+    public DateTime LinkedAt { get; set; }
+}

@@ -53,6 +53,13 @@ public class ProjectBudgetService : IProjectBudgetService
 
     public async Task UpdateAsync(ProjectBudget budget, CancellationToken ct = default)
     {
+        // Validar que el plan del owner permite definir presupuestos
+        var project = await _projectRepo.GetByIdAsync(budget.PjbProjectId, ct)
+            ?? throw new KeyNotFoundException($"Project '{budget.PjbProjectId}' not found.");
+
+        await _planAuth.ValidatePermissionAsync(
+            project.PrjOwnerUserId, PlanPermission.CanSetBudgets, ct);
+
         budget.PjbUpdatedAt = DateTime.UtcNow;
         _budgetRepo.Update(budget);
         await _budgetRepo.SaveChangesAsync(ct);

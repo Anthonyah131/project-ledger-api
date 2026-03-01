@@ -26,15 +26,18 @@ public class ObligationController : ControllerBase
     private readonly IObligationService _obligationService;
     private readonly IExpenseRepository _expenseRepo;
     private readonly IProjectAccessService _accessService;
+    private readonly IPlanAuthorizationService _planAuth;
 
     public ObligationController(
         IObligationService obligationService,
         IExpenseRepository expenseRepo,
-        IProjectAccessService accessService)
+        IProjectAccessService accessService,
+        IPlanAuthorizationService planAuth)
     {
         _obligationService = obligationService;
         _expenseRepo = expenseRepo;
         _accessService = accessService;
+        _planAuth = planAuth;
     }
 
     // ── GET /api/projects/{projectId}/obligations ───────────
@@ -114,6 +117,8 @@ public class ObligationController : ControllerBase
             return BadRequest(ModelState);
 
         var userId = User.GetRequiredUserId();
+        await _planAuth.ValidateProjectWriteAccessAsync(projectId, userId, ct);
+
         var obligation = request.ToEntity(projectId, userId);
         await _obligationService.CreateAsync(obligation, ct);
 
@@ -144,6 +149,9 @@ public class ObligationController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
+        var userId = User.GetRequiredUserId();
+        await _planAuth.ValidateProjectWriteAccessAsync(projectId, userId, ct);
+
         var obl = await _obligationService.GetByIdAsync(obligationId, ct);
         if (obl is null || obl.OblProjectId != projectId)
             return NotFound(new { message = "Obligation not found in this project." });
@@ -172,6 +180,7 @@ public class ObligationController : ControllerBase
         CancellationToken ct)
     {
         var userId = User.GetRequiredUserId();
+        await _planAuth.ValidateProjectWriteAccessAsync(projectId, userId, ct);
 
         var obl = await _obligationService.GetByIdAsync(obligationId, ct);
         if (obl is null || obl.OblProjectId != projectId)

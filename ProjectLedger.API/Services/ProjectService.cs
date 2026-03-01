@@ -92,6 +92,10 @@ public class ProjectService : IProjectService
 
     public async Task UpdateAsync(Project project, CancellationToken ct = default)
     {
+        // Validar que el plan del owner permite editar proyectos
+        await _planAuth.ValidatePermissionAsync(
+            project.PrjOwnerUserId, PlanPermission.CanEditProjects, ct);
+
         project.PrjUpdatedAt = DateTime.UtcNow;
         _projectRepo.Update(project);
         await _projectRepo.SaveChangesAsync(ct);
@@ -104,6 +108,10 @@ public class ProjectService : IProjectService
     {
         var project = await _projectRepo.GetByIdAsync(id, ct)
             ?? throw new KeyNotFoundException($"Project '{id}' not found.");
+
+        // Validar que el plan del owner permite eliminar proyectos
+        await _planAuth.ValidatePermissionAsync(
+            project.PrjOwnerUserId, PlanPermission.CanDeleteProjects, ct);
 
         project.PrjIsDeleted = true;
         project.PrjDeletedAt = DateTime.UtcNow;

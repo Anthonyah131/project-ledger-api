@@ -25,13 +25,16 @@ public class ProjectController : ControllerBase
 {
     private readonly IProjectService _projectService;
     private readonly IProjectAccessService _accessService;
+    private readonly IPlanAuthorizationService _planAuth;
 
     public ProjectController(
         IProjectService projectService,
-        IProjectAccessService accessService)
+        IProjectAccessService accessService,
+        IPlanAuthorizationService planAuth)
     {
         _projectService = projectService;
         _accessService = accessService;
+        _planAuth = planAuth;
     }
 
     // ── GET /api/projects ───────────────────────────────────
@@ -148,6 +151,8 @@ public class ProjectController : ControllerBase
 
         var userId = User.GetRequiredUserId();
 
+        // Validar plan del owner (y sharing si es miembro compartido)
+        await _planAuth.ValidateProjectWriteAccessAsync(projectId, userId, ct);
         await _accessService.ValidateAccessAsync(userId, projectId, ProjectRoles.Editor, ct);
 
         var project = await _projectService.GetByIdAsync(projectId, ct);

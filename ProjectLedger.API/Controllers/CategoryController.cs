@@ -23,13 +23,16 @@ public class CategoryController : ControllerBase
 {
     private readonly ICategoryService _categoryService;
     private readonly IProjectAccessService _accessService;
+    private readonly IPlanAuthorizationService _planAuth;
 
     public CategoryController(
         ICategoryService categoryService,
-        IProjectAccessService accessService)
+        IProjectAccessService accessService,
+        IPlanAuthorizationService planAuth)
     {
         _categoryService = categoryService;
         _accessService = accessService;
+        _planAuth = planAuth;
     }
 
     // ── GET /api/projects/{projectId}/categories ────────────
@@ -90,6 +93,9 @@ public class CategoryController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
+        var userId = User.GetRequiredUserId();
+        await _planAuth.ValidateProjectWriteAccessAsync(projectId, userId, ct);
+
         var category = request.ToEntity(projectId);
         await _categoryService.CreateAsync(category, ct);
 
@@ -120,6 +126,9 @@ public class CategoryController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
+        var userId = User.GetRequiredUserId();
+        await _planAuth.ValidateProjectWriteAccessAsync(projectId, userId, ct);
+
         var category = await _categoryService.GetByIdAsync(categoryId, ct);
         if (category is null || category.CatProjectId != projectId)
             return NotFound(new { message = "Category not found in this project." });
@@ -147,6 +156,7 @@ public class CategoryController : ControllerBase
         CancellationToken ct)
     {
         var userId = User.GetRequiredUserId();
+        await _planAuth.ValidateProjectWriteAccessAsync(projectId, userId, ct);
 
         var category = await _categoryService.GetByIdAsync(categoryId, ct);
         if (category is null || category.CatProjectId != projectId)

@@ -12,6 +12,7 @@ public class ExpenseService : IExpenseService
     private readonly IExpenseRepository _expenseRepo;
     private readonly IProjectRepository _projectRepo;
     private readonly IObligationRepository _obligationRepo;
+    private readonly IProjectPaymentMethodRepository _ppmRepo;
     private readonly IPlanAuthorizationService _planAuth;
     private readonly IAuditLogService _auditLog;
 
@@ -19,12 +20,14 @@ public class ExpenseService : IExpenseService
         IExpenseRepository expenseRepo,
         IProjectRepository projectRepo,
         IObligationRepository obligationRepo,
+        IProjectPaymentMethodRepository ppmRepo,
         IPlanAuthorizationService planAuth,
         IAuditLogService auditLog)
     {
         _expenseRepo = expenseRepo;
         _projectRepo = projectRepo;
         _obligationRepo = obligationRepo;
+        _ppmRepo = ppmRepo;
         _planAuth = planAuth;
         _auditLog = auditLog;
     }
@@ -72,6 +75,15 @@ public class ExpenseService : IExpenseService
             await _planAuth.ValidateLimitAsync(
                 project.PrjOwnerUserId, PlanLimits.MaxExpensesPerMonth, thisMonthCount, ct);
         }
+
+        // Validar que el método de pago está vinculado al proyecto
+        var isLinked = await _ppmRepo.IsPaymentMethodLinkedToProjectAsync(
+            expense.ExpProjectId, expense.ExpPaymentMethodId, ct);
+
+        if (!isLinked)
+            throw new InvalidOperationException(
+                "The payment method is not linked to this project. " +
+                "Link it first via /api/projects/{projectId}/payment-methods.");
 
         // Validar que la obligación pertenece al mismo proyecto y no se sobre-paga
         if (expense.ExpObligationId.HasValue)
