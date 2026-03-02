@@ -25,4 +25,7 @@ public interface IEmailService
 
     /// <summary>Envía el código OTP de restablecimiento de contraseña al usuario.</summary>
     Task SendPasswordResetEmailAsync(string toEmail, string fullName, string otpCode, CancellationToken ct = default);
+
+    /// <summary>Notifica al usuario que su contraseña fue cambiada exitosamente.</summary>
+    Task SendPasswordChangedEmailAsync(string toEmail, string fullName, CancellationToken ct = default);
 }

@@ -165,6 +165,32 @@ public class AuthController : ControllerBase
             email  = User.GetEmail()
         });
     }
+    // ── POST /api/auth/verify-otp ────────────────────────────────────
+
+    /// <summary>
+    /// Verifica si un código OTP de restablecimiento es válido sin consumirlo.
+    /// Úsalo para habilitar el paso de nueva contraseña en el frontend solo si el OTP es correcto.
+    /// </summary>
+    /// <response code="200">OTP válido.</response>
+    /// <response code="400">OTP inválido, expirado o email no encontrado.</response>
+    [HttpPost("verify-otp")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> VerifyOtp(
+        [FromBody] VerifyOtpRequest request,
+        CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var valid = await _authService.VerifyOtpAsync(request.Email, request.OtpCode, ct);
+        if (!valid)
+            return BadRequest(new { message = "Invalid, expired, or already used OTP code." });
+
+        return Ok(new { message = "OTP verified successfully." });
+    }
+
     // ── POST /api/auth/forgot-password ──────────────────────────────
 
     /// <summary>

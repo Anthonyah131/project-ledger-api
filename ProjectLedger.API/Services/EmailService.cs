@@ -158,6 +158,25 @@ public class EmailService : IEmailService
         await SendAsync(toEmail, subject, body, ct);
     }
 
+    // ── Password changed notification ─────────────────────────────
+
+    public async Task SendPasswordChangedEmailAsync(
+        string toEmail, string fullName, CancellationToken ct = default)
+    {
+        var subject = "Tu contraseña ha sido actualizada — Project Ledger";
+        var body = $"""
+            <h2>Hola {fullName}</h2>
+            <p>Te informamos que la contraseña de tu cuenta en <strong>Project Ledger</strong>
+            ha sido cambiada exitosamente.</p>
+            <p>Si no realizaste este cambio, contacta al soporte de inmediato y cambia tu contraseña
+            desde la opción <em>¿Olvidaste tu contraseña?</em> en la pantalla de inicio de sesión.</p>
+            <br/>
+            <p>— El equipo de Project Ledger</p>
+            """;
+
+        await SendAsync(toEmail, subject, body, ct);
+    }
+
     // ── Core send method ────────────────────────────────────────
 
     private async Task SendAsync(string to, string subject, string htmlBody, CancellationToken ct)

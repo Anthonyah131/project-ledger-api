@@ -65,6 +65,20 @@ public class ForgotPasswordRequest
     public string Email { get; set; } = null!;
 }
 
+/// <summary>Request para verificar si un código OTP es válido sin consumirlo.</summary>
+public class VerifyOtpRequest
+{
+    [Required]
+    [EmailAddress(ErrorMessage = "A valid email address is required.")]
+    [StringLength(255, ErrorMessage = "Email cannot exceed 255 characters.")]
+    public string Email { get; set; } = null!;
+
+    [Required]
+    [StringLength(6, MinimumLength = 6, ErrorMessage = "OTP code must be exactly 6 digits.")]
+    [RegularExpression(@"^\d{6}$", ErrorMessage = "OTP code must contain only digits.")]
+    public string OtpCode { get; set; } = null!;
+}
+
 /// <summary>Request para restablecer la contraseña con código OTP.</summary>
 public class ResetPasswordRequest
 {

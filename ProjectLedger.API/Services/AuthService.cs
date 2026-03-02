@@ -250,6 +250,24 @@ public class AuthService : IAuthService
 
         _logger.LogInformation("All refresh tokens revoked for user {UserId}", userId);
     }
+    // ── Verify OTP ──────────────────────────────────────────────
+
+    /// <inheritdoc />
+    public async Task<bool> VerifyOtpAsync(string email, string otpCode, CancellationToken ct = default)
+    {
+        var normalizedEmail = email.ToLowerInvariant().Trim();
+        var user = await _userRepo.GetByEmailAsync(normalizedEmail, ct);
+
+        if (user == null || user.UsrIsDeleted)
+            return false;
+
+        var codeHash = HashCode(otpCode);
+        var token = await _passwordResetTokenRepo.GetActiveByCodeHashAsync(codeHash, ct);
+
+        // Verificar que el token pertenece al usuario correcto
+        return token != null && token.PrtUserId == user.UsrId;
+    }
+
     // ── Forgot Password ─────────────────────────────────────────
 
     /// <inheritdoc />
@@ -322,6 +340,13 @@ public class AuthService : IAuthService
         await _passwordResetTokenRepo.InvalidateAllByUserIdAsync(user.UsrId, ct);
         await _passwordResetTokenRepo.SaveChangesAsync(ct);
         await _userRepo.SaveChangesAsync(ct);
+
+        // Revocar todos los refresh tokens activos (invalida todas las sesiones abiertas)
+        await _refreshTokenRepo.RevokeAllByUserIdAsync(user.UsrId, ct);
+        await _refreshTokenRepo.SaveChangesAsync(ct);
+
+        // Notificación por correo (fire-and-forget)
+        _ = _emailService.SendPasswordChangedEmailAsync(user.UsrEmail, user.UsrFullName, ct);
 
         _logger.LogInformation("Password reset successful for user {UserId}", user.UsrId);
         return true;

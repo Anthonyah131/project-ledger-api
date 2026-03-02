@@ -23,6 +23,13 @@ public interface IAuthService
     Task RevokeAllTokensAsync(Guid userId, CancellationToken ct = default);
 
     /// <summary>
+    /// Verifica si un código OTP de restablecimiento es válido sin consumirlo.
+    /// Permite al frontend avanzar al paso de nueva contraseña solo si el código es válido.
+    /// Retorna false si el código es inválido, expirado o ya fue usado.
+    /// </summary>
+    Task<bool> VerifyOtpAsync(string email, string otpCode, CancellationToken ct = default);
+
+    /// <summary>
     /// Inicia el flujo de restablecimiento de contraseña.
     /// Genera un OTP de 6 dígitos, lo guarda hasheado y envía el correo.
     /// Siempre retorna true para no revelar si el email existe.

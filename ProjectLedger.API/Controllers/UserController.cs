@@ -22,10 +22,17 @@ namespace ProjectLedger.API.Controllers;
 public class UserController : ControllerBase
 {
     private readonly IUserService _userService;
+    private readonly IAuthService _authService;
+    private readonly IEmailService _emailService;
 
-    public UserController(IUserService userService)
+    public UserController(
+        IUserService userService,
+        IAuthService authService,
+        IEmailService emailService)
     {
         _userService = userService;
+        _authService = authService;
+        _emailService = emailService;
     }
 
     // ── GET /api/users/profile ──────────────────────────────
@@ -113,6 +120,12 @@ public class UserController : ControllerBase
         // Hashear y actualizar
         user.UsrPasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword, workFactor: 12);
         await _userService.UpdateAsync(user, ct);
+
+        // Revocar todos los refresh tokens activos (seguridad: invalida todas las sesiones)
+        await _authService.RevokeAllTokensAsync(userId, ct);
+
+        // Notificación por correo (fire-and-forget)
+        _ = _emailService.SendPasswordChangedEmailAsync(user.UsrEmail, user.UsrFullName, ct);
 
         return NoContent();
     }
