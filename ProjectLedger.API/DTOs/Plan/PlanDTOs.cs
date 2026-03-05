@@ -10,6 +10,9 @@ public class PlanResponse
     public string Slug { get; set; } = null!;
     public string? Description { get; set; }
     public int DisplayOrder { get; set; }
+    public decimal MonthlyPrice { get; set; }
+    public string Currency { get; set; } = null!;
+    public string? StripePaymentLinkUrl { get; set; }
     public PlanPermissionsDto Permissions { get; set; } = null!;
     public PlanLimitsDto? Limits { get; set; }
 }

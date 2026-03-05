@@ -57,6 +57,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProjectBudgetRepository, ProjectBudgetRepository>();
         services.AddScoped<IExternalAuthProviderRepository, ExternalAuthProviderRepository>();
         services.AddScoped<IProjectPaymentMethodRepository, ProjectPaymentMethodRepository>();
+        services.AddScoped<IUserSubscriptionRepository, UserSubscriptionRepository>();
+        services.AddScoped<IStripeWebhookEventRepository, StripeWebhookEventRepository>();
 
         return services;
     }
@@ -78,6 +80,7 @@ public static class ServiceCollectionExtensions
 
         // Autorización por plan (feature gates + límites)
         services.AddScoped<IPlanAuthorizationService, PlanAuthorizationService>();
+        services.AddScoped<IStripeBillingService, StripeBillingService>();
 
         services.AddScoped<ICurrencyService, CurrencyService>();
         services.AddScoped<IPlanService, PlanService>();

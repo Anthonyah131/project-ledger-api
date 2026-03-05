@@ -18,6 +18,9 @@ public static class PlanMappingExtensions
         Slug = entity.PlnSlug,
         Description = entity.PlnDescription,
         DisplayOrder = entity.PlnDisplayOrder,
+        MonthlyPrice = entity.PlnMonthlyPrice,
+        Currency = entity.PlnCurrency,
+        StripePaymentLinkUrl = entity.PlnStripePaymentLinkUrl,
         Permissions = new PlanPermissionsDto
         {
             CanCreateProjects = entity.PlnCanCreateProjects,

@@ -27,6 +27,8 @@ public class AppDbContext : DbContext
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<ProjectBudget> ProjectBudgets => Set<ProjectBudget>();
     public DbSet<ProjectPaymentMethod> ProjectPaymentMethods => Set<ProjectPaymentMethod>();
+    public DbSet<UserSubscription> UserSubscriptions => Set<UserSubscription>();
+    public DbSet<StripeWebhookEvent> StripeWebhookEvents => Set<StripeWebhookEvent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

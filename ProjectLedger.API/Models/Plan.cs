@@ -12,6 +12,12 @@ public class Plan
     public string? PlnDescription { get; set; }
     public bool PlnIsActive { get; set; } = true;
     public int PlnDisplayOrder { get; set; }
+    public decimal PlnMonthlyPrice { get; set; }
+    public string PlnCurrency { get; set; } = "usd";
+    public string? PlnStripeProductId { get; set; }
+    public string? PlnStripePriceId { get; set; }
+    public string? PlnStripePaymentLinkId { get; set; }
+    public string? PlnStripePaymentLinkUrl { get; set; }
 
     // ── Permisos (Features) ─────────────────────────────────
     public bool PlnCanCreateProjects { get; set; } = true;
@@ -33,4 +39,5 @@ public class Plan
 
     // ── Navigation collections ──────────────────────────────
     public ICollection<User> Users { get; set; } = [];
+    public ICollection<UserSubscription> UserSubscriptions { get; set; } = [];
 }

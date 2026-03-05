@@ -18,6 +18,12 @@ public class PlanConfiguration : IEntityTypeConfiguration<Plan>
         builder.Property(p => p.PlnDescription).HasColumnName("pln_description");
         builder.Property(p => p.PlnIsActive).HasColumnName("pln_is_active").HasDefaultValue(true);
         builder.Property(p => p.PlnDisplayOrder).HasColumnName("pln_display_order").HasDefaultValue(0);
+        builder.Property(p => p.PlnMonthlyPrice).HasColumnName("pln_monthly_price").HasColumnType("numeric(18,2)").HasDefaultValue(0m);
+        builder.Property(p => p.PlnCurrency).HasColumnName("pln_currency").HasMaxLength(3).HasDefaultValue("usd");
+        builder.Property(p => p.PlnStripeProductId).HasColumnName("pln_stripe_product_id").HasMaxLength(255);
+        builder.Property(p => p.PlnStripePriceId).HasColumnName("pln_stripe_price_id").HasMaxLength(255);
+        builder.Property(p => p.PlnStripePaymentLinkId).HasColumnName("pln_stripe_payment_link_id").HasMaxLength(255);
+        builder.Property(p => p.PlnStripePaymentLinkUrl).HasColumnName("pln_stripe_payment_link_url");
 
         // Permisos
         builder.Property(p => p.PlnCanCreateProjects).HasColumnName("pln_can_create_projects").HasDefaultValue(true);
@@ -38,5 +44,8 @@ public class PlanConfiguration : IEntityTypeConfiguration<Plan>
         builder.Property(p => p.PlnUpdatedAt).HasColumnName("pln_updated_at").HasDefaultValueSql("now()");
 
         builder.HasIndex(p => p.PlnSlug).IsUnique();
+        builder.HasIndex(p => p.PlnStripePriceId).IsUnique();
+        builder.HasIndex(p => p.PlnStripeProductId).IsUnique();
+        builder.HasIndex(p => p.PlnStripePaymentLinkId).IsUnique();
     }
 }

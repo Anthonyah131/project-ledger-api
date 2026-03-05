@@ -20,6 +20,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.UsrIsActive).HasColumnName("usr_is_active").HasDefaultValue(false);
         builder.Property(u => u.UsrIsAdmin).HasColumnName("usr_is_admin").HasDefaultValue(false);
         builder.Property(u => u.UsrAvatarUrl).HasColumnName("usr_avatar_url");
+        builder.Property(u => u.UsrStripeCustomerId).HasColumnName("usr_stripe_customer_id").HasMaxLength(255);
         builder.Property(u => u.UsrLastLoginAt).HasColumnName("usr_last_login_at");
         builder.Property(u => u.UsrCreatedAt).HasColumnName("usr_created_at").HasDefaultValueSql("now()");
         builder.Property(u => u.UsrUpdatedAt).HasColumnName("usr_updated_at").HasDefaultValueSql("now()");
@@ -28,6 +29,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.UsrDeletedByUserId).HasColumnName("usr_deleted_by_user_id");
 
         builder.HasIndex(u => u.UsrEmail).IsUnique();
+        builder.HasIndex(u => u.UsrStripeCustomerId).IsUnique();
         builder.HasIndex(u => u.UsrIsDeleted);
         builder.HasIndex(u => u.UsrPlanId);
 

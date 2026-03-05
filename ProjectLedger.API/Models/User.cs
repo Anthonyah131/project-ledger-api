@@ -14,6 +14,7 @@ public class User
     public bool UsrIsActive { get; set; }
     public bool UsrIsAdmin { get; set; }
     public string? UsrAvatarUrl { get; set; }
+    public string? UsrStripeCustomerId { get; set; }
     public DateTime? UsrLastLoginAt { get; set; }
     public DateTime UsrCreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UsrUpdatedAt { get; set; } = DateTime.UtcNow;
@@ -30,6 +31,7 @@ public class User
     public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
     public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = [];
     public ICollection<ExternalAuthProvider> ExternalAuthProviders { get; set; } = [];
+    public ICollection<UserSubscription> Subscriptions { get; set; } = [];
     public ICollection<Project> OwnedProjects { get; set; } = [];
     public ICollection<ProjectMember> ProjectMemberships { get; set; } = [];
     public ICollection<PaymentMethod> PaymentMethods { get; set; } = [];

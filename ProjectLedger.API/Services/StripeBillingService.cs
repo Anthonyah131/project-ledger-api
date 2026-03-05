@@ -1,0 +1,985 @@
+using System.Collections.Concurrent;
+using Microsoft.Extensions.Options;
+using Stripe;
+using Stripe.Checkout;
+using ProjectLedger.API.Models;
+using ProjectLedger.API.Repositories;
+using AppPlan = ProjectLedger.API.Models.Plan;
+
+namespace ProjectLedger.API.Services;
+
+public class StripeBillingService : IStripeBillingService
+{
+    private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> CheckoutCustomerLocks = new();
+
+    // ═══════════════════════════════════════════════════════════
+    //  Subscription Storage Architecture
+    // ═══════════════════════════════════════════════════════════
+    //
+    //  ┌─────────────────────────────────────────────────────────┐
+    //  │  FUENTE DE VERDAD: tabla "user_subscriptions"          │
+    //  │                                                        │
+    //  │  Contiene el registro Stripe con:                      │
+    //  │    UssUserId  → FK al usuario dueño                    │
+    //  │    UssPlanId  → FK al plan contratado                  │
+    //  │    UssStripeSubscriptionId  → sub_xxx de Stripe        │
+    //  │    UssStripeCustomerId      → cus_xxx de Stripe        │
+    //  │    UssStatus  → active | trialing | canceled | ...     │
+    //  │    UssCurrentPeriodStart / End → fechas del ciclo      │
+    //  │                                                        │
+    //  │  Se crea/actualiza vía webhooks:                       │
+    //  │    • checkout.session.completed → primera creación      │
+    //  │    • customer.subscription.updated → cambios            │
+    //  │    • customer.subscription.deleted → cancelación        │
+    //  └─────────────────────────────────────────────────────────┘
+    //
+    //  ┌─────────────────────────────────────────────────────────┐
+    //  │  CACHÉ RÁPIDO: campo User.UsrPlanId                    │
+    //  │                                                        │
+    //  │  Se sincroniza automáticamente en UpsertSubscription:   │
+    //  │    • Status activo → UsrPlanId = plan contratado       │
+    //  │    • Status cancelado → UsrPlanId = plan "free"        │
+    //  │                                                        │
+    //  │  PlanAuthorizationService y PlanPermissionHandler       │
+    //  │  leen UsrPlanId para evaluar permisos del plan.         │
+    //  └─────────────────────────────────────────────────────────┘
+    //
+    //  Endpoint /subscription/me lee de user_subscriptions.
+    //  Authorization handlers leen de User.UsrPlanId.
+    //  Ambos se mantienen sincronizados por UpsertSubscriptionAsync.
+    // ═══════════════════════════════════════════════════════════
+
+    private static readonly HashSet<string> HandledEventTypes = new(StringComparer.Ordinal)
+    {
+        "checkout.session.completed",
+        "customer.subscription.updated",
+        "customer.subscription.deleted"
+    };
+
+    private readonly IPlanRepository _planRepo;
+    private readonly IUserRepository _userRepo;
+    private readonly IUserSubscriptionRepository _userSubscriptionRepo;
+    private readonly IStripeWebhookEventRepository _stripeWebhookEventRepo;
+    private readonly StripeSettings _stripeSettings;
+    private readonly ILogger<StripeBillingService> _logger;
+
+    public StripeBillingService(
+        IPlanRepository planRepo,
+        IUserRepository userRepo,
+        IUserSubscriptionRepository userSubscriptionRepo,
+        IStripeWebhookEventRepository stripeWebhookEventRepo,
+        IOptions<StripeSettings> stripeSettings,
+        ILogger<StripeBillingService> logger)
+    {
+        _planRepo = planRepo;
+        _userRepo = userRepo;
+        _userSubscriptionRepo = userSubscriptionRepo;
+        _stripeWebhookEventRepo = stripeWebhookEventRepo;
+        _stripeSettings = stripeSettings.Value;
+        _logger = logger;
+    }
+
+    public async Task<IReadOnlyList<StripePlanSyncResult>> SyncPlansAndPaymentLinksAsync(CancellationToken ct = default)
+    {
+        EnsureStripeSecretConfigured();
+        StripeConfiguration.ApiKey = _stripeSettings.SecretKey;
+
+        var plans = (await _planRepo.GetActiveAsync(ct)).ToList();
+        if (plans.Count == 0)
+            throw new InvalidOperationException("No active plans found to sync with Stripe.");
+
+        var productService = new ProductService();
+        var priceService = new PriceService();
+        var paymentLinkService = new PaymentLinkService();
+
+        var results = new List<StripePlanSyncResult>(plans.Count);
+
+        foreach (var plan in plans)
+        {
+            if (plan.PlnMonthlyPrice < 0)
+                throw new ArgumentException($"Plan '{plan.PlnSlug}' has invalid monthly price '{plan.PlnMonthlyPrice}'.");
+
+            var currency = string.IsNullOrWhiteSpace(plan.PlnCurrency)
+                ? _stripeSettings.DefaultCurrency.ToLowerInvariant()
+                : plan.PlnCurrency.ToLowerInvariant();
+
+            var product = await GetOrCreateProductAsync(productService, plan);
+            var price = await GetOrCreatePriceAsync(priceService, plan, product.Id, currency);
+            var paymentLink = await GetOrCreatePaymentLinkAsync(paymentLinkService, plan, price.Id);
+
+            plan.PlnCurrency = currency;
+            plan.PlnStripeProductId = product.Id;
+            plan.PlnStripePriceId = price.Id;
+            plan.PlnStripePaymentLinkId = paymentLink.Id;
+            plan.PlnStripePaymentLinkUrl = paymentLink.Url;
+            plan.PlnUpdatedAt = DateTime.UtcNow;
+
+            _planRepo.Update(plan);
+
+            results.Add(new StripePlanSyncResult
+            {
+                PlanId = plan.PlnId,
+                PlanName = plan.PlnName,
+                PlanSlug = plan.PlnSlug,
+                MonthlyPrice = plan.PlnMonthlyPrice,
+                Currency = plan.PlnCurrency,
+                StripeProductId = plan.PlnStripeProductId,
+                StripePriceId = plan.PlnStripePriceId,
+                StripePaymentLinkId = plan.PlnStripePaymentLinkId,
+                StripePaymentLinkUrl = plan.PlnStripePaymentLinkUrl
+            });
+        }
+
+        await _planRepo.SaveChangesAsync(ct);
+
+        return results;
+    }
+
+    public async Task ProcessWebhookAsync(string payload, string signatureHeader, CancellationToken ct = default)
+    {
+        EnsureStripeWebhookConfigured();
+        EnsureStripeSecretConfigured();
+        StripeConfiguration.ApiKey = _stripeSettings.SecretKey;
+
+        var stripeEvent = EventUtility.ConstructEvent(payload, signatureHeader, _stripeSettings.WebhookSecret);
+
+        // Only process event types we care about — ignore the rest with a silent 200
+        if (!HandledEventTypes.Contains(stripeEvent.Type))
+        {
+            _logger.LogDebug("Ignoring unhandled Stripe event type {EventType} ({EventId})", stripeEvent.Type, stripeEvent.Id);
+            return;
+        }
+
+        var existingEvent = await _stripeWebhookEventRepo.GetByStripeEventIdAsync(stripeEvent.Id, ct);
+        if (existingEvent is { SweProcessedSuccessfully: true })
+        {
+            _logger.LogInformation("Ignoring already processed Stripe event {EventId}", stripeEvent.Id);
+            return;
+        }
+
+        var trackingEvent = existingEvent ?? new StripeWebhookEvent
+        {
+            SweId = Guid.NewGuid(),
+            SweStripeEventId = stripeEvent.Id,
+            SweType = stripeEvent.Type,
+            SweCreatedAt = DateTime.UtcNow
+        };
+
+        try
+        {
+            switch (stripeEvent.Type)
+            {
+                case "checkout.session.completed":
+                    await HandleCheckoutSessionCompletedAsync(stripeEvent, ct);
+                    break;
+                case "customer.subscription.updated":
+                case "customer.subscription.deleted":
+                    await HandleSubscriptionEventAsync(stripeEvent, ct);
+                    break;
+            }
+
+            trackingEvent.SweProcessedSuccessfully = true;
+            trackingEvent.SweErrorMessage = null;
+            trackingEvent.SweProcessedAt = DateTime.UtcNow;
+
+            if (existingEvent is null)
+                await _stripeWebhookEventRepo.AddAsync(trackingEvent, ct);
+            else
+                _stripeWebhookEventRepo.Update(trackingEvent);
+
+            await _stripeWebhookEventRepo.SaveChangesAsync(ct);
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException dbEx)
+            when (dbEx.InnerException?.Message.Contains("stripe_webhook_events_event_id_uq") == true)
+        {
+            // Race condition: another request already saved this event — treat as idempotent success
+            _logger.LogInformation("Stripe event {EventId} was already saved by a concurrent request, ignoring duplicate.", stripeEvent.Id);
+        }
+        catch (Exception ex)
+        {
+            trackingEvent.SweProcessedSuccessfully = false;
+            trackingEvent.SweErrorMessage = ex.Message.Length > 1500
+                ? ex.Message[..1500]
+                : ex.Message;
+            trackingEvent.SweProcessedAt = DateTime.UtcNow;
+
+            try
+            {
+                if (existingEvent is null)
+                    await _stripeWebhookEventRepo.AddAsync(trackingEvent, ct);
+                else
+                    _stripeWebhookEventRepo.Update(trackingEvent);
+
+                await _stripeWebhookEventRepo.SaveChangesAsync(ct);
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException)
+            {
+                // If error tracking itself fails (e.g. duplicate key), just log and move on
+                _logger.LogWarning("Could not persist error tracking for Stripe event {EventId}: {Message}", stripeEvent.Id, ex.Message);
+            }
+
+            throw;
+        }
+    }
+
+    public async Task<UserSubscription?> GetCurrentUserSubscriptionAsync(Guid userId, CancellationToken ct = default)
+    {
+        // 1) Búsqueda directa por userId (camino feliz)
+        var byUserId = await _userSubscriptionRepo.GetCurrentByUserIdAsync(userId, ct);
+        if (byUserId is not null)
+            return byUserId;
+
+        // 2) Fallback: buscar por StripeCustomerId del usuario
+        var user = await _userRepo.GetByIdAsync(userId, ct);
+        if (user is not null && !string.IsNullOrWhiteSpace(user.UsrStripeCustomerId))
+        {
+            var byCustomer = await _userSubscriptionRepo.GetByStripeCustomerIdAsync(user.UsrStripeCustomerId, ct);
+            if (byCustomer is not null)
+            {
+                // Auto-vincular la suscripción huérfana al usuario
+                _logger.LogInformation(
+                    "Auto-claiming orphaned subscription {SubId} for user {UserId} via StripeCustomerId {CustomerId}.",
+                    byCustomer.UssStripeSubscriptionId, userId, user.UsrStripeCustomerId);
+
+                byCustomer.UssUserId = userId;
+                byCustomer.UssUpdatedAt = DateTime.UtcNow;
+                _userSubscriptionRepo.Update(byCustomer);
+
+                // Sincronizar UsrPlanId si la suscripción está activa
+                if (byCustomer.UssPlanId is not null && IsActiveSubscriptionStatus(byCustomer.UssStatus))
+                {
+                    user.UsrPlanId = byCustomer.UssPlanId.Value;
+                    user.UsrUpdatedAt = DateTime.UtcNow;
+                    _userRepo.Update(user);
+                }
+
+                await _userSubscriptionRepo.SaveChangesAsync(ct);
+                return byCustomer;
+            }
+        }
+
+        // 3) Fallback: buscar clientes Stripe por email del usuario y reclamar
+        if (user is not null && !string.IsNullOrWhiteSpace(user.UsrEmail))
+        {
+            EnsureStripeSecretConfigured();
+            StripeConfiguration.ApiKey = _stripeSettings.SecretKey;
+
+            try
+            {
+                var customerService = new CustomerService();
+                var customers = await customerService.ListAsync(new CustomerListOptions
+                {
+                    Email = user.UsrEmail.ToLowerInvariant().Trim(),
+                    Limit = 5
+                }, cancellationToken: ct);
+
+                foreach (var customer in customers)
+                {
+                    var byCustId = await _userSubscriptionRepo.GetByStripeCustomerIdAsync(customer.Id, ct);
+                    if (byCustId is not null)
+                    {
+                        _logger.LogInformation(
+                            "Auto-claiming orphaned subscription {SubId} for user {UserId} via email {Email} → customer {CustomerId}.",
+                            byCustId.UssStripeSubscriptionId, userId, user.UsrEmail, customer.Id);
+
+                        byCustId.UssUserId = userId;
+                        byCustId.UssUpdatedAt = DateTime.UtcNow;
+                        _userSubscriptionRepo.Update(byCustId);
+
+                        // Vincular StripeCustomerId al usuario para futuras búsquedas
+                        user.UsrStripeCustomerId = customer.Id;
+                        if (byCustId.UssPlanId is not null && IsActiveSubscriptionStatus(byCustId.UssStatus))
+                            user.UsrPlanId = byCustId.UssPlanId.Value;
+                        user.UsrUpdatedAt = DateTime.UtcNow;
+                        _userRepo.Update(user);
+
+                        await _userSubscriptionRepo.SaveChangesAsync(ct);
+                        return byCustId;
+                    }
+                }
+            }
+            catch (StripeException ex)
+            {
+                _logger.LogWarning(ex, "Could not search Stripe customers by email {Email} for orphan claim.", user.UsrEmail);
+            }
+        }
+
+        // 4) Fallback de resiliencia: reconciliar directamente desde Stripe.
+        // Esto cubre el caso donde el webhook no llega (ej. entorno local sin forwarder).
+        if (user is not null)
+        {
+            var reconciled = await TryReconcileFromStripeAsync(userId, user, ct);
+            if (reconciled is not null)
+                return reconciled;
+        }
+
+        return null;
+    }
+
+    private async Task<UserSubscription?> TryReconcileFromStripeAsync(Guid userId, User user, CancellationToken ct)
+    {
+        EnsureStripeSecretConfigured();
+        StripeConfiguration.ApiKey = _stripeSettings.SecretKey;
+
+        var stripeCustomerId = user.UsrStripeCustomerId;
+
+        if (string.IsNullOrWhiteSpace(stripeCustomerId)
+            && !string.IsNullOrWhiteSpace(user.UsrEmail))
+        {
+            stripeCustomerId = await ResolveStripeCustomerIdByEmailAsync(user.UsrEmail, ct);
+
+            if (!string.IsNullOrWhiteSpace(stripeCustomerId))
+            {
+                user.UsrStripeCustomerId = stripeCustomerId;
+                user.UsrUpdatedAt = DateTime.UtcNow;
+                _userRepo.Update(user);
+                await _userSubscriptionRepo.SaveChangesAsync(ct);
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(stripeCustomerId))
+        {
+            _logger.LogInformation(
+                "Stripe reconciliation skipped for user {UserId}: no Stripe customer id found.",
+                userId);
+            return null;
+        }
+
+        try
+        {
+            var subscriptionService = new SubscriptionService();
+            var subscriptionList = await subscriptionService.ListAsync(new SubscriptionListOptions
+            {
+                Customer = stripeCustomerId,
+                Status = "all",
+                Limit = 10
+            }, cancellationToken: ct);
+
+            var candidate = subscriptionList.Data
+                .OrderByDescending(s => GetSubscriptionPriority(s.Status))
+                .ThenByDescending(s => s.Created)
+                .FirstOrDefault();
+
+            if (candidate is null)
+            {
+                _logger.LogInformation(
+                    "Stripe reconciliation found no subscriptions for user {UserId} / customer {CustomerId}.",
+                    userId,
+                    stripeCustomerId);
+                return null;
+            }
+
+            var fullSubscription = await subscriptionService.GetAsync(
+                candidate.Id,
+                new SubscriptionGetOptions
+                {
+                    Expand = ["items.data.price"]
+                },
+                cancellationToken: ct);
+
+            await UpsertSubscriptionAsync(fullSubscription, user.UsrEmail, null, userId, ct);
+
+            _logger.LogInformation(
+                "Stripe reconciliation succeeded for user {UserId} with subscription {SubscriptionId}.",
+                userId,
+                fullSubscription.Id);
+
+            return await _userSubscriptionRepo.GetCurrentByUserIdAsync(userId, ct);
+        }
+        catch (StripeException ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Stripe reconciliation failed for user {UserId} / customer {CustomerId}.",
+                userId,
+                stripeCustomerId);
+            return null;
+        }
+    }
+
+    private async Task<string?> ResolveStripeCustomerIdByEmailAsync(string email, CancellationToken ct)
+    {
+        var normalizedEmail = email.ToLowerInvariant().Trim();
+        var customerService = new CustomerService();
+
+        var customers = await customerService.ListAsync(new CustomerListOptions
+        {
+            Email = normalizedEmail,
+            Limit = 1
+        }, cancellationToken: ct);
+
+        return customers.Data.FirstOrDefault()?.Id;
+    }
+
+    private async Task<string> GetOrCreateStripeCustomerIdForUserAsync(User user, string normalizedEmail, CancellationToken ct)
+    {
+        var customerService = new CustomerService();
+
+        if (!string.IsNullOrWhiteSpace(user.UsrStripeCustomerId))
+        {
+            try
+            {
+                var byStoredId = await customerService.GetAsync(user.UsrStripeCustomerId, cancellationToken: ct);
+                await EnsureCustomerMetadataAsync(byStoredId, user, customerService, ct);
+                return byStoredId.Id;
+            }
+            catch (StripeException ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Stored Stripe customer {CustomerId} for user {UserId} was not found or not accessible. Falling back to lookup.",
+                    user.UsrStripeCustomerId,
+                    user.UsrId);
+            }
+        }
+
+        var byAppUserMetadata = await FindCustomerByAppUserIdAsync(user.UsrId, customerService, ct);
+        if (byAppUserMetadata is not null)
+        {
+            await EnsureCustomerMetadataAsync(byAppUserMetadata, user, customerService, ct);
+            await PersistUserStripeCustomerIdAsync(user, byAppUserMetadata.Id, ct);
+            return byAppUserMetadata.Id;
+        }
+
+        var byEmail = await FindCustomerByEmailAsync(normalizedEmail, customerService, ct);
+        if (byEmail is not null)
+        {
+            await EnsureCustomerMetadataAsync(byEmail, user, customerService, ct);
+            await PersistUserStripeCustomerIdAsync(user, byEmail.Id, ct);
+            return byEmail.Id;
+        }
+
+        var created = await customerService.CreateAsync(new CustomerCreateOptions
+        {
+            Email = normalizedEmail,
+            Name = user.UsrFullName,
+            Metadata = new Dictionary<string, string>
+            {
+                ["app_user_id"] = user.UsrId.ToString()
+            }
+        }, cancellationToken: ct);
+
+        await PersistUserStripeCustomerIdAsync(user, created.Id, ct);
+        return created.Id;
+    }
+
+    private async Task<Customer?> FindCustomerByAppUserIdAsync(Guid userId, CustomerService customerService, CancellationToken ct)
+    {
+        try
+        {
+            var result = await customerService.SearchAsync(new CustomerSearchOptions
+            {
+                Query = $"metadata['app_user_id']:'{userId}'",
+                Limit = 1
+            }, cancellationToken: ct);
+
+            return result.Data.FirstOrDefault();
+        }
+        catch (StripeException ex)
+        {
+            _logger.LogDebug(
+                ex,
+                "Could not search Stripe customer by app_user_id {UserId}. Falling back to email lookup.",
+                userId);
+            return null;
+        }
+    }
+
+    private async Task<Customer?> FindCustomerByEmailAsync(string normalizedEmail, CustomerService customerService, CancellationToken ct)
+    {
+        var customers = await customerService.ListAsync(new CustomerListOptions
+        {
+            Email = normalizedEmail,
+            Limit = 100
+        }, cancellationToken: ct);
+
+        return customers.Data
+            .OrderBy(c => c.Created)
+            .FirstOrDefault();
+    }
+
+    private async Task EnsureCustomerMetadataAsync(Customer customer, User user, CustomerService customerService, CancellationToken ct)
+    {
+        var expectedUserId = user.UsrId.ToString();
+        var currentMetadata = customer.Metadata is null
+            ? new Dictionary<string, string>()
+            : new Dictionary<string, string>(customer.Metadata);
+
+        if (currentMetadata.TryGetValue("app_user_id", out var currentUserId)
+            && string.Equals(currentUserId, expectedUserId, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        currentMetadata["app_user_id"] = expectedUserId;
+
+        await customerService.UpdateAsync(customer.Id, new CustomerUpdateOptions
+        {
+            Metadata = currentMetadata
+        }, cancellationToken: ct);
+    }
+
+    private async Task PersistUserStripeCustomerIdAsync(User user, string stripeCustomerId, CancellationToken ct)
+    {
+        if (string.Equals(user.UsrStripeCustomerId, stripeCustomerId, StringComparison.Ordinal))
+            return;
+
+        user.UsrStripeCustomerId = stripeCustomerId;
+        user.UsrUpdatedAt = DateTime.UtcNow;
+        _userRepo.Update(user);
+        await _userSubscriptionRepo.SaveChangesAsync(ct);
+    }
+
+    private static int GetSubscriptionPriority(string? status)
+        => status switch
+        {
+            "active" or "trialing" or "past_due" => 3,
+            "incomplete" => 2,
+            "canceled" or "incomplete_expired" or "unpaid" => 1,
+            _ => 0
+        };
+
+    /// <inheritdoc />
+    public async Task<(string SessionId, string CheckoutUrl)> CreateCheckoutSessionAsync(
+        Guid userId, string userEmail, Guid planId, CancellationToken ct = default)
+    {
+        EnsureStripeSecretConfigured();
+        StripeConfiguration.ApiKey = _stripeSettings.SecretKey;
+
+        var plan = await _planRepo.GetByIdAsync(planId, ct)
+            ?? throw new KeyNotFoundException($"Plan '{planId}' not found.");
+
+        if (!plan.PlnIsActive)
+            throw new InvalidOperationException($"Plan '{plan.PlnSlug}' is not active.");
+
+        if (plan.PlnMonthlyPrice <= 0)
+            throw new InvalidOperationException($"Plan '{plan.PlnSlug}' is free and does not require checkout.");
+
+        if (string.IsNullOrWhiteSpace(plan.PlnStripePriceId))
+            throw new InvalidOperationException($"Plan '{plan.PlnSlug}' has no Stripe Price ID. Run sync-plans first.");
+
+        var normalizedEmail = userEmail.ToLowerInvariant().Trim();
+        var customerLock = CheckoutCustomerLocks.GetOrAdd(userId, _ => new SemaphoreSlim(1, 1));
+
+        await customerLock.WaitAsync(ct);
+        string stripeCustomerId;
+
+        try
+        {
+            // Re-fetch bajo lock para evitar carreras de creación de customer para el mismo usuario.
+            var user = await _userRepo.GetByIdAsync(userId, ct)
+                ?? throw new KeyNotFoundException($"User '{userId}' not found.");
+
+            stripeCustomerId = await GetOrCreateStripeCustomerIdForUserAsync(user, normalizedEmail, ct);
+        }
+        finally
+        {
+            customerLock.Release();
+        }
+
+        var sessionService = new SessionService();
+        var session = await sessionService.CreateAsync(new SessionCreateOptions
+        {
+            Mode = "subscription",
+            Customer = stripeCustomerId,
+            ClientReferenceId = userId.ToString(),
+            CustomerEmail = null, // No usar CustomerEmail si ya enviamos Customer
+            LineItems =
+            [
+                new SessionLineItemOptions
+                {
+                    Price = plan.PlnStripePriceId,
+                    Quantity = 1
+                }
+            ],
+            SuccessUrl = _stripeSettings.SuccessUrl + "?session_id={CHECKOUT_SESSION_ID}",
+            CancelUrl = _stripeSettings.CancelUrl,
+            AllowPromotionCodes = _stripeSettings.AllowPromotionCodes,
+            Metadata = new Dictionary<string, string>
+            {
+                ["app_user_id"] = userId.ToString(),
+                ["plan_id"] = plan.PlnId.ToString(),
+                ["plan_slug"] = plan.PlnSlug
+            },
+            SubscriptionData = new SessionSubscriptionDataOptions
+            {
+                Metadata = new Dictionary<string, string>
+                {
+                    ["app_user_id"] = userId.ToString(),
+                    ["plan_id"] = plan.PlnId.ToString(),
+                    ["plan_slug"] = plan.PlnSlug
+                }
+            }
+        }, cancellationToken: ct);
+
+        _logger.LogInformation(
+            "Created Stripe Checkout Session {SessionId} for user {UserId}, plan {PlanSlug}, customer {CustomerId}.",
+            session.Id, userId, plan.PlnSlug, stripeCustomerId);
+
+        return (session.Id, session.Url);
+    }
+
+    private async Task HandleCheckoutSessionCompletedAsync(Event stripeEvent, CancellationToken ct)
+    {
+        if (stripeEvent.Data.Object is not Session session)
+            return;
+
+        if (!string.Equals(session.Mode, "subscription", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        if (string.IsNullOrWhiteSpace(session.SubscriptionId))
+            return;
+
+        var subscriptionService = new SubscriptionService();
+        var subscription = await subscriptionService.GetAsync(
+            session.SubscriptionId,
+            new SubscriptionGetOptions
+            {
+                Expand = ["items.data.price"]
+            });
+
+        var fallbackEmail = session.CustomerDetails?.Email ?? session.CustomerEmail;
+        Guid? fallbackUserId = null;
+
+        if (!string.IsNullOrWhiteSpace(session.ClientReferenceId)
+            && Guid.TryParse(session.ClientReferenceId, out var userIdFromClientReference))
+        {
+            fallbackUserId = userIdFromClientReference;
+        }
+        else if (session.Metadata is not null
+                 && session.Metadata.TryGetValue("app_user_id", out var rawAppUserId)
+                 && Guid.TryParse(rawAppUserId, out var userIdFromMetadata))
+        {
+            fallbackUserId = userIdFromMetadata;
+        }
+
+        await UpsertSubscriptionAsync(subscription, fallbackEmail, session.Metadata, fallbackUserId, ct);
+    }
+
+    private async Task HandleSubscriptionEventAsync(Event stripeEvent, CancellationToken ct)
+    {
+        if (stripeEvent.Data.Object is not Subscription subscription)
+            return;
+
+        await UpsertSubscriptionAsync(subscription, null, null, null, ct);
+    }
+
+    private async Task UpsertSubscriptionAsync(
+        Subscription subscription,
+        string? fallbackEmail,
+        Dictionary<string, string>? fallbackMetadata,
+        Guid? fallbackUserId,
+        CancellationToken ct)
+    {
+        var metadata = subscription.Metadata?.Count > 0
+            ? subscription.Metadata
+            : fallbackMetadata;
+
+        var user = await ResolveUserAsync(subscription.CustomerId, fallbackEmail, fallbackUserId, ct);
+        var plan = await ResolvePlanAsync(subscription, metadata, ct);
+
+        if (user is null)
+        {
+            _logger.LogWarning(
+                "Could not resolve user for Stripe subscription {SubId} (customer={CustomerId}, fallbackEmail={Email}, fallbackUserId={UserId}). " +
+                "Subscription will be saved with UssUserId=NULL — will be auto-claimed when the user polls /subscription/me.",
+                subscription.Id, subscription.CustomerId, fallbackEmail, fallbackUserId);
+        }
+        else
+        {
+            _logger.LogInformation(
+                "Resolved user {UserId} ({Email}) for Stripe subscription {SubId}.",
+                user.UsrId, user.UsrEmail, subscription.Id);
+        }
+
+        var existing = await _userSubscriptionRepo.GetByStripeSubscriptionIdAsync(subscription.Id, ct);
+        var entity = existing ?? new UserSubscription
+        {
+            UssId = Guid.NewGuid(),
+            UssStripeSubscriptionId = subscription.Id,
+            UssCreatedAt = DateTime.UtcNow
+        };
+
+        // En Stripe.net v49+ (API 2025), CurrentPeriodStart/End están en SubscriptionItem, no en Subscription
+        var firstItem = subscription.Items?.Data?.FirstOrDefault();
+
+        entity.UssUserId = user?.UsrId ?? existing?.UssUserId;
+        entity.UssPlanId = plan?.PlnId ?? existing?.UssPlanId;
+        entity.UssStripeCustomerId = subscription.CustomerId ?? existing?.UssStripeCustomerId;
+        entity.UssStripePriceId = firstItem?.Price?.Id ?? existing?.UssStripePriceId;
+        entity.UssStatus = subscription.Status ?? "unknown";
+        entity.UssCancelAtPeriodEnd = subscription.CancelAtPeriodEnd;
+        entity.UssCurrentPeriodStart = firstItem?.CurrentPeriodStart ?? existing?.UssCurrentPeriodStart;
+        entity.UssCurrentPeriodEnd = firstItem?.CurrentPeriodEnd ?? existing?.UssCurrentPeriodEnd;
+        entity.UssCanceledAt = subscription.CanceledAt;
+        entity.UssUpdatedAt = DateTime.UtcNow;
+
+        if (existing is null)
+            await _userSubscriptionRepo.AddAsync(entity, ct);
+        else
+            _userSubscriptionRepo.Update(entity);
+
+        if (user is not null)
+        {
+            var userChanged = false;
+
+            if (!string.IsNullOrWhiteSpace(subscription.CustomerId)
+                && !string.Equals(user.UsrStripeCustomerId, subscription.CustomerId, StringComparison.Ordinal))
+            {
+                user.UsrStripeCustomerId = subscription.CustomerId;
+                userChanged = true;
+            }
+
+            if (plan is not null && IsActiveSubscriptionStatus(subscription.Status))
+            {
+                if (user.UsrPlanId != plan.PlnId)
+                {
+                    user.UsrPlanId = plan.PlnId;
+                    userChanged = true;
+                }
+            }
+            else if (IsCanceledSubscriptionStatus(subscription.Status))
+            {
+                var freePlan = await _planRepo.GetBySlugAsync("free", ct);
+                if (freePlan is not null && user.UsrPlanId != freePlan.PlnId)
+                {
+                    user.UsrPlanId = freePlan.PlnId;
+                    userChanged = true;
+                }
+            }
+
+            if (userChanged)
+            {
+                user.UsrUpdatedAt = DateTime.UtcNow;
+                _userRepo.Update(user);
+            }
+        }
+
+        await _userSubscriptionRepo.SaveChangesAsync(ct);
+    }
+
+    private async Task<User?> ResolveUserAsync(string? stripeCustomerId, string? fallbackEmail, Guid? fallbackUserId, CancellationToken ct)
+    {
+        if (fallbackUserId is not null)
+        {
+            var byId = await _userRepo.GetByIdAsync(fallbackUserId.Value, ct);
+            if (byId is not null)
+                return byId;
+        }
+
+        if (!string.IsNullOrWhiteSpace(stripeCustomerId))
+        {
+            var userByCustomer = await _userRepo.GetByStripeCustomerIdAsync(stripeCustomerId, ct);
+            if (userByCustomer is not null)
+                return userByCustomer;
+
+            try
+            {
+                var customerService = new CustomerService();
+                var customer = await customerService.GetAsync(stripeCustomerId, cancellationToken: ct);
+
+                if (!string.IsNullOrWhiteSpace(customer.Email))
+                {
+                    var normalizedCustomerEmail = customer.Email.ToLowerInvariant().Trim();
+                    var userByCustomerEmail = await _userRepo.GetByEmailAsync(normalizedCustomerEmail, ct);
+                    if (userByCustomerEmail is not null)
+                        return userByCustomerEmail;
+                }
+            }
+            catch (StripeException ex)
+            {
+                _logger.LogWarning(ex, "Could not resolve Stripe customer {CustomerId} while matching subscription to local user.", stripeCustomerId);
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(fallbackEmail))
+        {
+            var normalizedEmail = fallbackEmail.ToLowerInvariant().Trim();
+            return await _userRepo.GetByEmailAsync(normalizedEmail, ct);
+        }
+
+        return null;
+    }
+
+    private async Task<AppPlan?> ResolvePlanAsync(
+        Subscription subscription,
+        Dictionary<string, string>? metadata,
+        CancellationToken ct)
+    {
+        if (metadata is not null
+            && metadata.TryGetValue("plan_slug", out var planSlug)
+            && !string.IsNullOrWhiteSpace(planSlug))
+        {
+            var bySlug = await _planRepo.GetBySlugAsync(planSlug.ToLowerInvariant(), ct);
+            if (bySlug is not null)
+                return bySlug;
+        }
+
+        if (metadata is not null
+            && metadata.TryGetValue("plan_id", out var rawPlanId)
+            && Guid.TryParse(rawPlanId, out var planId))
+        {
+            var byId = await _planRepo.GetByIdAsync(planId, ct);
+            if (byId is not null)
+                return byId;
+        }
+
+        var stripePriceId = subscription.Items?.Data?.FirstOrDefault()?.Price?.Id;
+        if (string.IsNullOrWhiteSpace(stripePriceId))
+            return null;
+
+        return await _planRepo.GetByStripePriceIdAsync(stripePriceId, ct);
+    }
+
+    private async Task<Product> GetOrCreateProductAsync(ProductService productService, AppPlan plan)
+    {
+        if (!string.IsNullOrWhiteSpace(plan.PlnStripeProductId))
+        {
+            try
+            {
+                return await productService.GetAsync(plan.PlnStripeProductId);
+            }
+            catch (StripeException ex)
+            {
+                _logger.LogWarning(ex, "Stripe product {ProductId} not found for plan {PlanSlug}. Creating a new product.", plan.PlnStripeProductId, plan.PlnSlug);
+            }
+        }
+
+        return await productService.CreateAsync(new ProductCreateOptions
+        {
+            Name = plan.PlnName,
+            Description = plan.PlnDescription,
+            Active = plan.PlnIsActive,
+            Metadata = new Dictionary<string, string>
+            {
+                ["plan_id"] = plan.PlnId.ToString(),
+                ["plan_slug"] = plan.PlnSlug
+            }
+        });
+    }
+
+    private async Task<Price> GetOrCreatePriceAsync(PriceService priceService, AppPlan plan, string productId, string currency)
+    {
+        if (!string.IsNullOrWhiteSpace(plan.PlnStripePriceId))
+        {
+            try
+            {
+                var existingPrice = await priceService.GetAsync(plan.PlnStripePriceId);
+                var amountInCents = Convert.ToInt64(decimal.Round(plan.PlnMonthlyPrice * 100m, 0, MidpointRounding.AwayFromZero));
+
+                if (existingPrice.Active
+                    && existingPrice.UnitAmount == amountInCents
+                    && string.Equals(existingPrice.Currency, currency, StringComparison.OrdinalIgnoreCase))
+                {
+                    return existingPrice;
+                }
+            }
+            catch (StripeException ex)
+            {
+                _logger.LogWarning(ex, "Stripe price {PriceId} not found for plan {PlanSlug}. Creating a new price.", plan.PlnStripePriceId, plan.PlnSlug);
+            }
+        }
+
+        var cents = Convert.ToInt64(decimal.Round(plan.PlnMonthlyPrice * 100m, 0, MidpointRounding.AwayFromZero));
+
+        return await priceService.CreateAsync(new PriceCreateOptions
+        {
+            Currency = currency,
+            UnitAmount = cents,
+            Product = productId,
+            Recurring = new PriceRecurringOptions
+            {
+                Interval = "month"
+            },
+            Metadata = new Dictionary<string, string>
+            {
+                ["plan_id"] = plan.PlnId.ToString(),
+                ["plan_slug"] = plan.PlnSlug
+            }
+        });
+    }
+
+    private async Task<PaymentLink> GetOrCreatePaymentLinkAsync(PaymentLinkService paymentLinkService, AppPlan plan, string priceId)
+    {
+        if (!string.IsNullOrWhiteSpace(plan.PlnStripePaymentLinkId))
+        {
+            try
+            {
+                var existingLink = await paymentLinkService.GetAsync(plan.PlnStripePaymentLinkId);
+                if (existingLink.Active && IsRedirectConfigured(existingLink))
+                    return existingLink;
+
+                _logger.LogInformation(
+                    "Stripe payment link {PaymentLinkId} for plan {PlanSlug} has no redirect to success URL. A new link will be created.",
+                    plan.PlnStripePaymentLinkId,
+                    plan.PlnSlug);
+            }
+            catch (StripeException ex)
+            {
+                _logger.LogWarning(ex, "Stripe payment link {PaymentLinkId} not found for plan {PlanSlug}. Creating a new payment link.", plan.PlnStripePaymentLinkId, plan.PlnSlug);
+            }
+        }
+
+        return await paymentLinkService.CreateAsync(new PaymentLinkCreateOptions
+        {
+            LineItems =
+            [
+                new PaymentLinkLineItemOptions
+                {
+                    Price = priceId,
+                    Quantity = 1
+                }
+            ],
+            AllowPromotionCodes = _stripeSettings.AllowPromotionCodes,
+            AfterCompletion = new PaymentLinkAfterCompletionOptions
+            {
+                Type = "redirect",
+                Redirect = new PaymentLinkAfterCompletionRedirectOptions
+                {
+                    Url = _stripeSettings.SuccessUrl
+                }
+            },
+            Metadata = new Dictionary<string, string>
+            {
+                ["plan_id"] = plan.PlnId.ToString(),
+                ["plan_slug"] = plan.PlnSlug
+            },
+            SubscriptionData = new PaymentLinkSubscriptionDataOptions
+            {
+                Metadata = new Dictionary<string, string>
+                {
+                    ["plan_id"] = plan.PlnId.ToString(),
+                    ["plan_slug"] = plan.PlnSlug
+                }
+            }
+        });
+    }
+
+    private bool IsRedirectConfigured(PaymentLink link)
+    {
+        var afterCompletionType = link.AfterCompletion?.Type;
+        var redirectUrl = link.AfterCompletion?.Redirect?.Url;
+
+        return string.Equals(afterCompletionType, "redirect", StringComparison.OrdinalIgnoreCase)
+               && !string.IsNullOrWhiteSpace(redirectUrl)
+               && string.Equals(redirectUrl, _stripeSettings.SuccessUrl, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool IsActiveSubscriptionStatus(string? status)
+        => status is "active" or "trialing" or "past_due";
+
+    private bool IsCanceledSubscriptionStatus(string? status)
+        => status is "canceled" or "incomplete_expired" or "unpaid";
+
+    private void EnsureStripeSecretConfigured()
+    {
+        if (string.IsNullOrWhiteSpace(_stripeSettings.SecretKey))
+            throw new InvalidOperationException("Stripe secret key is missing. Configure Stripe:SecretKey.");
+    }
+
+    private void EnsureStripeWebhookConfigured()
+    {
+        if (string.IsNullOrWhiteSpace(_stripeSettings.WebhookSecret))
+            throw new InvalidOperationException("Stripe webhook secret is missing. Configure Stripe:WebhookSecret.");
+    }
+}

@@ -62,6 +62,8 @@ builder.Services.AddDatabase(builder.Configuration);
 // Email
 builder.Services.Configure<EmailSettings>(
     builder.Configuration.GetSection(EmailSettings.SectionName));
+builder.Services.Configure<StripeSettings>(
+    builder.Configuration.GetSection(StripeSettings.SectionName));
 // Resolver placeholders ${ENV_VAR} en las settings de email
 builder.Services.PostConfigure<EmailSettings>(settings =>
 {
@@ -70,6 +72,21 @@ builder.Services.PostConfigure<EmailSettings>(settings =>
     settings.FromEmail    = string.IsNullOrEmpty(settings.FromEmail) ? settings.SmtpUser : Resolve(settings.FromEmail);
     static string Resolve(string value) =>
         value.StartsWith("${") && value.EndsWith("}")
+            ? Environment.GetEnvironmentVariable(value[2..^1]) ?? string.Empty
+            : value;
+});
+
+builder.Services.PostConfigure<StripeSettings>(settings =>
+{
+    settings.SecretKey = Resolve(settings.SecretKey);
+    settings.WebhookSecret = Resolve(settings.WebhookSecret);
+    settings.SuccessUrl = Resolve(settings.SuccessUrl);
+    settings.CancelUrl = Resolve(settings.CancelUrl);
+
+    static string Resolve(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && value.StartsWith("${")
+        && value.EndsWith("}")
             ? Environment.GetEnvironmentVariable(value[2..^1]) ?? string.Empty
             : value;
 });

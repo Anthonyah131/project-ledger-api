@@ -21,6 +21,7 @@ public class AdminIsolationFilter : IAsyncActionFilter
         "/api/health",      // Health check
         "/api/plans",       // Consulta de planes (público)
         "/api/currencies",  // Consulta de monedas (público)
+        "/api/billing",     // Billing (Stripe sync/webhooks/subscriptions)
         "/api/users",       // Perfil propio (self-service)
         "/swagger"          // Documentación
     ];

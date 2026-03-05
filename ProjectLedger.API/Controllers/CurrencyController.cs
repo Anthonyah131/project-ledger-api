@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.Currency;
 using ProjectLedger.API.Extensions.Mappings;
@@ -12,6 +13,7 @@ namespace ProjectLedger.API.Controllers;
 [Route("api/currencies")]
 [Tags("Currencies")]
 [Produces("application/json")]
+[AllowAnonymous]
 public class CurrencyController : ControllerBase
 {
     private readonly ICurrencyService _currencyService;

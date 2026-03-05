@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.Plan;
 using ProjectLedger.API.Extensions.Mappings;
@@ -13,6 +14,7 @@ namespace ProjectLedger.API.Controllers;
 [Route("api/plans")]
 [Tags("Plans")]
 [Produces("application/json")]
+[AllowAnonymous]
 public class PlanController : ControllerBase
 {
     private readonly IPlanService _planService;

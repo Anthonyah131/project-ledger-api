@@ -12,6 +12,10 @@ public class PlanRepository : Repository<Plan>, IPlanRepository
         => await DbSet.FirstOrDefaultAsync(
             p => p.PlnSlug == slug && p.PlnIsActive, ct);
 
+    public async Task<Plan?> GetByStripePriceIdAsync(string stripePriceId, CancellationToken ct = default)
+        => await DbSet.FirstOrDefaultAsync(
+            p => p.PlnStripePriceId == stripePriceId && p.PlnIsActive, ct);
+
     public async Task<IEnumerable<Plan>> GetActiveAsync(CancellationToken ct = default)
         => await DbSet
             .Where(p => p.PlnIsActive)

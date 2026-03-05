@@ -17,6 +17,10 @@ public class UserRepository : Repository<User>, IUserRepository
         => await DbSet.FirstOrDefaultAsync(
             u => u.UsrEmail == email && !u.UsrIsDeleted, ct);
 
+    public async Task<User?> GetByStripeCustomerIdAsync(string stripeCustomerId, CancellationToken ct = default)
+        => await DbSet.FirstOrDefaultAsync(
+            u => u.UsrStripeCustomerId == stripeCustomerId && !u.UsrIsDeleted, ct);
+
     public async Task<bool> EmailExistsAsync(string email, CancellationToken ct = default)
         => await DbSet.AnyAsync(
             u => u.UsrEmail == email && !u.UsrIsDeleted, ct);

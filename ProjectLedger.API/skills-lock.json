@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "skills": {
+    "api-design-principles": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "computedHash": "1ee396a9c4714df95f1a9f8d156395848e8bd0fac1d70920a0487e8526ec0e55"
+    },
+    "stripe-integration": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "computedHash": "997f806687334ec6f6d90fd9e6cc7159eb9a827b735e070aded56544efa8e857"
+    }
+  }
+}
