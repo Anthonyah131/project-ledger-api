@@ -95,6 +95,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProjectBudgetService, ProjectBudgetService>();
         services.AddScoped<IProjectPaymentMethodService, ProjectPaymentMethodService>();
 
+        // Reportes
+        services.AddScoped<IReportExportService, ReportExportService>();
+
         return services;
     }
 }

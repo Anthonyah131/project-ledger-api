@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Stripe;
 using ProjectLedger.API.DTOs.Billing;
+using ProjectLedger.API.Models;
 using ProjectLedger.API.Services;
 
 namespace ProjectLedger.API.Controllers;
@@ -131,24 +132,59 @@ public class BillingController : ControllerBase
         if (subscription is null)
             return NotFound(new { message = "No subscription found for current user." });
 
-        var response = new MySubscriptionResponse
-        {
-            UserId = subscription.UssUserId,
-            PlanId = subscription.UssPlanId,
-            PlanName = subscription.Plan?.PlnName,
-            PlanSlug = subscription.Plan?.PlnSlug,
-            StripeSubscriptionId = subscription.UssStripeSubscriptionId,
-            StripeCustomerId = subscription.UssStripeCustomerId,
-            StripePriceId = subscription.UssStripePriceId,
-            Status = subscription.UssStatus,
-            CancelAtPeriodEnd = subscription.UssCancelAtPeriodEnd,
-            CurrentPeriodStart = subscription.UssCurrentPeriodStart,
-            CurrentPeriodEnd = subscription.UssCurrentPeriodEnd,
-            CanceledAt = subscription.UssCanceledAt,
-            UpdatedAt = subscription.UssUpdatedAt
-        };
+        return Ok(ToMySubscriptionResponse(subscription));
+    }
 
-        return Ok(response);
+    [HttpPost("subscription/change-plan")]
+    [Authorize]
+    [ProducesResponseType(typeof(MySubscriptionResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ChangePlan(
+        [FromBody] ChangeSubscriptionPlanRequest request,
+        CancellationToken ct)
+    {
+        var userId = User.GetRequiredUserId();
+
+        try
+        {
+            var updated = await _stripeBillingService.ChangePlanAsync(userId, request.PlanId, request.Prorate, ct);
+            return Ok(ToMySubscriptionResponse(updated));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("subscription/cancel")]
+    [Authorize]
+    [ProducesResponseType(typeof(MySubscriptionResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CancelSubscription(
+        [FromBody] CancelSubscriptionRequest request,
+        CancellationToken ct)
+    {
+        var userId = User.GetRequiredUserId();
+
+        try
+        {
+            var updated = await _stripeBillingService.CancelSubscriptionAsync(userId, request.CancelAtPeriodEnd, ct);
+            return Ok(ToMySubscriptionResponse(updated));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpPost("stripe/webhook")]
@@ -175,6 +211,35 @@ public class BillingController : ControllerBase
 
         return Ok(new { received = true });
     }
+
+    private static MySubscriptionResponse ToMySubscriptionResponse(UserSubscription subscription)
+    {
+        var isCanceledNow = IsCanceledSubscriptionStatus(subscription.UssStatus);
+        var willDowngrade = !isCanceledNow && subscription.UssCancelAtPeriodEnd;
+
+        return new MySubscriptionResponse
+        {
+            UserId = subscription.UssUserId,
+            PlanId = subscription.UssPlanId,
+            PlanName = subscription.Plan?.PlnName,
+            PlanSlug = subscription.Plan?.PlnSlug,
+            StripeSubscriptionId = subscription.UssStripeSubscriptionId,
+            StripeCustomerId = subscription.UssStripeCustomerId,
+            StripePriceId = subscription.UssStripePriceId,
+            Status = subscription.UssStatus,
+            CancelAtPeriodEnd = subscription.UssCancelAtPeriodEnd,
+            AutoRenews = !subscription.UssCancelAtPeriodEnd && !isCanceledNow,
+            WillDowngradeToFree = willDowngrade,
+            DowngradeToFreeAt = willDowngrade ? subscription.UssCurrentPeriodEnd : null,
+            CurrentPeriodStart = subscription.UssCurrentPeriodStart,
+            CurrentPeriodEnd = subscription.UssCurrentPeriodEnd,
+            CanceledAt = subscription.UssCanceledAt,
+            UpdatedAt = subscription.UssUpdatedAt
+        };
+    }
+
+    private static bool IsCanceledSubscriptionStatus(string? status)
+        => status is "canceled" or "incomplete_expired" or "unpaid";
 
     private bool IsAdmin()
     {

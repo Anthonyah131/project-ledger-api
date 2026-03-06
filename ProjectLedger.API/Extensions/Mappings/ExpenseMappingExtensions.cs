@@ -16,6 +16,7 @@ public static class ExpenseMappingExtensions
         PaymentMethodId = entity.ExpPaymentMethodId,
         CreatedByUserId = entity.ExpCreatedByUserId,
         ObligationId = entity.ExpObligationId,
+        ObligationEquivalentAmount = entity.ExpObligationEquivalentAmount,
         OriginalAmount = entity.ExpOriginalAmount,
         OriginalCurrency = entity.ExpOriginalCurrency,
         ExchangeRate = entity.ExpExchangeRate,
@@ -46,6 +47,7 @@ public static class ExpenseMappingExtensions
         ExpCategoryId = request.CategoryId,
         ExpPaymentMethodId = request.PaymentMethodId,
         ExpObligationId = request.ObligationId,
+        ExpObligationEquivalentAmount = request.ObligationEquivalentAmount,
         ExpOriginalAmount = request.OriginalAmount,
         ExpOriginalCurrency = request.OriginalCurrency,
         ExpExchangeRate = request.ExchangeRate,
@@ -69,6 +71,8 @@ public static class ExpenseMappingExtensions
     {
         entity.ExpCategoryId = request.CategoryId;
         entity.ExpPaymentMethodId = request.PaymentMethodId;
+        if (request.ObligationEquivalentAmount.HasValue)
+            entity.ExpObligationEquivalentAmount = request.ObligationEquivalentAmount;
         entity.ExpOriginalAmount = request.OriginalAmount;
         entity.ExpOriginalCurrency = request.OriginalCurrency;
         entity.ExpExchangeRate = request.ExchangeRate;
@@ -102,6 +106,7 @@ public static class ExpenseMappingExtensions
         ExpCategoryId = template.ExpCategoryId,
         ExpPaymentMethodId = template.ExpPaymentMethodId,
         ExpObligationId = request.ObligationId,
+        ExpObligationEquivalentAmount = request.ObligationEquivalentAmount ?? template.ExpObligationEquivalentAmount,
         ExpOriginalAmount = request.OriginalAmount ?? template.ExpOriginalAmount,
         ExpOriginalCurrency = template.ExpOriginalCurrency,
         ExpExchangeRate = template.ExpExchangeRate,

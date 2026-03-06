@@ -8,12 +8,14 @@
 
   <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
+    <PackageReference Include="ClosedXML" Version="0.104.2" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.3">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
+    <PackageReference Include="QuestPDF" Version="2024.12.3" />
     <PackageReference Include="Stripe.net" Version="49.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.4" />
   </ItemGroup>

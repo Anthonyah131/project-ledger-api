@@ -13,6 +13,8 @@ public interface IExpenseRepository : IRepository<Expense>
     Task<IEnumerable<Expense>> GetByPaymentMethodIdAsync(Guid paymentMethodId, CancellationToken ct = default);
     Task<(IReadOnlyList<Expense> Items, int TotalCount)> GetByPaymentMethodIdPagedAsync(Guid paymentMethodId, int skip, int take, string? sortBy, bool descending, CancellationToken ct = default);
     Task<IEnumerable<Expense>> GetByProjectIdWithDetailsAsync(Guid projectId, CancellationToken ct = default);
+    Task<IEnumerable<Expense>> GetDetailedByProjectIdAsync(Guid projectId, DateOnly? from, DateOnly? to, CancellationToken ct = default);
+    Task<IEnumerable<Expense>> GetByPaymentMethodIdsWithDetailsAsync(IEnumerable<Guid> paymentMethodIds, DateOnly? from, DateOnly? to, CancellationToken ct = default);
     Task<decimal> GetSpentAmountByProjectIdAsync(Guid projectId, CancellationToken ct = default);
     Task<Dictionary<Guid, decimal>> GetPaidAmountsByObligationIdsAsync(IEnumerable<Guid> obligationIds, CancellationToken ct = default);
 }

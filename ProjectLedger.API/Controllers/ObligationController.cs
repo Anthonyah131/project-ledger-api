@@ -6,6 +6,7 @@ using ProjectLedger.API.Extensions.Mappings;
 using ProjectLedger.API.Repositories;
 using ProjectLedger.API.Services;
 
+
 namespace ProjectLedger.API.Controllers;
 
 /// <summary>
@@ -62,12 +63,11 @@ public class ObligationController : ControllerBase
         var obligationIds = items.Select(o => o.OblId).ToList();
         var paidAmounts = await _expenseRepo.GetPaidAmountsByObligationIdsAsync(obligationIds, ct);
 
-        var responses = new List<ObligationResponse>();
-        foreach (var obl in items)
+        var responses = items.Select(obl =>
         {
             paidAmounts.TryGetValue(obl.OblId, out var paidAmount);
-            responses.Add(obl.ToResponse(paidAmount));
-        }
+            return obl.ToResponse(paidAmount);
+        }).ToList();
 
         var response = PagedResponse<ObligationResponse>.Create(
             responses, totalCount, pagination);
@@ -92,7 +92,7 @@ public class ObligationController : ControllerBase
         if (obl is null || obl.OblProjectId != projectId)
             return NotFound(new { message = "Obligation not found in this project." });
 
-        var paidAmount = await CalculatePaidAmountAsync(obligationId, ct);
+        var paidAmount = await CalculatePaidAmountAsync(obligationId, obl.OblCurrency, ct);
         return Ok(obl.ToResponse(paidAmount));
     }
 
@@ -159,7 +159,7 @@ public class ObligationController : ControllerBase
         obl.ApplyUpdate(request);
         await _obligationService.UpdateAsync(obl, ct);
 
-        var paidAmount = await CalculatePaidAmountAsync(obligationId, ct);
+        var paidAmount = await CalculatePaidAmountAsync(obligationId, obl.OblCurrency, ct);
         return Ok(obl.ToResponse(paidAmount));
     }
 
@@ -193,11 +193,17 @@ public class ObligationController : ControllerBase
     // ── Private Helpers ─────────────────────────────────────
 
     /// <summary>
-    /// Calcula el monto pagado de una obligación sumando los gastos vinculados.
+    /// Calcula el monto pagado de una obligación sumando los gastos vinculados,
+    /// convirtiendo cada pago a la moneda de la obligación.
     /// </summary>
-    private async Task<decimal> CalculatePaidAmountAsync(Guid obligationId, CancellationToken ct)
+    private async Task<decimal> CalculatePaidAmountAsync(
+        Guid obligationId, string obligationCurrency, CancellationToken ct)
     {
         var expenses = await _expenseRepo.GetByObligationIdAsync(obligationId, ct);
-        return expenses.Sum(e => e.ExpConvertedAmount);
+        return expenses.Sum(e =>
+            e.ExpOriginalCurrency == obligationCurrency
+                ? e.ExpOriginalAmount
+                : e.ExpObligationEquivalentAmount
+                    ?? e.ExpConvertedAmount); // fallback legado para registros antiguos
     }
 }

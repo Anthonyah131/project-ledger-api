@@ -59,6 +59,48 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
             .OrderByDescending(e => e.ExpExpenseDate)
             .ToListAsync(ct);
 
+    public async Task<IEnumerable<Expense>> GetDetailedByProjectIdAsync(
+        Guid projectId, DateOnly? from, DateOnly? to, CancellationToken ct = default)
+    {
+        var query = DbSet
+            .Include(e => e.Category)
+            .Include(e => e.PaymentMethod)
+            .Include(e => e.Obligation)
+            .Where(e => e.ExpProjectId == projectId && !e.ExpIsDeleted && !e.ExpIsTemplate);
+
+        if (from.HasValue)
+            query = query.Where(e => e.ExpExpenseDate >= from.Value);
+        if (to.HasValue)
+            query = query.Where(e => e.ExpExpenseDate <= to.Value);
+
+        return await query
+            .OrderBy(e => e.ExpExpenseDate)
+            .ToListAsync(ct);
+    }
+
+    public async Task<IEnumerable<Expense>> GetByPaymentMethodIdsWithDetailsAsync(
+        IEnumerable<Guid> paymentMethodIds, DateOnly? from, DateOnly? to, CancellationToken ct = default)
+    {
+        var ids = paymentMethodIds.ToList();
+        if (ids.Count == 0)
+            return [];
+
+        var query = DbSet
+            .Include(e => e.Category)
+            .Include(e => e.Project)
+            .Include(e => e.PaymentMethod)
+            .Where(e => ids.Contains(e.ExpPaymentMethodId) && !e.ExpIsDeleted && !e.ExpIsTemplate);
+
+        if (from.HasValue)
+            query = query.Where(e => e.ExpExpenseDate >= from.Value);
+        if (to.HasValue)
+            query = query.Where(e => e.ExpExpenseDate <= to.Value);
+
+        return await query
+            .OrderByDescending(e => e.ExpExpenseDate)
+            .ToListAsync(ct);
+    }
+
     public async Task<(IReadOnlyList<Expense> Items, int TotalCount)> GetByProjectIdPagedAsync(
         Guid projectId, bool includeDeleted, int skip, int take, string? sortBy, bool descending, CancellationToken ct = default)
     {
@@ -115,12 +157,29 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
         if (ids.Count == 0)
             return new Dictionary<Guid, decimal>();
 
-        return await DbSet
+        // Project expenses with obligation currency to compute paid amounts
+        // in the obligation's own currency (not the project's)
+        var payments = await DbSet
             .Where(e => e.ExpObligationId.HasValue
                      && ids.Contains(e.ExpObligationId.Value)
                      && !e.ExpIsDeleted)
-            .GroupBy(e => e.ExpObligationId!.Value)
-            .Select(g => new { ObligationId = g.Key, PaidAmount = g.Sum(e => e.ExpConvertedAmount) })
-            .ToDictionaryAsync(x => x.ObligationId, x => x.PaidAmount, ct);
+            .Select(e => new
+            {
+                ObligationId = e.ExpObligationId!.Value,
+                e.ExpOriginalAmount,
+                e.ExpOriginalCurrency,
+                e.ExpConvertedAmount,
+                e.ExpObligationEquivalentAmount,
+                ObligationCurrency = e.Obligation!.OblCurrency
+            })
+            .ToListAsync(ct);
+
+        return payments
+            .GroupBy(e => e.ObligationId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Sum(e => e.ExpOriginalCurrency == e.ObligationCurrency
+                    ? e.ExpOriginalAmount
+                    : e.ExpObligationEquivalentAmount ?? e.ExpConvertedAmount));
     }
 }

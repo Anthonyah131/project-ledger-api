@@ -7,6 +7,8 @@ public interface IStripeBillingService
     Task<IReadOnlyList<StripePlanSyncResult>> SyncPlansAndPaymentLinksAsync(CancellationToken ct = default);
     Task ProcessWebhookAsync(string payload, string signatureHeader, CancellationToken ct = default);
     Task<UserSubscription?> GetCurrentUserSubscriptionAsync(Guid userId, CancellationToken ct = default);
+    Task<UserSubscription> ChangePlanAsync(Guid userId, Guid newPlanId, bool prorate = true, CancellationToken ct = default);
+    Task<UserSubscription> CancelSubscriptionAsync(Guid userId, bool cancelAtPeriodEnd = true, CancellationToken ct = default);
 
     /// <summary>
     /// Crea una Stripe Checkout Session vinculada al usuario autenticado.

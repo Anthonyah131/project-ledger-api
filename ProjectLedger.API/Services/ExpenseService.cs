@@ -59,12 +59,12 @@ public class ExpenseService : IExpenseService
 
     public async Task<Expense> CreateAsync(Expense expense, CancellationToken ct = default)
     {
+        var project = await _projectRepo.GetByIdAsync(expense.ExpProjectId, ct)
+            ?? throw new KeyNotFoundException($"Project '{expense.ExpProjectId}' not found.");
+
         // Solo validar límite de gastos para gastos normales (no templates)
         if (!expense.ExpIsTemplate)
         {
-            var project = await _projectRepo.GetByIdAsync(expense.ExpProjectId, ct)
-                ?? throw new KeyNotFoundException($"Project '{expense.ExpProjectId}' not found.");
-
             // Contar gastos del mes actual (no templates, no eliminados)
             var projectExpenses = await _expenseRepo.GetByProjectIdAsync(expense.ExpProjectId, ct);
             var thisMonthCount = projectExpenses
@@ -100,19 +100,34 @@ public class ExpenseService : IExpenseService
                 throw new InvalidOperationException(
                     "La obligación no pertenece al mismo proyecto que el gasto.");
 
-            // Bloquear sobre-pago: monto pagado + nuevo gasto no puede exceder el total
+            // Convertir montos a la moneda de la obligación para comparar correctamente
             var existingPayments = await _expenseRepo.GetByObligationIdAsync(obligation.OblId, ct);
-            var currentPaid = existingPayments.Sum(e => e.ExpConvertedAmount);
+            var currentPaid = existingPayments.Sum(e =>
+                AmountInObligationCurrency(
+                    e.ExpOriginalAmount,
+                    e.ExpOriginalCurrency,
+                    e.ExpConvertedAmount,
+                    e.ExpObligationEquivalentAmount,
+                    obligation.OblCurrency,
+                    requireEquivalentForCrossCurrency: false));
+
+            var newPaymentAmount = AmountInObligationCurrency(
+                expense.ExpOriginalAmount,
+                expense.ExpOriginalCurrency,
+                expense.ExpConvertedAmount,
+                expense.ExpObligationEquivalentAmount,
+                obligation.OblCurrency,
+                requireEquivalentForCrossCurrency: true);
 
             if (currentPaid >= obligation.OblTotalAmount)
                 throw new InvalidOperationException(
                     "This obligation is already fully paid. No additional payments are allowed.");
 
-            if (currentPaid + expense.ExpConvertedAmount > obligation.OblTotalAmount)
+            if (currentPaid + newPaymentAmount > obligation.OblTotalAmount)
                 throw new InvalidOperationException(
                     $"Payment would exceed the obligation total. " +
-                    $"Remaining: {obligation.OblTotalAmount - currentPaid:F2}, " +
-                    $"Attempted: {expense.ExpConvertedAmount:F2}.");
+                    $"Remaining: {obligation.OblTotalAmount - currentPaid:F2} {obligation.OblCurrency}, " +
+                    $"Attempted: {newPaymentAmount:F2} {obligation.OblCurrency}.");
         }
 
         expense.ExpCreatedAt = DateTime.UtcNow;
@@ -145,16 +160,29 @@ public class ExpenseService : IExpenseService
             if (obligation is not null && !obligation.OblIsDeleted)
             {
                 var existingPayments = await _expenseRepo.GetByObligationIdAsync(obligation.OblId, ct);
-                // Excluir el gasto actual del cálculo (se está actualizando)
                 var othersPaid = existingPayments
                     .Where(e => e.ExpId != expense.ExpId)
-                    .Sum(e => e.ExpConvertedAmount);
+                    .Sum(e => AmountInObligationCurrency(
+                        e.ExpOriginalAmount,
+                        e.ExpOriginalCurrency,
+                        e.ExpConvertedAmount,
+                        e.ExpObligationEquivalentAmount,
+                        obligation.OblCurrency,
+                        requireEquivalentForCrossCurrency: false));
 
-                if (othersPaid + expense.ExpConvertedAmount > obligation.OblTotalAmount)
+                var updatedAmount = AmountInObligationCurrency(
+                    expense.ExpOriginalAmount,
+                    expense.ExpOriginalCurrency,
+                    expense.ExpConvertedAmount,
+                    expense.ExpObligationEquivalentAmount,
+                    obligation.OblCurrency,
+                    requireEquivalentForCrossCurrency: true);
+
+                if (othersPaid + updatedAmount > obligation.OblTotalAmount)
                     throw new InvalidOperationException(
                         $"Payment would exceed the obligation total. " +
-                        $"Remaining (excluding this expense): {obligation.OblTotalAmount - othersPaid:F2}, " +
-                        $"Attempted: {expense.ExpConvertedAmount:F2}.");
+                        $"Remaining (excluding this expense): {obligation.OblTotalAmount - othersPaid:F2} {obligation.OblCurrency}, " +
+                        $"Attempted: {updatedAmount:F2} {obligation.OblCurrency}.");
             }
         }
 
@@ -190,4 +218,34 @@ public class ExpenseService : IExpenseService
     public async Task<(IReadOnlyList<Expense> Items, int TotalCount)> GetByPaymentMethodIdPagedAsync(
         Guid paymentMethodId, int skip, int take, string? sortBy, bool descending, CancellationToken ct = default)
         => await _expenseRepo.GetByPaymentMethodIdPagedAsync(paymentMethodId, skip, take, sortBy, descending, ct);
+
+    /// <summary>
+    /// Convierte el monto de un pago a la moneda de la obligación.
+    /// - Si originalCurrency coincide con obligación: usa originalAmount.
+    /// - Si difiere y existe obligationEquivalentAmount: usa obligationEquivalentAmount.
+    /// - Si difiere y no hay equivalente:
+    ///   - requireEquivalentForCrossCurrency=true: lanza 400.
+    ///   - requireEquivalentForCrossCurrency=false: fallback legado a convertedAmount.
+    /// </summary>
+    private static decimal AmountInObligationCurrency(
+        decimal originalAmount,
+        string originalCurrency,
+        decimal convertedAmount,
+        decimal? obligationEquivalentAmount,
+        string obligationCurrency,
+        bool requireEquivalentForCrossCurrency)
+    {
+        if (string.Equals(originalCurrency, obligationCurrency, StringComparison.OrdinalIgnoreCase))
+            return originalAmount;
+
+        if (obligationEquivalentAmount is > 0)
+            return obligationEquivalentAmount.Value;
+
+        if (requireEquivalentForCrossCurrency)
+            throw new InvalidOperationException(
+                $"Se requiere el equivalente en {obligationCurrency} para este pago.");
+
+        // Compatibilidad con pagos históricos sin equivalente persistido.
+        return convertedAmount;
+    }
 }

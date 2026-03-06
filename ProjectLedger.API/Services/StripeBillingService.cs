@@ -227,7 +227,20 @@ public class StripeBillingService : IStripeBillingService
         // 1) Búsqueda directa por userId (camino feliz)
         var byUserId = await _userSubscriptionRepo.GetCurrentByUserIdAsync(userId, ct);
         if (byUserId is not null)
+        {
+            if (ShouldReconcileSubscription(byUserId))
+            {
+                var knownUser = await _userRepo.GetByIdAsync(userId, ct);
+                if (knownUser is not null)
+                {
+                    var reconciled = await TryReconcileFromStripeAsync(userId, knownUser, ct);
+                    if (reconciled is not null)
+                        return reconciled;
+                }
+            }
+
             return byUserId;
+        }
 
         // 2) Fallback: buscar por StripeCustomerId del usuario
         var user = await _userRepo.GetByIdAsync(userId, ct);
@@ -314,6 +327,123 @@ public class StripeBillingService : IStripeBillingService
         }
 
         return null;
+    }
+
+    public async Task<UserSubscription> ChangePlanAsync(
+        Guid userId,
+        Guid newPlanId,
+        bool prorate = true,
+        CancellationToken ct = default)
+    {
+        EnsureStripeSecretConfigured();
+        StripeConfiguration.ApiKey = _stripeSettings.SecretKey;
+
+        var targetPlan = await _planRepo.GetByIdAsync(newPlanId, ct)
+            ?? throw new KeyNotFoundException($"Plan '{newPlanId}' not found.");
+
+        if (!targetPlan.PlnIsActive)
+            throw new InvalidOperationException($"Plan '{targetPlan.PlnSlug}' is not active.");
+
+        // Bajar a free = cancelar suscripción paga al final del período.
+        if (targetPlan.PlnMonthlyPrice <= 0)
+            return await CancelSubscriptionAsync(userId, cancelAtPeriodEnd: true, ct);
+
+        if (string.IsNullOrWhiteSpace(targetPlan.PlnStripePriceId))
+            throw new InvalidOperationException($"Plan '{targetPlan.PlnSlug}' has no Stripe Price ID. Run sync-plans first.");
+
+        var (user, stripeSubscription) = await GetManagedStripeSubscriptionForUserAsync(userId, ct);
+        var currentPriceId = stripeSubscription.Items?.Data?.FirstOrDefault()?.Price?.Id;
+
+        if (string.Equals(currentPriceId, targetPlan.PlnStripePriceId, StringComparison.Ordinal)
+            && !stripeSubscription.CancelAtPeriodEnd)
+        {
+            throw new InvalidOperationException($"Subscription is already on plan '{targetPlan.PlnSlug}'.");
+        }
+
+        var itemId = stripeSubscription.Items?.Data?.FirstOrDefault()?.Id;
+        if (string.IsNullOrWhiteSpace(itemId))
+            throw new InvalidOperationException("Stripe subscription has no billable item to update.");
+
+        var updateOptions = new SubscriptionUpdateOptions
+        {
+            CancelAtPeriodEnd = false,
+            ProrationBehavior = prorate ? "create_prorations" : "none",
+            Items =
+            [
+                new SubscriptionItemOptions
+                {
+                    Id = itemId,
+                    Price = targetPlan.PlnStripePriceId
+                }
+            ],
+            Metadata = new Dictionary<string, string>
+            {
+                ["app_user_id"] = user.UsrId.ToString(),
+                ["plan_id"] = targetPlan.PlnId.ToString(),
+                ["plan_slug"] = targetPlan.PlnSlug
+            }
+        };
+
+        var subscriptionService = new SubscriptionService();
+        await subscriptionService.UpdateAsync(stripeSubscription.Id, updateOptions, cancellationToken: ct);
+
+        var refreshed = await subscriptionService.GetAsync(
+            stripeSubscription.Id,
+            new SubscriptionGetOptions
+            {
+                Expand = ["items.data.price"]
+            },
+            cancellationToken: ct);
+
+        await UpsertSubscriptionAsync(refreshed, user.UsrEmail, null, user.UsrId, ct);
+
+        return await _userSubscriptionRepo.GetByStripeSubscriptionIdAsync(refreshed.Id, ct)
+            ?? throw new InvalidOperationException("Subscription was updated in Stripe but could not be loaded locally.");
+    }
+
+    public async Task<UserSubscription> CancelSubscriptionAsync(
+        Guid userId,
+        bool cancelAtPeriodEnd = true,
+        CancellationToken ct = default)
+    {
+        EnsureStripeSecretConfigured();
+        StripeConfiguration.ApiKey = _stripeSettings.SecretKey;
+
+        var (user, stripeSubscription) = await GetManagedStripeSubscriptionForUserAsync(userId, ct);
+        var subscriptionService = new SubscriptionService();
+
+        Subscription updated;
+        if (cancelAtPeriodEnd)
+        {
+            updated = await subscriptionService.UpdateAsync(
+                stripeSubscription.Id,
+                new SubscriptionUpdateOptions { CancelAtPeriodEnd = true },
+                cancellationToken: ct);
+        }
+        else
+        {
+            updated = await subscriptionService.CancelAsync(
+                stripeSubscription.Id,
+                new SubscriptionCancelOptions
+                {
+                    InvoiceNow = false,
+                    Prorate = false
+                },
+                cancellationToken: ct);
+        }
+
+        var refreshed = await subscriptionService.GetAsync(
+            updated.Id,
+            new SubscriptionGetOptions
+            {
+                Expand = ["items.data.price"]
+            },
+            cancellationToken: ct);
+
+        await UpsertSubscriptionAsync(refreshed, user.UsrEmail, null, user.UsrId, ct);
+
+        return await _userSubscriptionRepo.GetByStripeSubscriptionIdAsync(refreshed.Id, ct)
+            ?? throw new InvalidOperationException("Subscription was canceled in Stripe but could not be loaded locally.");
     }
 
     private async Task<UserSubscription?> TryReconcileFromStripeAsync(Guid userId, User user, CancellationToken ct)
@@ -577,6 +707,23 @@ public class StripeBillingService : IStripeBillingService
             customerLock.Release();
         }
 
+        var managedSubscription = await FindManagedStripeSubscriptionForCustomerAsync(stripeCustomerId, ct);
+        if (managedSubscription is not null)
+        {
+            await UpsertSubscriptionAsync(managedSubscription, normalizedEmail, null, userId, ct);
+
+            var currentPriceId = managedSubscription.Items?.Data?.FirstOrDefault()?.Price?.Id;
+            if (string.Equals(currentPriceId, plan.PlnStripePriceId, StringComparison.Ordinal)
+                && !managedSubscription.CancelAtPeriodEnd)
+            {
+                throw new InvalidOperationException(
+                    $"User already has an active subscription to plan '{plan.PlnSlug}'.");
+            }
+
+            throw new InvalidOperationException(
+                "User already has an active subscription. Use /api/billing/subscription/change-plan instead of creating a second subscription.");
+        }
+
         var sessionService = new SessionService();
         var session = await sessionService.CreateAsync(new SessionCreateOptions
         {
@@ -719,6 +866,14 @@ public class StripeBillingService : IStripeBillingService
         else
             _userSubscriptionRepo.Update(entity);
 
+        if (entity.UssUserId is not null && IsManagedSubscriptionStatus(entity.UssStatus))
+        {
+            await CollapseLocalActiveLikeSubscriptionsAsync(
+                entity.UssUserId.Value,
+                entity.UssStripeSubscriptionId,
+                ct);
+        }
+
         if (user is not null)
         {
             var userChanged = false;
@@ -756,6 +911,127 @@ public class StripeBillingService : IStripeBillingService
         }
 
         await _userSubscriptionRepo.SaveChangesAsync(ct);
+    }
+
+    private async Task<(User User, Subscription Subscription)> GetManagedStripeSubscriptionForUserAsync(
+        Guid userId,
+        CancellationToken ct)
+    {
+        var user = await _userRepo.GetByIdAsync(userId, ct)
+            ?? throw new KeyNotFoundException($"User '{userId}' not found.");
+
+        var local = await GetCurrentUserSubscriptionAsync(userId, ct)
+            ?? throw new KeyNotFoundException("No subscription found for current user.");
+
+        if (IsCanceledSubscriptionStatus(local.UssStatus))
+            throw new InvalidOperationException("Current subscription is already canceled.");
+
+        EnsureStripeSecretConfigured();
+        StripeConfiguration.ApiKey = _stripeSettings.SecretKey;
+
+        var subscriptionService = new SubscriptionService();
+        var stripeSubscription = await subscriptionService.GetAsync(
+            local.UssStripeSubscriptionId,
+            new SubscriptionGetOptions
+            {
+                Expand = ["items.data.price"]
+            },
+            cancellationToken: ct);
+
+        if (IsCanceledSubscriptionStatus(stripeSubscription.Status))
+        {
+            await UpsertSubscriptionAsync(stripeSubscription, user.UsrEmail, null, user.UsrId, ct);
+            throw new InvalidOperationException("Current subscription is already canceled.");
+        }
+
+        if (!IsManagedSubscriptionStatus(stripeSubscription.Status))
+        {
+            await UpsertSubscriptionAsync(stripeSubscription, user.UsrEmail, null, user.UsrId, ct);
+            throw new InvalidOperationException(
+                $"Subscription is in status '{stripeSubscription.Status}' and cannot be managed automatically.");
+        }
+
+        return (user, stripeSubscription);
+    }
+
+    private async Task<Subscription?> FindManagedStripeSubscriptionForCustomerAsync(
+        string stripeCustomerId,
+        CancellationToken ct)
+    {
+        var subscriptionService = new SubscriptionService();
+        var list = await subscriptionService.ListAsync(new SubscriptionListOptions
+        {
+            Customer = stripeCustomerId,
+            Status = "all",
+            Limit = 20
+        }, cancellationToken: ct);
+
+        var managed = list.Data
+            .Where(s => IsManagedSubscriptionStatus(s.Status))
+            .OrderByDescending(s => GetSubscriptionPriority(s.Status))
+            .ThenByDescending(s => s.Created)
+            .FirstOrDefault();
+
+        if (managed is null)
+            return null;
+
+        return await subscriptionService.GetAsync(
+            managed.Id,
+            new SubscriptionGetOptions
+            {
+                Expand = ["items.data.price"]
+            },
+            cancellationToken: ct);
+    }
+
+    private async Task CollapseLocalActiveLikeSubscriptionsAsync(
+        Guid userId,
+        string keepStripeSubscriptionId,
+        CancellationToken ct)
+    {
+        var activeLike = await _userSubscriptionRepo.GetActiveLikeByUserIdAsync(userId, ct);
+
+        var duplicates = activeLike
+            .Where(s => !string.Equals(s.UssStripeSubscriptionId, keepStripeSubscriptionId, StringComparison.Ordinal))
+            .ToList();
+
+        if (duplicates.Count == 0)
+            return;
+
+        foreach (var duplicate in duplicates)
+        {
+            duplicate.UssStatus = "canceled";
+            duplicate.UssCancelAtPeriodEnd = false;
+            duplicate.UssCanceledAt ??= DateTime.UtcNow;
+            duplicate.UssUpdatedAt = DateTime.UtcNow;
+            _userSubscriptionRepo.Update(duplicate);
+        }
+
+        _logger.LogWarning(
+            "User {UserId} had {DuplicateCount} active-like subscriptions. Consolidated to Stripe subscription {KeepSubId}.",
+            userId,
+            duplicates.Count,
+            keepStripeSubscriptionId);
+    }
+
+    private bool ShouldReconcileSubscription(UserSubscription subscription)
+    {
+        if (subscription.UssStatus is "past_due" or "incomplete")
+            return true;
+
+        if (subscription.UssCurrentPeriodEnd is null)
+            return false;
+
+        var periodEnd = subscription.UssCurrentPeriodEnd.Value;
+        var now = DateTime.UtcNow;
+
+        if (subscription.UssCancelAtPeriodEnd && periodEnd <= now.AddMinutes(2))
+            return true;
+
+        if (IsActiveSubscriptionStatus(subscription.UssStatus) && periodEnd <= now.AddMinutes(-2))
+            return true;
+
+        return false;
     }
 
     private async Task<User?> ResolveUserAsync(string? stripeCustomerId, string? fallbackEmail, Guid? fallbackUserId, CancellationToken ct)
@@ -967,6 +1243,9 @@ public class StripeBillingService : IStripeBillingService
 
     private bool IsActiveSubscriptionStatus(string? status)
         => status is "active" or "trialing" or "past_due";
+
+    private bool IsManagedSubscriptionStatus(string? status)
+        => status is "active" or "trialing" or "past_due" or "incomplete";
 
     private bool IsCanceledSubscriptionStatus(string? status)
         => status is "canceled" or "incomplete_expired" or "unpaid";

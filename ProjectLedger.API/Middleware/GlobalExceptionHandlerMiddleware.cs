@@ -48,6 +48,8 @@ public class GlobalExceptionHandlerMiddleware
                 exception.Message),
             KeyNotFoundException => (StatusCodes.Status404NotFound,
                 exception.Message),
+            InvalidOperationException => (StatusCodes.Status400BadRequest,
+                exception.Message),
             ArgumentException => (StatusCodes.Status400BadRequest,
                 exception.Message),
             _ => (StatusCodes.Status500InternalServerError,
@@ -56,12 +58,36 @@ public class GlobalExceptionHandlerMiddleware
 
         context.Response.StatusCode = statusCode;
 
-        var response = new
+        object response;
+        if (exception is PlanDeniedException planDenied)
         {
-            status = statusCode,
-            message,
-            detail = isDev && statusCode == 500 ? exception.Message : (string?)null
-        };
+            response = new
+            {
+                statusCode,
+                message,
+                errorCode = "PLAN_LIMIT_EXCEEDED",
+                feature = planDenied.Permission?.ToString()
+            };
+        }
+        else if (exception is PlanLimitExceededException planLimit)
+        {
+            response = new
+            {
+                statusCode,
+                message,
+                errorCode = "PLAN_LIMIT_EXCEEDED",
+                feature = planLimit.LimitName
+            };
+        }
+        else
+        {
+            response = new
+            {
+                status = statusCode,
+                message,
+                detail = isDev && statusCode == 500 ? exception.Message : (string?)null
+            };
+        }
 
         var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         await context.Response.WriteAsJsonAsync(response, jsonOptions);

@@ -20,6 +20,13 @@ public class CreateExpenseRequest
     /// <summary>FK → obligations. NULL = gasto normal; valor = pago de deuda.</summary>
     public Guid? ObligationId { get; set; }
 
+    /// <summary>
+    /// Monto equivalente en la moneda de la obligación.
+    /// Se usa cuando ObligationId está presente y OriginalCurrency difiere de la moneda de la obligación.
+    /// </summary>
+    [Range(0.01, 99999999999999.99, ErrorMessage = "ObligationEquivalentAmount must be greater than 0.")]
+    public decimal? ObligationEquivalentAmount { get; set; }
+
     // ── Montos ──────────────────────────────────────────────
 
     [Required]
@@ -80,6 +87,13 @@ public class UpdateExpenseRequest
 
     [Required]
     public Guid PaymentMethodId { get; set; }
+
+    /// <summary>
+    /// Monto equivalente en la moneda de la obligación.
+    /// Se usa cuando el gasto está vinculado a obligación y la moneda original difiere.
+    /// </summary>
+    [Range(0.01, 99999999999999.99, ErrorMessage = "ObligationEquivalentAmount must be greater than 0.")]
+    public decimal? ObligationEquivalentAmount { get; set; }
 
     [Required]
     [Range(0.01, 99999999999999.99, ErrorMessage = "OriginalAmount must be greater than 0.")]
@@ -144,6 +158,8 @@ public class CreateFromTemplateRequest
 
     public DateOnly? ExpenseDate { get; set; }
     public Guid? ObligationId { get; set; }
+    [Range(0.01, 99999999999999.99, ErrorMessage = "ObligationEquivalentAmount must be greater than 0.")]
+    public decimal? ObligationEquivalentAmount { get; set; }
     public string? Notes { get; set; }
 }
 
@@ -159,6 +175,7 @@ public class ExpenseResponse
     public Guid PaymentMethodId { get; set; }
     public Guid CreatedByUserId { get; set; }
     public Guid? ObligationId { get; set; }
+    public decimal? ObligationEquivalentAmount { get; set; }
 
     public decimal OriginalAmount { get; set; }
     public string OriginalCurrency { get; set; } = null!;

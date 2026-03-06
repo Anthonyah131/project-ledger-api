@@ -2,6 +2,10 @@ using Microsoft.OpenApi;
 using ProjectLedger.API.Extensions;
 using ProjectLedger.API.Filters;
 using ProjectLedger.API.Middleware;
+using QuestPDF.Infrastructure;
+
+// ── QuestPDF License ────────────────────────────────────────
+QuestPDF.Settings.License = LicenseType.Community;
 
 // ── Load .env file into environment variables ───────────────
 // ASP.NET Core no carga .env automáticamente — lo hacemos aquí.

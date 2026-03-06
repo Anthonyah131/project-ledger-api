@@ -14,6 +14,13 @@ public class ObligationRepository : Repository<Obligation>, IObligationRepositor
             .OrderByDescending(o => o.OblCreatedAt)
             .ToListAsync(ct);
 
+    public async Task<IEnumerable<Obligation>> GetByProjectIdWithPaymentsAsync(Guid projectId, CancellationToken ct = default)
+        => await DbSet
+            .Include(o => o.Payments.Where(p => !p.ExpIsDeleted))
+            .Where(o => o.OblProjectId == projectId && !o.OblIsDeleted)
+            .OrderByDescending(o => o.OblCreatedAt)
+            .ToListAsync(ct);
+
     public async Task<(IReadOnlyList<Obligation> Items, int TotalCount)> GetByProjectIdPagedAsync(
         Guid projectId, int skip, int take, string? sortBy, bool descending, CancellationToken ct = default)
     {

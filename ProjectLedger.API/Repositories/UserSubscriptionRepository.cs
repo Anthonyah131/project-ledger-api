@@ -6,6 +6,8 @@ namespace ProjectLedger.API.Repositories;
 
 public class UserSubscriptionRepository : Repository<UserSubscription>, IUserSubscriptionRepository
 {
+    private static readonly string[] ActiveLikeStatuses = ["active", "trialing", "past_due", "incomplete"];
+
     public UserSubscriptionRepository(AppDbContext context) : base(context) { }
 
     public async Task<UserSubscription?> GetByStripeSubscriptionIdAsync(string stripeSubscriptionId, CancellationToken ct = default)
@@ -24,4 +26,18 @@ public class UserSubscriptionRepository : Repository<UserSubscription>, IUserSub
             .Where(s => s.UssStripeCustomerId == stripeCustomerId)
             .OrderByDescending(s => s.UssUpdatedAt)
             .FirstOrDefaultAsync(ct);
+
+    public async Task<IReadOnlyList<UserSubscription>> GetByUserIdAsync(Guid userId, CancellationToken ct = default)
+        => await DbSet
+            .Include(s => s.Plan)
+            .Where(s => s.UssUserId == userId)
+            .OrderByDescending(s => s.UssUpdatedAt)
+            .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<UserSubscription>> GetActiveLikeByUserIdAsync(Guid userId, CancellationToken ct = default)
+        => await DbSet
+            .Include(s => s.Plan)
+            .Where(s => s.UssUserId == userId && ActiveLikeStatuses.Contains(s.UssStatus))
+            .OrderByDescending(s => s.UssUpdatedAt)
+            .ToListAsync(ct);
 }

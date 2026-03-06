@@ -24,6 +24,7 @@ public class ExpenseConfiguration : IEntityTypeConfiguration<Expense>
         builder.Property(e => e.ExpOriginalCurrency).HasColumnName("exp_original_currency").HasMaxLength(3).IsRequired();
         builder.Property(e => e.ExpExchangeRate).HasColumnName("exp_exchange_rate").HasColumnType("numeric(18,6)").HasDefaultValue(1.000000m);
         builder.Property(e => e.ExpConvertedAmount).HasColumnName("exp_converted_amount").HasColumnType("numeric(14,2)").IsRequired();
+        builder.Property(e => e.ExpObligationEquivalentAmount).HasColumnName("exp_obligation_equivalent_amount").HasColumnType("numeric(14,2)");
 
         // Datos descriptivos
         builder.Property(e => e.ExpTitle).HasColumnName("exp_title").HasMaxLength(255).IsRequired();

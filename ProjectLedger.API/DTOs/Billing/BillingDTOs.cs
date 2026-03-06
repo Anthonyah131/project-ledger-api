@@ -20,6 +20,30 @@ public class CreateCheckoutSessionResponse
     public string SessionId { get; set; } = null!;
 }
 
+// ── Subscription Management ───────────────────────────────
+
+public class ChangeSubscriptionPlanRequest
+{
+    /// <summary>ID del nuevo plan al que se moverá la suscripción actual.</summary>
+    [Required]
+    public Guid PlanId { get; set; }
+
+    /// <summary>
+    /// Si es true, Stripe calcula prorrateo inmediato por el cambio de plan.
+    /// Si es false, no se aplica ajuste de prorrateo.
+    /// </summary>
+    public bool Prorate { get; set; } = true;
+}
+
+public class CancelSubscriptionRequest
+{
+    /// <summary>
+    /// true: cancela al final del período actual.
+    /// false: cancela inmediatamente.
+    /// </summary>
+    public bool CancelAtPeriodEnd { get; set; } = true;
+}
+
 // ── Sync Plans ──────────────────────────────────────────────
 
 public class StripePlanSyncItemResponse
@@ -51,6 +75,9 @@ public class MySubscriptionResponse
     public string? StripePriceId { get; set; }
     public string Status { get; set; } = null!;
     public bool CancelAtPeriodEnd { get; set; }
+    public bool AutoRenews { get; set; }
+    public bool WillDowngradeToFree { get; set; }
+    public DateTime? DowngradeToFreeAt { get; set; }
     public DateTime? CurrentPeriodStart { get; set; }
     public DateTime? CurrentPeriodEnd { get; set; }
     public DateTime? CanceledAt { get; set; }

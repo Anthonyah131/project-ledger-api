@@ -6,10 +6,20 @@
       "sourceType": "github",
       "computedHash": "1ee396a9c4714df95f1a9f8d156395848e8bd0fac1d70920a0487e8526ec0e55"
     },
+    "pdf": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "37226d4220d844377e6b2a386c51a011df4cd130855ff0b80bcc22f9c28abd57"
+    },
     "stripe-integration": {
       "source": "wshobson/agents",
       "sourceType": "github",
       "computedHash": "997f806687334ec6f6d90fd9e6cc7159eb9a827b735e070aded56544efa8e857"
+    },
+    "xlsx": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "cb7fba2177d0d35d14b3244272b25d1b05246e99b3468a087fe06c84193dbd20"
     }
   }
 }
