@@ -110,7 +110,9 @@ public class PlanAuthorizationService : IPlanAuthorizationService
                 [PlanLimits.MaxExpensesPerMonth]      = limits?.MaxExpensesPerMonth,
                 [PlanLimits.MaxCategoriesPerProject]  = limits?.MaxCategoriesPerProject,
                 [PlanLimits.MaxPaymentMethods]        = limits?.MaxPaymentMethods,
-                [PlanLimits.MaxTeamMembersPerProject] = limits?.MaxTeamMembersPerProject
+                [PlanLimits.MaxTeamMembersPerProject] = limits?.MaxTeamMembersPerProject,
+                [PlanLimits.MaxAlternativeCurrenciesPerProject] = limits?.MaxAlternativeCurrenciesPerProject,
+                [PlanLimits.MaxIncomesPerMonth]       = limits?.MaxIncomesPerMonth
             }
         };
     }
@@ -197,6 +199,8 @@ public class PlanAuthorizationService : IPlanAuthorizationService
             PlanLimits.MaxCategoriesPerProject  => limits.MaxCategoriesPerProject,
             PlanLimits.MaxPaymentMethods        => limits.MaxPaymentMethods,
             PlanLimits.MaxTeamMembersPerProject => limits.MaxTeamMembersPerProject,
+            PlanLimits.MaxAlternativeCurrenciesPerProject => limits.MaxAlternativeCurrenciesPerProject,
+            PlanLimits.MaxIncomesPerMonth       => limits.MaxIncomesPerMonth,
             _ => null
         };
     }

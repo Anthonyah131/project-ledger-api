@@ -28,5 +28,6 @@ public class PaymentMethod
     public Currency Currency { get; set; } = null!;
 
     public ICollection<Expense> Expenses { get; set; } = [];
+    public ICollection<Income> Incomes { get; set; } = [];
     public ICollection<ProjectPaymentMethod> ProjectPaymentMethods { get; set; } = [];
 }

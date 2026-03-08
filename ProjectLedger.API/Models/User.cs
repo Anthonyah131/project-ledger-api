@@ -37,5 +37,6 @@ public class User
     public ICollection<PaymentMethod> PaymentMethods { get; set; } = [];
     public ICollection<Expense> CreatedExpenses { get; set; } = [];
     public ICollection<Obligation> CreatedObligations { get; set; } = [];
+    public ICollection<Income> CreatedIncomes { get; set; } = [];
     public ICollection<AuditLog> AuditLogs { get; set; } = [];
 }

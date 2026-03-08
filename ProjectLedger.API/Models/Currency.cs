@@ -17,6 +17,8 @@ public class Currency
     public ICollection<Project> ProjectsWithCurrency { get; set; } = [];
     public ICollection<PaymentMethod> PaymentMethodsWithCurrency { get; set; } = [];
     public ICollection<Expense> ExpensesOriginalCurrency { get; set; } = [];
-    public ICollection<Expense> ExpensesAltCurrency { get; set; } = [];
     public ICollection<Obligation> ObligationsWithCurrency { get; set; } = [];
+    public ICollection<Income> IncomesOriginalCurrency { get; set; } = [];
+    public ICollection<ProjectAlternativeCurrency> ProjectAlternativeCurrencies { get; set; } = [];
+    public ICollection<TransactionCurrencyExchange> TransactionCurrencyExchanges { get; set; } = [];
 }

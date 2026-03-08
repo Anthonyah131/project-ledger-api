@@ -1,32 +1,21 @@
 using System.ComponentModel.DataAnnotations;
 using ProjectLedger.API.DTOs.Common;
 
-namespace ProjectLedger.API.DTOs.Expense;
+namespace ProjectLedger.API.DTOs.Income;
 
 // ── Requests ────────────────────────────────────────────────
 
 /// <summary>
-/// Request para crear un gasto.
+/// Request para crear un ingreso.
 /// NO incluye ProjectId (viene de la ruta) ni CreatedByUserId (viene del JWT).
-/// Esto previene escalamiento de privilegios.
 /// </summary>
-public class CreateExpenseRequest
+public class CreateIncomeRequest
 {
     [Required]
     public Guid CategoryId { get; set; }
 
     [Required]
     public Guid PaymentMethodId { get; set; }
-
-    /// <summary>FK → obligations. NULL = gasto normal; valor = pago de deuda.</summary>
-    public Guid? ObligationId { get; set; }
-
-    /// <summary>
-    /// Monto equivalente en la moneda de la obligación.
-    /// Se usa cuando ObligationId está presente y OriginalCurrency difiere de la moneda de la obligación.
-    /// </summary>
-    [Range(0.01, 99999999999999.99, ErrorMessage = "ObligationEquivalentAmount must be greater than 0.")]
-    public decimal? ObligationEquivalentAmount { get; set; }
 
     // ── Montos ──────────────────────────────────────────────
 
@@ -42,10 +31,6 @@ public class CreateExpenseRequest
     [Range(0.000001, 999999999999.999999, ErrorMessage = "ExchangeRate must be greater than 0.")]
     public decimal ExchangeRate { get; set; } = 1.000000m;
 
-    /// <summary>
-    /// Monto convertido a la moneda del proyecto. Es el valor que se usa para totales y cálculos.
-    /// El front es responsable de enviarlo calculado.
-    /// </summary>
     [Required]
     [Range(0.01, 99999999999999.99, ErrorMessage = "ConvertedAmount must be greater than 0.")]
     public decimal ConvertedAmount { get; set; }
@@ -59,36 +44,26 @@ public class CreateExpenseRequest
     public string? Description { get; set; }
 
     [Required]
-    public DateOnly ExpenseDate { get; set; }
+    public DateOnly IncomeDate { get; set; }
 
     [StringLength(100, ErrorMessage = "ReceiptNumber cannot exceed 100 characters.")]
     public string? ReceiptNumber { get; set; }
 
     public string? Notes { get; set; }
-    public bool IsTemplate { get; set; }
 
-    /// <summary>
-    /// Conversiones a monedas alternativas del proyecto.
-    /// El front calcula y envía el monto convertido para cada moneda.
-    /// </summary>
+    // ── Monedas alternativas (opcional) ─────────────────────
+
     public List<CurrencyExchangeRequest>? CurrencyExchanges { get; set; }
 }
 
-/// <summary>Request para actualizar un gasto.</summary>
-public class UpdateExpenseRequest
+/// <summary>Request para actualizar un ingreso.</summary>
+public class UpdateIncomeRequest
 {
     [Required]
     public Guid CategoryId { get; set; }
 
     [Required]
     public Guid PaymentMethodId { get; set; }
-
-    /// <summary>
-    /// Monto equivalente en la moneda de la obligación.
-    /// Se usa cuando el gasto está vinculado a obligación y la moneda original difiere.
-    /// </summary>
-    [Range(0.01, 99999999999999.99, ErrorMessage = "ObligationEquivalentAmount must be greater than 0.")]
-    public decimal? ObligationEquivalentAmount { get; set; }
 
     [Required]
     [Range(0.01, 99999999999999.99, ErrorMessage = "OriginalAmount must be greater than 0.")]
@@ -102,10 +77,6 @@ public class UpdateExpenseRequest
     [Range(0.000001, 999999999999.999999, ErrorMessage = "ExchangeRate must be greater than 0.")]
     public decimal ExchangeRate { get; set; } = 1.000000m;
 
-    /// <summary>
-    /// Monto convertido a la moneda del proyecto. Es el valor que se usa para totales y cálculos.
-    /// El front es responsable de enviarlo calculado.
-    /// </summary>
     [Required]
     [Range(0.01, 99999999999999.99, ErrorMessage = "ConvertedAmount must be greater than 0.")]
     public decimal ConvertedAmount { get; set; }
@@ -117,45 +88,20 @@ public class UpdateExpenseRequest
     public string? Description { get; set; }
 
     [Required]
-    public DateOnly ExpenseDate { get; set; }
+    public DateOnly IncomeDate { get; set; }
 
     [StringLength(100, ErrorMessage = "ReceiptNumber cannot exceed 100 characters.")]
     public string? ReceiptNumber { get; set; }
 
     public string? Notes { get; set; }
 
-    /// <summary>
-    /// Conversiones a monedas alternativas del proyecto.
-    /// Si es null, no se modifican los exchanges existentes.
-    /// Si es lista vacía, se eliminan todos los exchanges.
-    /// </summary>
     public List<CurrencyExchangeRequest>? CurrencyExchanges { get; set; }
-}
-
-/// <summary>
-/// Request para crear un gasto real a partir de una plantilla.
-/// Permite sobreescribir monto, fecha y obligación;
-/// el resto se toma de la plantilla.
-/// </summary>
-public class CreateFromTemplateRequest
-{
-    [Range(0.01, 99999999999999.99, ErrorMessage = "OriginalAmount must be greater than 0.")]
-    public decimal? OriginalAmount { get; set; }
-
-    [Range(0.01, 99999999999999.99, ErrorMessage = "ConvertedAmount must be greater than 0.")]
-    public decimal? ConvertedAmount { get; set; }
-
-    public DateOnly? ExpenseDate { get; set; }
-    public Guid? ObligationId { get; set; }
-    [Range(0.01, 99999999999999.99, ErrorMessage = "ObligationEquivalentAmount must be greater than 0.")]
-    public decimal? ObligationEquivalentAmount { get; set; }
-    public string? Notes { get; set; }
 }
 
 // ── Responses ───────────────────────────────────────────────
 
-/// <summary>Respuesta con los datos de un gasto.</summary>
-public class ExpenseResponse
+/// <summary>Respuesta con los datos de un ingreso.</summary>
+public class IncomeResponse
 {
     public Guid Id { get; set; }
     public Guid ProjectId { get; set; }
@@ -163,8 +109,6 @@ public class ExpenseResponse
     public string CategoryName { get; set; } = null!;
     public Guid PaymentMethodId { get; set; }
     public Guid CreatedByUserId { get; set; }
-    public Guid? ObligationId { get; set; }
-    public decimal? ObligationEquivalentAmount { get; set; }
 
     public decimal OriginalAmount { get; set; }
     public string OriginalCurrency { get; set; } = null!;
@@ -173,18 +117,16 @@ public class ExpenseResponse
 
     public string Title { get; set; } = null!;
     public string? Description { get; set; }
-    public DateOnly ExpenseDate { get; set; }
+    public DateOnly IncomeDate { get; set; }
     public string? ReceiptNumber { get; set; }
     public string? Notes { get; set; }
-    public bool IsTemplate { get; set; }
-
-    public List<CurrencyExchangeResponse>? CurrencyExchanges { get; set; }
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
-    // ── Soft delete info (solo visible con includeDeleted=true) ──
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
     public Guid? DeletedByUserId { get; set; }
+
+    public List<CurrencyExchangeResponse>? CurrencyExchanges { get; set; }
 }

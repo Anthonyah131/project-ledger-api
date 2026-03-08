@@ -27,15 +27,18 @@ public class ExpenseController : ControllerBase
     private readonly IExpenseService _expenseService;
     private readonly IProjectAccessService _accessService;
     private readonly IPlanAuthorizationService _planAuth;
+    private readonly ITransactionCurrencyExchangeService _exchangeService;
 
     public ExpenseController(
         IExpenseService expenseService,
         IProjectAccessService accessService,
-        IPlanAuthorizationService planAuth)
+        IPlanAuthorizationService planAuth,
+        ITransactionCurrencyExchangeService exchangeService)
     {
         _expenseService = expenseService;
         _accessService = accessService;
         _planAuth = planAuth;
+        _exchangeService = exchangeService;
     }
 
     // ── GET /api/projects/{projectId}/expenses ──────────────
@@ -126,6 +129,20 @@ public class ExpenseController : ControllerBase
 
         await _expenseService.CreateAsync(expense, ct);
 
+        // Copiar los exchanges de la plantilla al nuevo gasto
+        if (template.CurrencyExchanges.Count > 0)
+        {
+            var templateExchanges = template.CurrencyExchanges
+                .Select(x => new CurrencyExchangeRequest
+                {
+                    CurrencyCode = x.TceCurrencyCode,
+                    ExchangeRate = x.TceExchangeRate,
+                    ConvertedAmount = x.TceConvertedAmount
+                }).ToList();
+            await _exchangeService.SaveExchangesAsync("expense", expense.ExpId, templateExchanges, ct);
+            expense = (await _expenseService.GetByIdAsync(expense.ExpId, ct))!;
+        }
+
         return CreatedAtAction(
             nameof(GetById),
             new { projectId, expenseId = expense.ExpId },
@@ -190,6 +207,14 @@ public class ExpenseController : ControllerBase
         var expense = request.ToEntity(projectId, userId);
         await _expenseService.CreateAsync(expense, ct);
 
+        // Guardar conversiones a monedas alternativas
+        if (request.CurrencyExchanges?.Count > 0)
+        {
+            await _exchangeService.SaveExchangesAsync("expense", expense.ExpId, request.CurrencyExchanges, ct);
+            // Re-fetch para incluir exchanges en la respuesta
+            expense = (await _expenseService.GetByIdAsync(expense.ExpId, ct))!;
+        }
+
         return CreatedAtAction(
             nameof(GetById),
             new { projectId, expenseId = expense.ExpId },
@@ -232,6 +257,13 @@ public class ExpenseController : ControllerBase
         expense.ApplyUpdate(request);
         await _expenseService.UpdateAsync(expense, ct);
 
+        // Actualizar conversiones a monedas alternativas
+        if (request.CurrencyExchanges is not null)
+        {
+            await _exchangeService.ReplaceExchangesAsync("expense", expense.ExpId, request.CurrencyExchanges, ct);
+        }
+
+        expense = (await _expenseService.GetByIdAsync(expense.ExpId, ct))!;
         return Ok(expense.ToResponse());
     }
 

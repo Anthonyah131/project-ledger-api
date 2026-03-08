@@ -26,4 +26,5 @@ public class Category
     public User? DeletedByUser { get; set; }
 
     public ICollection<Expense> Expenses { get; set; } = [];
+    public ICollection<Income> Incomes { get; set; } = [];
 }

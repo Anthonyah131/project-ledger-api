@@ -36,11 +36,6 @@ public class ExpenseConfiguration : IEntityTypeConfiguration<Expense>
         // Plantilla
         builder.Property(e => e.ExpIsTemplate).HasColumnName("exp_is_template").HasDefaultValue(false);
 
-        // Moneda alternativa
-        builder.Property(e => e.ExpAltCurrency).HasColumnName("exp_alt_currency").HasMaxLength(3);
-        builder.Property(e => e.ExpAltExchangeRate).HasColumnName("exp_alt_exchange_rate").HasColumnType("numeric(18,6)");
-        builder.Property(e => e.ExpAltAmount).HasColumnName("exp_alt_amount").HasColumnType("numeric(14,2)");
-
         // Timestamps y soft delete
         builder.Property(e => e.ExpCreatedAt).HasColumnName("exp_created_at").HasDefaultValueSql("now()");
         builder.Property(e => e.ExpUpdatedAt).HasColumnName("exp_updated_at").HasDefaultValueSql("now()");
@@ -57,7 +52,6 @@ public class ExpenseConfiguration : IEntityTypeConfiguration<Expense>
         builder.HasIndex(e => e.ExpObligationId);
         builder.HasIndex(e => e.ExpIsDeleted);
         builder.HasIndex(e => e.ExpIsTemplate);
-        builder.HasIndex(e => e.ExpAltCurrency).HasFilter("exp_alt_currency IS NOT NULL");
 
         // Relaciones
         builder.HasOne(e => e.Project)
@@ -93,11 +87,6 @@ public class ExpenseConfiguration : IEntityTypeConfiguration<Expense>
         builder.HasOne(e => e.OriginalCurrencyNavigation)
             .WithMany(c => c.ExpensesOriginalCurrency)
             .HasForeignKey(e => e.ExpOriginalCurrency)
-            .OnDelete(DeleteBehavior.NoAction);
-
-        builder.HasOne(e => e.AltCurrencyNavigation)
-            .WithMany(c => c.ExpensesAltCurrency)
-            .HasForeignKey(e => e.ExpAltCurrency)
             .OnDelete(DeleteBehavior.NoAction);
     }
 }

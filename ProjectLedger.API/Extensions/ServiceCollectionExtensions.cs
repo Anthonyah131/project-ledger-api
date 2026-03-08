@@ -60,6 +60,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserSubscriptionRepository, UserSubscriptionRepository>();
         services.AddScoped<IStripeWebhookEventRepository, StripeWebhookEventRepository>();
 
+        // Multi-currency & Incomes
+        services.AddScoped<IIncomeRepository, IncomeRepository>();
+        services.AddScoped<IProjectAlternativeCurrencyRepository, ProjectAlternativeCurrencyRepository>();
+        services.AddScoped<ITransactionCurrencyExchangeRepository, TransactionCurrencyExchangeRepository>();
+
         return services;
     }
 
@@ -97,6 +102,11 @@ public static class ServiceCollectionExtensions
 
         // Reportes
         services.AddScoped<IReportExportService, ReportExportService>();
+
+        // Multi-currency & Incomes
+        services.AddScoped<IIncomeService, IncomeService>();
+        services.AddScoped<IProjectAlternativeCurrencyService, ProjectAlternativeCurrencyService>();
+        services.AddScoped<ITransactionCurrencyExchangeService, TransactionCurrencyExchangeService>();
 
         return services;
     }

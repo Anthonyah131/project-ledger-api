@@ -31,11 +31,6 @@ public class Expense
     // ── Plantilla ───────────────────────────────────────────
     public bool ExpIsTemplate { get; set; }
 
-    // ── Moneda alternativa (opcional) ───────────────────────
-    public string? ExpAltCurrency { get; set; }
-    public decimal? ExpAltExchangeRate { get; set; }
-    public decimal? ExpAltAmount { get; set; }
-
     // ── Timestamps y soft delete ────────────────────────────
     public DateTime ExpCreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime ExpUpdatedAt { get; set; } = DateTime.UtcNow;
@@ -51,5 +46,7 @@ public class Expense
     public User? DeletedByUser { get; set; }
     public Obligation? Obligation { get; set; }
     public Currency OriginalCurrencyNavigation { get; set; } = null!;
-    public Currency? AltCurrencyNavigation { get; set; }
+
+    // ── Conversiones a monedas alternativas ─────────────────
+    public ICollection<TransactionCurrencyExchange> CurrencyExchanges { get; set; } = [];
 }

@@ -11,6 +11,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
     public override async Task<Expense?> GetByIdAsync(Guid id, CancellationToken ct = default)
         => await DbSet
             .Include(e => e.Category)
+            .Include(e => e.CurrencyExchanges)
             .FirstOrDefaultAsync(e => e.ExpId == id, ct);
 
     public async Task<IEnumerable<Expense>> GetByProjectIdAsync(Guid projectId, CancellationToken ct = default)
@@ -19,6 +20,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
     public async Task<IEnumerable<Expense>> GetByProjectIdAsync(Guid projectId, bool includeDeleted, CancellationToken ct = default)
         => await DbSet
             .Include(e => e.Category)
+            .Include(e => e.CurrencyExchanges)
             .Where(e => e.ExpProjectId == projectId && (includeDeleted || !e.ExpIsDeleted))
             .OrderByDescending(e => e.ExpExpenseDate)
             .ToListAsync(ct);
@@ -26,6 +28,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
     public async Task<IEnumerable<Expense>> GetByCategoryIdAsync(Guid categoryId, CancellationToken ct = default)
         => await DbSet
             .Include(e => e.Category)
+            .Include(e => e.CurrencyExchanges)
             .Where(e => e.ExpCategoryId == categoryId && !e.ExpIsDeleted)
             .OrderByDescending(e => e.ExpExpenseDate)
             .ToListAsync(ct);
@@ -33,6 +36,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
     public async Task<IEnumerable<Expense>> GetByObligationIdAsync(Guid obligationId, CancellationToken ct = default)
         => await DbSet
             .Include(e => e.Category)
+            .Include(e => e.CurrencyExchanges)
             .Where(e => e.ExpObligationId == obligationId && !e.ExpIsDeleted)
             .OrderByDescending(e => e.ExpExpenseDate)
             .ToListAsync(ct);
@@ -40,6 +44,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
     public async Task<IEnumerable<Expense>> GetTemplatesByProjectIdAsync(Guid projectId, CancellationToken ct = default)
         => await DbSet
             .Include(e => e.Category)
+            .Include(e => e.CurrencyExchanges)
             .Where(e => e.ExpProjectId == projectId && e.ExpIsTemplate && !e.ExpIsDeleted)
             .ToListAsync(ct);
 
@@ -47,6 +52,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
         => await DbSet
             .Include(e => e.Category)
             .Include(e => e.Project)
+            .Include(e => e.CurrencyExchanges)
             .Where(e => e.ExpPaymentMethodId == paymentMethodId && !e.ExpIsDeleted)
             .OrderByDescending(e => e.ExpExpenseDate)
             .ToListAsync(ct);
@@ -55,6 +61,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
         => await DbSet
             .Include(e => e.Category)
             .Include(e => e.PaymentMethod)
+            .Include(e => e.CurrencyExchanges)
             .Where(e => e.ExpProjectId == projectId && !e.ExpIsDeleted)
             .OrderByDescending(e => e.ExpExpenseDate)
             .ToListAsync(ct);
@@ -66,6 +73,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
             .Include(e => e.Category)
             .Include(e => e.PaymentMethod)
             .Include(e => e.Obligation)
+            .Include(e => e.CurrencyExchanges)
             .Where(e => e.ExpProjectId == projectId && !e.ExpIsDeleted && !e.ExpIsTemplate);
 
         if (from.HasValue)
@@ -89,6 +97,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
             .Include(e => e.Category)
             .Include(e => e.Project)
             .Include(e => e.PaymentMethod)
+            .Include(e => e.CurrencyExchanges)
             .Where(e => ids.Contains(e.ExpPaymentMethodId) && !e.ExpIsDeleted && !e.ExpIsTemplate);
 
         if (from.HasValue)
@@ -106,6 +115,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
     {
         var query = DbSet
             .Include(e => e.Category)
+            .Include(e => e.CurrencyExchanges)
             .Where(e => e.ExpProjectId == projectId && (includeDeleted || !e.ExpIsDeleted));
 
         var totalCount = await query.CountAsync(ct);
@@ -122,6 +132,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
         var query = DbSet
             .Include(e => e.Category)
             .Include(e => e.Project)
+            .Include(e => e.CurrencyExchanges)
             .Where(e => e.ExpPaymentMethodId == paymentMethodId && !e.ExpIsDeleted);
 
         var totalCount = await query.CountAsync(ct);

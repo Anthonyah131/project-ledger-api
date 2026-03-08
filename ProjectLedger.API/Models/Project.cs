@@ -30,4 +30,6 @@ public class Project
     public ICollection<Obligation> Obligations { get; set; } = [];
     public ICollection<ProjectBudget> Budgets { get; set; } = [];
     public ICollection<ProjectPaymentMethod> ProjectPaymentMethods { get; set; } = [];
+    public ICollection<Income> Incomes { get; set; } = [];
+    public ICollection<ProjectAlternativeCurrency> AlternativeCurrencies { get; set; } = [];
 }

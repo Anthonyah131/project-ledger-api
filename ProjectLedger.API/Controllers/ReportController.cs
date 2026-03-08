@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.Report;
+using ProjectLedger.API.Extensions.Mappings;
 using ProjectLedger.API.Repositories;
 using ProjectLedger.API.Services;
 
@@ -20,6 +21,7 @@ namespace ProjectLedger.API.Controllers;
 public class ReportController : ControllerBase
 {
     private readonly IExpenseRepository _expenseRepo;
+    private readonly IIncomeRepository _incomeRepo;
     private readonly IObligationRepository _obligationRepo;
     private readonly ICategoryRepository _categoryRepo;
     private readonly IProjectBudgetRepository _budgetRepo;
@@ -30,6 +32,7 @@ public class ReportController : ControllerBase
 
     public ReportController(
         IExpenseRepository expenseRepo,
+        IIncomeRepository incomeRepo,
         IObligationRepository obligationRepo,
         ICategoryRepository categoryRepo,
         IProjectBudgetRepository budgetRepo,
@@ -39,6 +42,7 @@ public class ReportController : ControllerBase
         IReportExportService exportService)
     {
         _expenseRepo = expenseRepo;
+        _incomeRepo = incomeRepo;
         _obligationRepo = obligationRepo;
         _categoryRepo = categoryRepo;
         _budgetRepo = budgetRepo;
@@ -119,6 +123,14 @@ public class ReportController : ControllerBase
             .OrderByDescending(e => e.ExpConvertedAmount)
             .FirstOrDefault();
 
+        // Cargar ingresos del proyecto
+        var incomes = (await _incomeRepo.GetByProjectIdAsync(projectId, ct))
+            .Where(i => from is null || i.IncIncomeDate >= from.Value)
+            .Where(i => to is null || i.IncIncomeDate <= to.Value)
+            .ToList();
+
+        var totalIncome = incomes.Sum(i => i.IncConvertedAmount);
+
         var summaryResponse = new ProjectReportResponse
         {
             ProjectId = project.PrjId,
@@ -130,6 +142,9 @@ public class ReportController : ControllerBase
             TotalSpent = totalSpent,
             ExpenseCount = expenses.Count,
             AverageExpenseAmount = expenses.Count > 0 ? Math.Round(totalSpent / expenses.Count, 2) : 0,
+            TotalIncome = totalIncome,
+            IncomeCount = incomes.Count,
+            NetBalance = totalIncome - totalSpent,
             TopExpense = topExpenseEntity is null ? null : new TopExpenseInfo
             {
                 ExpenseId = topExpenseEntity.ExpId,
@@ -197,6 +212,8 @@ public class ReportController : ControllerBase
             .Where(e => !e.ExpIsTemplate)
             .ToList();
 
+        var incomes = (await _incomeRepo.GetByProjectIdAsync(projectId, ct)).ToList();
+
         var currentExpenses = expenses
             .Where(e => e.ExpExpenseDate.Year == currentMonth.Year
                      && e.ExpExpenseDate.Month == currentMonth.Month)
@@ -207,8 +224,20 @@ public class ReportController : ControllerBase
                      && e.ExpExpenseDate.Month == previousMonth.Month)
             .ToList();
 
+        var currentIncomes = incomes
+            .Where(i => i.IncIncomeDate.Year == currentMonth.Year
+                     && i.IncIncomeDate.Month == currentMonth.Month)
+            .ToList();
+
+        var previousIncomes = incomes
+            .Where(i => i.IncIncomeDate.Year == previousMonth.Year
+                     && i.IncIncomeDate.Month == previousMonth.Month)
+            .ToList();
+
         var currentTotal = currentExpenses.Sum(e => e.ExpConvertedAmount);
         var previousTotal = previousExpenses.Sum(e => e.ExpConvertedAmount);
+        var currentIncomeTotal = currentIncomes.Sum(i => i.IncConvertedAmount);
+        var previousIncomeTotal = previousIncomes.Sum(i => i.IncConvertedAmount);
         var change = currentTotal - previousTotal;
 
         return Ok(new MonthComparisonResponse
@@ -223,7 +252,10 @@ public class ReportController : ControllerBase
                 Month = currentMonth.Month,
                 MonthLabel = $"{new DateTime(currentMonth.Year, currentMonth.Month, 1):MMMM yyyy}",
                 TotalSpent = currentTotal,
-                ExpenseCount = currentExpenses.Count
+                ExpenseCount = currentExpenses.Count,
+                TotalIncome = currentIncomeTotal,
+                IncomeCount = currentIncomes.Count,
+                NetBalance = currentIncomeTotal - currentTotal
             },
             PreviousMonth = new MonthSummary
             {
@@ -231,13 +263,16 @@ public class ReportController : ControllerBase
                 Month = previousMonth.Month,
                 MonthLabel = $"{new DateTime(previousMonth.Year, previousMonth.Month, 1):MMMM yyyy}",
                 TotalSpent = previousTotal,
-                ExpenseCount = previousExpenses.Count
+                ExpenseCount = previousExpenses.Count,
+                TotalIncome = previousIncomeTotal,
+                IncomeCount = previousIncomes.Count,
+                NetBalance = previousIncomeTotal - previousTotal
             },
             ChangeAmount = change,
             ChangePercentage = previousTotal > 0
                 ? Math.Round(change / previousTotal * 100, 2)
                 : null,
-            HasPreviousData = previousExpenses.Count > 0
+            HasPreviousData = previousExpenses.Count > 0 || previousIncomes.Count > 0
         });
     }
 
@@ -375,8 +410,23 @@ public class ReportController : ControllerBase
 
         // Cargar gastos detallados
         var expenses = (await _expenseRepo.GetDetailedByProjectIdAsync(projectId, from, to, ct)).ToList();
+        var incomes = (await _incomeRepo.GetByProjectIdAsync(projectId, ct))
+            .Where(i => from is null || i.IncIncomeDate >= from.Value)
+            .Where(i => to is null || i.IncIncomeDate <= to.Value)
+            .ToList();
 
         var totalSpent = expenses.Sum(e => e.ExpConvertedAmount);
+        var totalIncome = incomes.Sum(i => i.IncConvertedAmount);
+
+        var incomeByMonth = incomes
+            .GroupBy(i => new { i.IncIncomeDate.Year, i.IncIncomeDate.Month })
+            .ToDictionary(
+                g => (g.Key.Year, g.Key.Month),
+                g => new
+                {
+                    Total = g.Sum(i => i.IncConvertedAmount),
+                    Count = g.Count()
+                });
 
         // Construir secciones mensuales (oldest → newest)
         var sections = expenses
@@ -387,6 +437,7 @@ public class ReportController : ControllerBase
                 var sectionTotal = g.Sum(e => e.ExpConvertedAmount);
                 var sectionCount = g.Count();
                 var topInSection = g.OrderByDescending(e => e.ExpConvertedAmount).First();
+                var sectionIncome = incomeByMonth.GetValueOrDefault((g.Key.Year, g.Key.Month));
                 return new MonthlyExpenseSection
                 {
                     Year = g.Key.Year,
@@ -394,6 +445,9 @@ public class ReportController : ControllerBase
                     MonthLabel = $"{new DateTime(g.Key.Year, g.Key.Month, 1):MMMM yyyy}",
                     SectionTotal = sectionTotal,
                     SectionCount = sectionCount,
+                    SectionIncomeTotal = sectionIncome?.Total ?? 0,
+                    SectionIncomeCount = sectionIncome?.Count ?? 0,
+                    SectionNetBalance = (sectionIncome?.Total ?? 0) - sectionTotal,
                     PercentageOfTotal = totalSpent > 0
                         ? Math.Round(sectionTotal / totalSpent * 100, 2)
                         : 0,
@@ -419,8 +473,7 @@ public class ReportController : ControllerBase
                         OriginalCurrency = e.ExpOriginalCurrency,
                         ExchangeRate = e.ExpExchangeRate,
                         ConvertedAmount = e.ExpConvertedAmount,
-                        AltAmount = e.ExpAltAmount,
-                        AltCurrency = e.ExpAltCurrency,
+                        CurrencyExchanges = e.CurrencyExchanges?.Select(x => x.ToResponse()).ToList(),
                         Description = e.ExpDescription,
                         ReceiptNumber = e.ExpReceiptNumber,
                         Notes = e.ExpNotes,
@@ -445,6 +498,9 @@ public class ReportController : ControllerBase
             GeneratedAt = DateTime.UtcNow,
             TotalSpent = totalSpent,
             TotalExpenseCount = expenses.Count,
+            TotalIncome = totalIncome,
+            TotalIncomeCount = incomes.Count,
+            NetBalance = totalIncome - totalSpent,
             AverageExpenseAmount = expenses.Count > 0 ? Math.Round(totalSpent / expenses.Count, 2) : 0,
             AverageMonthlySpend = sections.Count > 0
                 ? Math.Round(sections.Sum(s => s.SectionTotal) / sections.Count, 2)

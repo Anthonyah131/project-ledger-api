@@ -1,5 +1,6 @@
 using ProjectLedger.API.Models;
 using ProjectLedger.API.DTOs.Expense;
+using ProjectLedger.API.DTOs.Common;
 
 namespace ProjectLedger.API.Extensions.Mappings;
 
@@ -27,9 +28,7 @@ public static class ExpenseMappingExtensions
         ReceiptNumber = entity.ExpReceiptNumber,
         Notes = entity.ExpNotes,
         IsTemplate = entity.ExpIsTemplate,
-        AltCurrency = entity.ExpAltCurrency,
-        AltExchangeRate = entity.ExpAltExchangeRate,
-        AltAmount = entity.ExpAltAmount,
+        CurrencyExchanges = entity.CurrencyExchanges?.Select(e => e.ToResponse()).ToList(),
         CreatedAt = entity.ExpCreatedAt,
         UpdatedAt = entity.ExpUpdatedAt,
         IsDeleted = entity.ExpIsDeleted,
@@ -58,9 +57,6 @@ public static class ExpenseMappingExtensions
         ExpReceiptNumber = request.ReceiptNumber,
         ExpNotes = request.Notes,
         ExpIsTemplate = request.IsTemplate,
-        ExpAltCurrency = request.AltCurrency,
-        ExpAltExchangeRate = request.AltExchangeRate,
-        ExpAltAmount = request.AltAmount,
         ExpCreatedAt = DateTime.UtcNow,
         ExpUpdatedAt = DateTime.UtcNow
     };
@@ -82,9 +78,6 @@ public static class ExpenseMappingExtensions
         entity.ExpExpenseDate = request.ExpenseDate;
         entity.ExpReceiptNumber = request.ReceiptNumber;
         entity.ExpNotes = request.Notes;
-        entity.ExpAltCurrency = request.AltCurrency;
-        entity.ExpAltExchangeRate = request.AltExchangeRate;
-        entity.ExpAltAmount = request.AltAmount;
         entity.ExpUpdatedAt = DateTime.UtcNow;
     }
 
@@ -117,9 +110,6 @@ public static class ExpenseMappingExtensions
         ExpReceiptNumber = null,
         ExpNotes = request.Notes,
         ExpIsTemplate = false,
-        ExpAltCurrency = template.ExpAltCurrency,
-        ExpAltExchangeRate = template.ExpAltExchangeRate,
-        ExpAltAmount = request.AltAmount ?? template.ExpAltAmount,
         ExpCreatedAt = DateTime.UtcNow,
         ExpUpdatedAt = DateTime.UtcNow
     };

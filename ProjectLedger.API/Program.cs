@@ -2,6 +2,7 @@ using Microsoft.OpenApi;
 using ProjectLedger.API.Extensions;
 using ProjectLedger.API.Filters;
 using ProjectLedger.API.Middleware;
+using ProjectLedger.API.Services;
 using QuestPDF.Infrastructure;
 
 // ── QuestPDF License ────────────────────────────────────────
@@ -115,6 +116,14 @@ builder.Services.AddRateLimiting(builder.Configuration);
 // Application services & repositories
 builder.Services.AddRepositories();
 builder.Services.AddApplicationServices();
+
+// Exchange rate service (Open ER API) + caching
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient<IExchangeRateService, ExchangeRateService>(client =>
+{
+    client.BaseAddress = new Uri("https://open.er-api.com/v6/");
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
 
 var app = builder.Build();
 

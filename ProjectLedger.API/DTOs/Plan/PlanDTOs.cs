@@ -40,4 +40,6 @@ public class PlanLimitsDto
     public int? MaxCategoriesPerProject { get; set; }
     public int? MaxPaymentMethods { get; set; }
     public int? MaxTeamMembersPerProject { get; set; }
+    public int? MaxAlternativeCurrenciesPerProject { get; set; }
+    public int? MaxIncomesPerMonth { get; set; }
 }

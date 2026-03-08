@@ -29,6 +29,9 @@ public class AppDbContext : DbContext
     public DbSet<ProjectPaymentMethod> ProjectPaymentMethods => Set<ProjectPaymentMethod>();
     public DbSet<UserSubscription> UserSubscriptions => Set<UserSubscription>();
     public DbSet<StripeWebhookEvent> StripeWebhookEvents => Set<StripeWebhookEvent>();
+    public DbSet<Income> Incomes => Set<Income>();
+    public DbSet<ProjectAlternativeCurrency> ProjectAlternativeCurrencies => Set<ProjectAlternativeCurrency>();
+    public DbSet<TransactionCurrencyExchange> TransactionCurrencyExchanges => Set<TransactionCurrencyExchange>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

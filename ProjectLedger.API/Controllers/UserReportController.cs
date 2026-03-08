@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.Report;
+using ProjectLedger.API.Extensions.Mappings;
 using ProjectLedger.API.Repositories;
 using ProjectLedger.API.Services;
 
@@ -18,17 +19,20 @@ namespace ProjectLedger.API.Controllers;
 public class UserReportController : ControllerBase
 {
     private readonly IExpenseRepository _expenseRepo;
+    private readonly IIncomeRepository _incomeRepo;
     private readonly IPaymentMethodService _paymentMethodService;
     private readonly IPlanAuthorizationService _planAuth;
     private readonly IReportExportService _exportService;
 
     public UserReportController(
         IExpenseRepository expenseRepo,
+        IIncomeRepository incomeRepo,
         IPaymentMethodService paymentMethodService,
         IPlanAuthorizationService planAuth,
         IReportExportService exportService)
     {
         _expenseRepo = expenseRepo;
+        _incomeRepo = incomeRepo;
         _paymentMethodService = paymentMethodService;
         _planAuth = planAuth;
         _exportService = exportService;
@@ -89,12 +93,21 @@ public class UserReportController : ControllerBase
         var allExpenses = (await _expenseRepo.GetByPaymentMethodIdsWithDetailsAsync(pmIds, from, to, ct))
             .ToList();
 
+        var allIncomes = (await _incomeRepo.GetByPaymentMethodIdsWithDetailsAsync(pmIds, from, to, ct))
+            .ToList();
+
         // Filtrar: solo gastos de proyectos donde el usuario es owner
         var ownerExpenses = allExpenses
             .Where(e => e.Project?.PrjOwnerUserId == userId)
             .ToList();
 
+        // Filtrar: solo ingresos de proyectos donde el usuario es owner
+        var ownerIncomes = allIncomes
+            .Where(i => i.Project?.PrjOwnerUserId == userId)
+            .ToList();
+
         var grandTotal = ownerExpenses.Sum(e => e.ExpConvertedAmount);
+        var grandTotalIncome = ownerIncomes.Sum(i => i.IncConvertedAmount);
 
         // Construir filas por método de pago
         var pmRows = userPaymentMethods.Select(pm =>
@@ -103,10 +116,16 @@ public class UserReportController : ControllerBase
                 .Where(e => e.ExpPaymentMethodId == pm.PmtId)
                 .ToList();
 
+            var pmIncomes = ownerIncomes
+                .Where(i => i.IncPaymentMethodId == pm.PmtId)
+                .ToList();
+
             // pmTotal: sum in the payment method's own currency (for per-method stats)
             var pmTotal = pmExpenses.Sum(e => e.ExpOriginalAmount);
+            var pmIncomeTotal = pmIncomes.Sum(i => i.IncOriginalAmount);
             // pmTotalConverted: sum in project currency (for cross-method % comparisons)
             var pmTotalConverted = pmExpenses.Sum(e => e.ExpConvertedAmount);
+            var pmIncomeTotalConverted = pmIncomes.Sum(i => i.IncConvertedAmount);
             var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
             var lastUsed = pmExpenses
@@ -179,7 +198,30 @@ public class UserReportController : ControllerBase
                     OriginalCurrency = e.ExpOriginalCurrency,
                     ConvertedAmount = e.ExpConvertedAmount,
                     ProjectCurrency = e.Project?.PrjCurrencyCode ?? "USD",
+                    CurrencyExchanges = e.CurrencyExchanges?.Select(x => x.ToResponse()).ToList(),
                     Description = e.ExpDescription
+                })
+                .ToList();
+
+            const int maxIncomes = 20;
+            var incomeRows = pmIncomes
+                .OrderByDescending(i => i.IncIncomeDate)
+                .Take(maxIncomes)
+                .Select(i => new PaymentMethodIncomeRow
+                {
+                    IncomeId = i.IncId,
+                    Title = i.IncTitle,
+                    IncomeDate = i.IncIncomeDate,
+                    ProjectId = i.IncProjectId,
+                    ProjectName = i.Project?.PrjName ?? "Unknown",
+                    CategoryId = i.IncCategoryId,
+                    CategoryName = i.Category?.CatName ?? "Unknown",
+                    OriginalAmount = i.IncOriginalAmount,
+                    OriginalCurrency = i.IncOriginalCurrency,
+                    ConvertedAmount = i.IncConvertedAmount,
+                    ProjectCurrency = i.Project?.PrjCurrencyCode ?? "USD",
+                    CurrencyExchanges = i.CurrencyExchanges?.Select(x => x.ToResponse()).ToList(),
+                    Description = i.IncDescription
                 })
                 .ToList();
 
@@ -192,9 +234,15 @@ public class UserReportController : ControllerBase
                 BankName = pm.PmtBankName,
                 TotalSpent = pmTotal,
                 ExpenseCount = pmExpenses.Count,
+                TotalIncome = pmIncomeTotal,
+                IncomeCount = pmIncomes.Count,
+                NetFlow = pmIncomeTotalConverted - pmTotalConverted,
                 Percentage = grandTotal > 0 ? Math.Round(pmTotalConverted / grandTotal * 100, 2) : 0,
                 AverageExpenseAmount = pmExpenses.Count > 0
                     ? Math.Round(pmTotal / pmExpenses.Count, 2)
+                    : 0,
+                AverageIncomeAmount = pmIncomes.Count > 0
+                    ? Math.Round(pmIncomeTotal / pmIncomes.Count, 2)
                     : 0,
                 FirstUseDate = pmExpenses
                     .OrderBy(e => e.ExpExpenseDate)
@@ -215,8 +263,11 @@ public class UserReportController : ControllerBase
                 TopCategories = topCategories,
                 Projects = projects,
                 Expenses = expenseRows,
+                Incomes = incomeRows,
                 TotalExpensesInPeriod = pmExpenses.Count,
-                ExpensesShown = expenseRows.Count
+                ExpensesShown = expenseRows.Count,
+                TotalIncomesInPeriod = pmIncomes.Count,
+                IncomesShown = incomeRows.Count
             };
         })
         .OrderByDescending(pm => pm.TotalSpent)
@@ -224,31 +275,57 @@ public class UserReportController : ControllerBase
 
         // Tendencia mensual
         var monthlyTrend = ownerExpenses
-            .GroupBy(e => new { e.ExpExpenseDate.Year, e.ExpExpenseDate.Month })
-            .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month)
-            .Select(g =>
+            .Select(e => new { Year = e.ExpExpenseDate.Year, Month = e.ExpExpenseDate.Month })
+            .Union(ownerIncomes.Select(i => new { Year = i.IncIncomeDate.Year, Month = i.IncIncomeDate.Month }))
+            .Distinct()
+            .OrderBy(x => x.Year)
+            .ThenBy(x => x.Month)
+            .Select(m =>
             {
-                var monthTotal = g.Sum(e => e.ExpConvertedAmount);
+                var monthExpenses = ownerExpenses
+                    .Where(e => e.ExpExpenseDate.Year == m.Year && e.ExpExpenseDate.Month == m.Month)
+                    .ToList();
+                var monthIncomes = ownerIncomes
+                    .Where(i => i.IncIncomeDate.Year == m.Year && i.IncIncomeDate.Month == m.Month)
+                    .ToList();
+                var monthTotal = monthExpenses.Sum(e => e.ExpConvertedAmount);
+                var monthIncome = monthIncomes.Sum(i => i.IncConvertedAmount);
+
+                var monthMethodIds = monthExpenses.Select(e => e.ExpPaymentMethodId)
+                    .Union(monthIncomes.Select(i => i.IncPaymentMethodId))
+                    .Distinct()
+                    .ToList();
+
                 return new PaymentMethodMonthlyRow
                 {
-                    Year = g.Key.Year,
-                    Month = g.Key.Month,
-                    MonthLabel = $"{new DateTime(g.Key.Year, g.Key.Month, 1):MMMM yyyy}",
+                    Year = m.Year,
+                    Month = m.Month,
+                    MonthLabel = $"{new DateTime(m.Year, m.Month, 1):MMMM yyyy}",
                     TotalSpent = monthTotal,
-                    ExpenseCount = g.Count(),
-                    ByMethod = g
-                        .GroupBy(e => new { e.ExpPaymentMethodId, Name = e.PaymentMethod?.PmtName ?? "Unknown" })
-                        .Select(mg =>
+                    ExpenseCount = monthExpenses.Count,
+                    TotalIncome = monthIncome,
+                    IncomeCount = monthIncomes.Count,
+                    NetBalance = monthIncome - monthTotal,
+                    ByMethod = monthMethodIds
+                        .Select(methodId =>
                         {
-                            var mgTotal = mg.Sum(e => e.ExpConvertedAmount);
+                            var methodExpenses = monthExpenses.Where(e => e.ExpPaymentMethodId == methodId).ToList();
+                            var methodIncomes = monthIncomes.Where(i => i.IncPaymentMethodId == methodId).ToList();
+                            var methodTotal = methodExpenses.Sum(e => e.ExpConvertedAmount);
+                            var methodIncome = methodIncomes.Sum(i => i.IncConvertedAmount);
+                            var methodName = userPaymentMethods.FirstOrDefault(pm => pm.PmtId == methodId)?.PmtName ?? "Unknown";
+
                             return new PaymentMethodMonthBreakdown
                             {
-                                PaymentMethodId = mg.Key.ExpPaymentMethodId,
-                                Name = mg.Key.Name,
-                                TotalSpent = mgTotal,
-                                ExpenseCount = mg.Count(),
+                                PaymentMethodId = methodId,
+                                Name = methodName,
+                                TotalSpent = methodTotal,
+                                ExpenseCount = methodExpenses.Count,
+                                TotalIncome = methodIncome,
+                                IncomeCount = methodIncomes.Count,
+                                NetFlow = methodIncome - methodTotal,
                                 Percentage = monthTotal > 0
-                                    ? Math.Round(mgTotal / monthTotal * 100, 2)
+                                    ? Math.Round(methodTotal / monthTotal * 100, 2)
                                     : 0
                             };
                         })
@@ -271,8 +348,14 @@ public class UserReportController : ControllerBase
             GeneratedAt = DateTime.UtcNow,
             GrandTotalSpent = grandTotal,
             GrandTotalExpenseCount = ownerExpenses.Count,
+            GrandTotalIncome = grandTotalIncome,
+            GrandTotalIncomeCount = ownerIncomes.Count,
+            GrandNetFlow = grandTotalIncome - grandTotal,
             GrandAverageExpenseAmount = ownerExpenses.Count > 0
                 ? Math.Round(grandTotal / ownerExpenses.Count, 2)
+                : 0,
+            GrandAverageIncomeAmount = ownerIncomes.Count > 0
+                ? Math.Round(grandTotalIncome / ownerIncomes.Count, 2)
                 : 0,
             AverageMonthlySpend = monthlyTrend.Count > 0
                 ? Math.Round(monthlyTrend.Sum(m => m.TotalSpent) / monthlyTrend.Count, 2)
