@@ -65,4 +65,19 @@ public class AuditLogService : IAuditLogService
     public async Task<(IReadOnlyList<AuditLog> Items, int TotalCount)> GetByUserIdPagedAsync(
         Guid userId, int skip, int take, CancellationToken ct = default)
         => await _auditLogRepo.GetByUserIdPagedAsync(userId, skip, take, ct);
+
+    public async Task<int> CountByUserAndActionInRangeAsync(
+        Guid userId,
+        string entityName,
+        string actionType,
+        DateTime fromInclusiveUtc,
+        DateTime toExclusiveUtc,
+        CancellationToken ct = default)
+        => await _auditLogRepo.CountByUserAndActionInRangeAsync(
+            userId,
+            entityName,
+            actionType,
+            fromInclusiveUtc,
+            toExclusiveUtc,
+            ct);
 }

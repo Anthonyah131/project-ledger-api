@@ -23,6 +23,8 @@ public class IncomeConfiguration : IEntityTypeConfiguration<Income>
         builder.Property(e => e.IncOriginalCurrency).HasColumnName("inc_original_currency").HasMaxLength(3).IsRequired();
         builder.Property(e => e.IncExchangeRate).HasColumnName("inc_exchange_rate").HasColumnType("numeric(18,6)").HasDefaultValue(1.000000m);
         builder.Property(e => e.IncConvertedAmount).HasColumnName("inc_converted_amount").HasColumnType("numeric(14,2)").IsRequired();
+        builder.Property(e => e.IncAccountAmount).HasColumnName("inc_account_amount").HasColumnType("numeric(14,2)");
+        builder.Property(e => e.IncAccountCurrency).HasColumnName("inc_account_currency").HasMaxLength(3);
 
         // Datos descriptivos
         builder.Property(e => e.IncTitle).HasColumnName("inc_title").HasMaxLength(255).IsRequired();

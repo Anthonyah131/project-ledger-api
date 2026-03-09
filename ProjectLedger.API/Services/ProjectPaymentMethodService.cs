@@ -24,6 +24,10 @@ public class ProjectPaymentMethodService : IProjectPaymentMethodService
         Guid projectId, CancellationToken ct = default)
         => await _ppmRepo.GetByProjectIdAsync(projectId, ct);
 
+    public async Task<IEnumerable<ProjectPaymentMethod>> GetByPaymentMethodIdAsync(
+        Guid paymentMethodId, CancellationToken ct = default)
+        => await _ppmRepo.GetByPaymentMethodIdAsync(paymentMethodId, ct);
+
     public async Task<ProjectPaymentMethod> LinkAsync(
         ProjectPaymentMethod link, CancellationToken ct = default)
     {

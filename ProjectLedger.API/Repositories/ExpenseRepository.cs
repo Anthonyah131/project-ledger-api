@@ -127,13 +127,30 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
     }
 
     public async Task<(IReadOnlyList<Expense> Items, int TotalCount)> GetByPaymentMethodIdPagedAsync(
-        Guid paymentMethodId, int skip, int take, string? sortBy, bool descending, CancellationToken ct = default)
+        Guid paymentMethodId,
+        int skip,
+        int take,
+        string? sortBy,
+        bool descending,
+        DateOnly? from,
+        DateOnly? to,
+        Guid? projectId,
+        CancellationToken ct = default)
     {
         var query = DbSet
             .Include(e => e.Category)
             .Include(e => e.Project)
             .Include(e => e.CurrencyExchanges)
             .Where(e => e.ExpPaymentMethodId == paymentMethodId && !e.ExpIsDeleted);
+
+        if (from.HasValue)
+            query = query.Where(e => e.ExpExpenseDate >= from.Value);
+
+        if (to.HasValue)
+            query = query.Where(e => e.ExpExpenseDate <= to.Value);
+
+        if (projectId.HasValue)
+            query = query.Where(e => e.ExpProjectId == projectId.Value);
 
         var totalCount = await query.CountAsync(ct);
 

@@ -431,6 +431,8 @@ public class PaymentMethodIncomeRow
     public string CategoryName { get; set; } = null!;
     public decimal OriginalAmount { get; set; }
     public string OriginalCurrency { get; set; } = null!;
+    public decimal? AccountAmount { get; set; }
+    public string? AccountCurrency { get; set; }
     public decimal ConvertedAmount { get; set; }
     public string ProjectCurrency { get; set; } = null!;
     public List<CurrencyExchangeResponse>? CurrencyExchanges { get; set; }

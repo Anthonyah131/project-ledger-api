@@ -14,5 +14,6 @@ public static class PlanLimits
     public const string MaxPaymentMethods        = "max_payment_methods";
     public const string MaxTeamMembersPerProject = "max_team_members_per_project";
     public const string MaxAlternativeCurrenciesPerProject = "max_alternative_currencies_per_project";
-    public const string MaxIncomesPerMonth      = "max_incomes_per_month";
+    public const string MaxIncomesPerMonth       = "max_incomes_per_month";
+    public const string MaxDocumentReadsPerMonth = "max_document_reads_per_month";
 }

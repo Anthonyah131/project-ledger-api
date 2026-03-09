@@ -66,10 +66,13 @@ VALUES
     -- Límites
     '{
         "max_projects": 2,
-        "max_expenses": 30,
+        "max_expenses_per_month": 30,
         "max_categories_per_project": 5,
         "max_payment_methods": 2,
-        "max_team_members_per_project": 0
+        "max_team_members_per_project": 0,
+        "max_alternative_currencies_per_project": 3,
+        "max_incomes_per_month": 10,
+        "max_document_reads_per_month": 0
     }'::jsonb,
 
     '2026-02-26 12:29:59.650-06',
@@ -94,7 +97,7 @@ VALUES
     true,    -- can_share_projects       ← puede compartir proyectos
     true,    -- can_export_data          ← exportación habilitada (CSV/Excel)
     false,   -- can_use_advanced_reports ← sin reportes avanzados
-    false,   -- can_use_ocr              ← sin OCR
+    true,    -- can_use_ocr              ← OCR con cupo mensual
     false,   -- can_use_api              ← sin acceso a API
     true,    -- can_use_multi_currency
     true,    -- can_set_budgets
@@ -102,10 +105,13 @@ VALUES
     -- Límites
     '{
         "max_projects": 10,
-        "max_expenses": 200,
+        "max_expenses_per_month": 200,
         "max_categories_per_project": 20,
         "max_payment_methods": 10,
-        "max_team_members_per_project": 5
+        "max_team_members_per_project": 5,
+        "max_alternative_currencies_per_project": 10,
+        "max_incomes_per_month": 100,
+        "max_document_reads_per_month": 10
     }'::jsonb,
 
     '2026-02-26 12:29:59.650-06',
@@ -138,10 +144,13 @@ VALUES
     -- Sin límites (null = ilimitado)
     '{
         "max_projects": null,
-        "max_expenses": null,
+        "max_expenses_per_month": null,
         "max_categories_per_project": null,
         "max_payment_methods": null,
-        "max_team_members_per_project": null
+        "max_team_members_per_project": null,
+        "max_alternative_currencies_per_project": null,
+        "max_incomes_per_month": null,
+        "max_document_reads_per_month": null
     }'::jsonb,
 
     '2026-02-26 12:29:59.650-06',

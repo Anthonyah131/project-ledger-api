@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.Common;
 using ProjectLedger.API.DTOs.Expense;
+using ProjectLedger.API.DTOs.Income;
 using ProjectLedger.API.DTOs.PaymentMethod;
 using ProjectLedger.API.Extensions.Mappings;
 using ProjectLedger.API.Services;
@@ -25,13 +26,19 @@ public class PaymentMethodController : ControllerBase
 {
     private readonly IPaymentMethodService _paymentMethodService;
     private readonly IExpenseService _expenseService;
+    private readonly IIncomeService _incomeService;
+    private readonly IProjectPaymentMethodService _projectPaymentMethodService;
 
     public PaymentMethodController(
         IPaymentMethodService paymentMethodService,
-        IExpenseService expenseService)
+        IExpenseService expenseService,
+        IIncomeService incomeService,
+        IProjectPaymentMethodService projectPaymentMethodService)
     {
         _paymentMethodService = paymentMethodService;
         _expenseService = expenseService;
+        _incomeService = incomeService;
+        _projectPaymentMethodService = projectPaymentMethodService;
     }
 
     // ── GET /api/payment-methods ────────────────────────────
@@ -167,8 +174,14 @@ public class PaymentMethodController : ControllerBase
     public async Task<IActionResult> GetExpensesByPaymentMethod(
         Guid id,
         [FromQuery] PagedRequest pagination,
+        [FromQuery] DateOnly? from,
+        [FromQuery] DateOnly? to,
+        [FromQuery] Guid? projectId,
         CancellationToken ct)
     {
+        if (from.HasValue && to.HasValue && from > to)
+            return BadRequest(new { message = "Invalid date range: 'from' cannot be greater than 'to'." });
+
         var userId = User.GetRequiredUserId();
         var pm = await _paymentMethodService.GetByIdAsync(id, ct);
 
@@ -177,11 +190,128 @@ public class PaymentMethodController : ControllerBase
 
         var (items, totalCount) = await _expenseService.GetByPaymentMethodIdPagedAsync(
             id, pagination.Skip, pagination.PageSize,
-            pagination.SortBy, pagination.IsDescending, ct);
+            pagination.SortBy, pagination.IsDescending,
+            from, to, projectId, ct);
 
         var response = PagedResponse<ExpenseResponse>.Create(
             items.ToResponse().ToList(), totalCount, pagination);
 
         return Ok(response);
+    }
+
+    // ── GET /api/payment-methods/{id}/incomes ─────────────
+
+    /// <summary>
+    /// Obtiene todos los movimientos (ingresos) de un método de pago (paginado),
+    /// cruzando todos los proyectos del usuario.
+    /// </summary>
+    /// <response code="200">Lista paginada de ingresos asociados al método de pago.</response>
+    /// <response code="404">Método de pago no encontrado.</response>
+    [HttpGet("{id:guid}/incomes")]
+    [ProducesResponseType(typeof(PagedResponse<IncomeResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetIncomesByPaymentMethod(
+        Guid id,
+        [FromQuery] PagedRequest pagination,
+        [FromQuery] DateOnly? from,
+        [FromQuery] DateOnly? to,
+        [FromQuery] Guid? projectId,
+        CancellationToken ct)
+    {
+        if (from.HasValue && to.HasValue && from > to)
+            return BadRequest(new { message = "Invalid date range: 'from' cannot be greater than 'to'." });
+
+        var userId = User.GetRequiredUserId();
+        var pm = await _paymentMethodService.GetByIdAsync(id, ct);
+
+        if (pm is null || pm.PmtOwnerUserId != userId)
+            return NotFound(new { message = "Payment method not found." });
+
+        var (items, totalCount) = await _incomeService.GetByPaymentMethodIdPagedAsync(
+            id, pagination.Skip, pagination.PageSize,
+            pagination.SortBy, pagination.IsDescending,
+            from, to, projectId, ct);
+
+        var response = PagedResponse<IncomeResponse>.Create(
+            items.ToResponse().ToList(), totalCount, pagination);
+
+        return Ok(response);
+    }
+
+    // ── GET /api/payment-methods/{id}/projects ────────────
+
+    /// <summary>
+    /// Obtiene los proyectos vinculados al método de pago.
+    /// </summary>
+    /// <response code="200">Lista de proyectos relacionados al método de pago.</response>
+    /// <response code="404">Método de pago no encontrado.</response>
+    [HttpGet("{id:guid}/projects")]
+    [ProducesResponseType(typeof(PaymentMethodProjectsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetProjectsByPaymentMethod(Guid id, CancellationToken ct)
+    {
+        var userId = User.GetRequiredUserId();
+        var pm = await _paymentMethodService.GetByIdAsync(id, ct);
+
+        if (pm is null || pm.PmtOwnerUserId != userId)
+            return NotFound(new { message = "Payment method not found." });
+
+        var links = await _projectPaymentMethodService.GetByPaymentMethodIdAsync(id, ct);
+        var items = links
+            .Select(link => link.Project)
+            .Where(project => project is not null)
+            .Select(project => new PaymentMethodProjectResponse
+            {
+                Id = project.PrjId,
+                Name = project.PrjName,
+                CurrencyCode = project.PrjCurrencyCode,
+                Description = project.PrjDescription,
+                OwnerUserId = project.PrjOwnerUserId,
+                CreatedAt = project.PrjCreatedAt,
+                UpdatedAt = project.PrjUpdatedAt
+            })
+            .ToList();
+
+        var response = new PaymentMethodProjectsResponse
+        {
+            Items = items,
+            TotalCount = items.Count
+        };
+
+        return Ok(response);
+    }
+
+    // ── GET /api/payment-methods/{id}/summary ─────────────
+
+    /// <summary>
+    /// Retorna métricas agregadas de uso para el método de pago.
+    /// </summary>
+    /// <response code="200">Resumen de gastos, ingresos y proyectos relacionados.</response>
+    /// <response code="404">Método de pago no encontrado.</response>
+    [HttpGet("{id:guid}/summary")]
+    [ProducesResponseType(typeof(PaymentMethodSummaryResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetPaymentMethodSummary(Guid id, CancellationToken ct)
+    {
+        var userId = User.GetRequiredUserId();
+        var pm = await _paymentMethodService.GetByIdAsync(id, ct);
+
+        if (pm is null || pm.PmtOwnerUserId != userId)
+            return NotFound(new { message = "Payment method not found." });
+
+        var expenses = await _expenseService.GetByPaymentMethodIdAsync(id, ct);
+        var incomes = await _incomeService.GetByPaymentMethodIdAsync(id, ct);
+        var links = await _projectPaymentMethodService.GetByPaymentMethodIdAsync(id, ct);
+
+        var summary = new PaymentMethodSummaryResponse
+        {
+            RelatedExpensesCount = expenses.Count(),
+            RelatedIncomesCount = incomes.Count(),
+            RelatedProjectsCount = links.Count(),
+            TotalExpenseAmount = expenses.Sum(e => e.ExpConvertedAmount),
+            TotalIncomeAmount = incomes.Sum(i => i.IncConvertedAmount)
+        };
+
+        return Ok(summary);
     }
 }

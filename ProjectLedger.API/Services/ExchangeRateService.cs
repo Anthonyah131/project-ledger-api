@@ -2,12 +2,13 @@ using System.Net.Http.Json;
 using System.Globalization;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 using ProjectLedger.API.DTOs.Currency;
 
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Servicio de tasas de cambio usando Open ER API (https://open.er-api.com/).
+/// Servicio de tasas de cambio usando ExchangeRate-API v6 (https://www.exchangerate-api.com/).
 /// Cachea resultados en memoria por 1 hora para reducir llamadas externas.
 /// </summary>
 public class ExchangeRateService : IExchangeRateService
@@ -15,15 +16,18 @@ public class ExchangeRateService : IExchangeRateService
     private readonly HttpClient _httpClient;
     private readonly IMemoryCache _cache;
     private readonly ILogger<ExchangeRateService> _logger;
+    private readonly ExchangeRateSettings _settings;
     private static readonly TimeSpan CacheDuration = TimeSpan.FromHours(1);
 
     public ExchangeRateService(
         HttpClient httpClient,
         IMemoryCache cache,
+        IOptions<ExchangeRateSettings> settings,
         ILogger<ExchangeRateService> logger)
     {
         _httpClient = httpClient;
         _cache = cache;
+        _settings = settings.Value;
         _logger = logger;
     }
 
@@ -80,6 +84,8 @@ public class ExchangeRateService : IExchangeRateService
     public async Task<ExchangeRateLatestResponse> GetLatestRatesAsync(
         string baseCurrency, CancellationToken ct = default)
     {
+        EnsureExchangeRateApiConfigured();
+
         baseCurrency = baseCurrency.ToUpperInvariant();
 
         var cacheKey = $"exchange_rates_latest_{baseCurrency}";
@@ -87,8 +93,8 @@ public class ExchangeRateService : IExchangeRateService
         if (_cache.TryGetValue(cacheKey, out ExchangeRateLatestResponse? cached))
             return cached!;
 
-        var url = $"latest/{Uri.EscapeDataString(baseCurrency)}";
-        var providerResponse = await FetchFromApiAsync<OpenErLatestResponse>(url, ct);
+        var url = $"v6/{Uri.EscapeDataString(_settings.ApiKey)}/latest/{Uri.EscapeDataString(baseCurrency)}";
+        var providerResponse = await FetchFromApiAsync<ExchangeRateApiLatestResponse>(url, ct);
 
         if (providerResponse is null)
             throw new InvalidOperationException(
@@ -96,9 +102,9 @@ public class ExchangeRateService : IExchangeRateService
 
         if (!string.Equals(providerResponse.Result, "success", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException(
-                $"Exchange rates for base currency '{baseCurrency}' are not available.");
+                $"Exchange rates for base currency '{baseCurrency}' are not available. Provider error: {providerResponse.ErrorType ?? "unknown"}.");
 
-        if (providerResponse.Rates is null || providerResponse.Rates.Count == 0)
+        if (providerResponse.ConversionRates is null || providerResponse.ConversionRates.Count == 0)
             throw new InvalidOperationException(
                 $"Exchange rates for base currency '{baseCurrency}' are not available.");
 
@@ -106,7 +112,7 @@ public class ExchangeRateService : IExchangeRateService
         {
             BaseCurrency = baseCurrency,
             Date = ParseProviderDate(providerResponse.TimeLastUpdateUtc),
-            Rates = providerResponse.Rates
+            Rates = providerResponse.ConversionRates
         };
 
         _cache.Set(cacheKey, result, CacheDuration);
@@ -123,10 +129,19 @@ public class ExchangeRateService : IExchangeRateService
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "Failed to fetch exchange rate from Open ER API: {Url}", relativeUrl);
+            _logger.LogError(ex, "Failed to fetch exchange rate from ExchangeRate-API: {Url}", relativeUrl);
             throw new InvalidOperationException(
                 "Exchange rate service is temporarily unavailable. Please try again later or enter the rate manually.");
         }
+    }
+
+    private void EnsureExchangeRateApiConfigured()
+    {
+        if (!_settings.Enabled)
+            throw new InvalidOperationException("Exchange rate API is disabled by configuration.");
+
+        if (string.IsNullOrWhiteSpace(_settings.ApiKey))
+            throw new InvalidOperationException("Exchange rate API key is missing. Configure ExchangeRateApi:ApiKey.");
     }
 
     private static DateOnly ParseProviderDate(string? utcDate)
@@ -144,9 +159,9 @@ public class ExchangeRateService : IExchangeRateService
         return DateOnly.FromDateTime(DateTime.UtcNow);
     }
 
-    // ── Open ER API response models (internal) ───────────────
+    // ── ExchangeRate-API v6 response model (internal) ───────
 
-    private sealed class OpenErLatestResponse
+    private sealed class ExchangeRateApiLatestResponse
     {
         [JsonPropertyName("result")]
         public string? Result { get; set; }
@@ -160,8 +175,8 @@ public class ExchangeRateService : IExchangeRateService
         [JsonPropertyName("error-type")]
         public string? ErrorType { get; set; }
 
-        [JsonPropertyName("rates")]
-        public Dictionary<string, decimal> Rates { get; set; } = new();
+        [JsonPropertyName("conversion_rates")]
+        public Dictionary<string, decimal> ConversionRates { get; set; } = new();
     }
 
 }

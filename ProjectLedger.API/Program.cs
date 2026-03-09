@@ -1,4 +1,5 @@
 using Microsoft.OpenApi;
+using Microsoft.Extensions.Options;
 using ProjectLedger.API.Extensions;
 using ProjectLedger.API.Filters;
 using ProjectLedger.API.Middleware;
@@ -69,6 +70,10 @@ builder.Services.Configure<EmailSettings>(
     builder.Configuration.GetSection(EmailSettings.SectionName));
 builder.Services.Configure<StripeSettings>(
     builder.Configuration.GetSection(StripeSettings.SectionName));
+builder.Services.Configure<ExchangeRateSettings>(
+    builder.Configuration.GetSection(ExchangeRateSettings.SectionName));
+builder.Services.Configure<AzureDocumentIntelligenceSettings>(
+    builder.Configuration.GetSection(AzureDocumentIntelligenceSettings.SectionName));
 // Resolver placeholders ${ENV_VAR} en las settings de email
 builder.Services.PostConfigure<EmailSettings>(settings =>
 {
@@ -83,6 +88,9 @@ builder.Services.PostConfigure<EmailSettings>(settings =>
 
 builder.Services.PostConfigure<StripeSettings>(settings =>
 {
+    if (TryGetBooleanEnv("STRIPE_ENABLED", out var stripeEnabled))
+        settings.Enabled = stripeEnabled;
+
     settings.SecretKey = Resolve(settings.SecretKey);
     settings.WebhookSecret = Resolve(settings.WebhookSecret);
     settings.SuccessUrl = Resolve(settings.SuccessUrl);
@@ -94,6 +102,142 @@ builder.Services.PostConfigure<StripeSettings>(settings =>
         && value.EndsWith("}")
             ? Environment.GetEnvironmentVariable(value[2..^1]) ?? string.Empty
             : value;
+
+    static bool TryGetBooleanEnv(string key, out bool value)
+    {
+        var raw = Environment.GetEnvironmentVariable(key);
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            value = false;
+            return false;
+        }
+
+        if (bool.TryParse(raw, out value))
+            return true;
+
+        if (raw == "1")
+        {
+            value = true;
+            return true;
+        }
+
+        if (raw == "0")
+        {
+            value = false;
+            return true;
+        }
+
+        value = false;
+        return false;
+    }
+});
+
+builder.Services.PostConfigure<ExchangeRateSettings>(settings =>
+{
+    if (TryGetBooleanEnv("EXCHANGE_RATE_API_ENABLED", out var exchangeEnabled))
+        settings.Enabled = exchangeEnabled;
+
+    settings.ApiKey = Resolve(settings.ApiKey);
+
+    if (string.IsNullOrWhiteSpace(settings.BaseUrl))
+        settings.BaseUrl = "https://v6.exchangerate-api.com/";
+
+    if (settings.TimeoutSeconds <= 0)
+        settings.TimeoutSeconds = 10;
+
+    static string Resolve(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && value.StartsWith("${")
+        && value.EndsWith("}")
+            ? Environment.GetEnvironmentVariable(value[2..^1]) ?? string.Empty
+            : value;
+
+    static bool TryGetBooleanEnv(string key, out bool value)
+    {
+        var raw = Environment.GetEnvironmentVariable(key);
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            value = false;
+            return false;
+        }
+
+        if (bool.TryParse(raw, out value))
+            return true;
+
+        if (raw == "1")
+        {
+            value = true;
+            return true;
+        }
+
+        if (raw == "0")
+        {
+            value = false;
+            return true;
+        }
+
+        value = false;
+        return false;
+    }
+});
+
+builder.Services.PostConfigure<AzureDocumentIntelligenceSettings>(settings =>
+{
+    if (TryGetBooleanEnv("AZURE_DOC_INTELLIGENCE_ENABLED", out var enabled))
+        settings.Enabled = enabled;
+
+    settings.Endpoint = Resolve(settings.Endpoint);
+    settings.ApiKey = Resolve(settings.ApiKey);
+
+    if (string.IsNullOrWhiteSpace(settings.DefaultModelId))
+        settings.DefaultModelId = "prebuilt-receipt";
+
+    if (settings.TimeoutSeconds <= 0)
+        settings.TimeoutSeconds = 30;
+
+    if (settings.PollingIntervalMilliseconds <= 0)
+        settings.PollingIntervalMilliseconds = 1000;
+
+    if (settings.MaxPollingAttempts <= 0)
+        settings.MaxPollingAttempts = 30;
+
+    if (settings.MaxFileSizeMb <= 0)
+        settings.MaxFileSizeMb = 10;
+
+    static string Resolve(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && value.StartsWith("${")
+        && value.EndsWith("}")
+            ? Environment.GetEnvironmentVariable(value[2..^1]) ?? string.Empty
+            : value;
+
+    static bool TryGetBooleanEnv(string key, out bool value)
+    {
+        var raw = Environment.GetEnvironmentVariable(key);
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            value = false;
+            return false;
+        }
+
+        if (bool.TryParse(raw, out value))
+            return true;
+
+        if (raw == "1")
+        {
+            value = true;
+            return true;
+        }
+
+        if (raw == "0")
+        {
+            value = false;
+            return true;
+        }
+
+        value = false;
+        return false;
+    }
 });
 
 // Resolver placeholder ${JWT_SECRET_KEY} en JwtSettings (igual que EmailSettings)
@@ -117,12 +261,26 @@ builder.Services.AddRateLimiting(builder.Configuration);
 builder.Services.AddRepositories();
 builder.Services.AddApplicationServices();
 
-// Exchange rate service (Open ER API) + caching
+// Exchange rate service (ExchangeRate-API) + caching
 builder.Services.AddMemoryCache();
-builder.Services.AddHttpClient<IExchangeRateService, ExchangeRateService>(client =>
+builder.Services.AddHttpClient<IExchangeRateService, ExchangeRateService>((serviceProvider, client) =>
 {
-    client.BaseAddress = new Uri("https://open.er-api.com/v6/");
-    client.Timeout = TimeSpan.FromSeconds(10);
+    var settings = serviceProvider.GetRequiredService<IOptions<ExchangeRateSettings>>().Value;
+    client.BaseAddress = new Uri(settings.BaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(Math.Clamp(settings.TimeoutSeconds, 1, 60));
+});
+
+builder.Services.AddHttpClient<IExpenseDocumentIntelligenceService, ExpenseDocumentIntelligenceService>((serviceProvider, client) =>
+{
+    var settings = serviceProvider.GetRequiredService<IOptions<AzureDocumentIntelligenceSettings>>().Value;
+
+    if (!string.IsNullOrWhiteSpace(settings.Endpoint)
+        && Uri.TryCreate(settings.Endpoint, UriKind.Absolute, out var endpointUri))
+    {
+        client.BaseAddress = endpointUri;
+    }
+
+    client.Timeout = TimeSpan.FromSeconds(Math.Clamp(settings.TimeoutSeconds, 5, 180));
 });
 
 var app = builder.Build();

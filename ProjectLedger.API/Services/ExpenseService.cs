@@ -216,8 +216,25 @@ public class ExpenseService : IExpenseService
         => await _expenseRepo.GetByPaymentMethodIdAsync(paymentMethodId, ct);
 
     public async Task<(IReadOnlyList<Expense> Items, int TotalCount)> GetByPaymentMethodIdPagedAsync(
-        Guid paymentMethodId, int skip, int take, string? sortBy, bool descending, CancellationToken ct = default)
-        => await _expenseRepo.GetByPaymentMethodIdPagedAsync(paymentMethodId, skip, take, sortBy, descending, ct);
+        Guid paymentMethodId,
+        int skip,
+        int take,
+        string? sortBy,
+        bool descending,
+        DateOnly? from,
+        DateOnly? to,
+        Guid? projectId,
+        CancellationToken ct = default)
+        => await _expenseRepo.GetByPaymentMethodIdPagedAsync(
+            paymentMethodId,
+            skip,
+            take,
+            sortBy,
+            descending,
+            from,
+            to,
+            projectId,
+            ct);
 
     /// <summary>
     /// Convierte el monto de un pago a la moneda de la obligación.

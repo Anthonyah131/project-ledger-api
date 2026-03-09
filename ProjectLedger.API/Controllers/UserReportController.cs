@@ -122,7 +122,7 @@ public class UserReportController : ControllerBase
 
             // pmTotal: sum in the payment method's own currency (for per-method stats)
             var pmTotal = pmExpenses.Sum(e => e.ExpOriginalAmount);
-            var pmIncomeTotal = pmIncomes.Sum(i => i.IncOriginalAmount);
+            var pmIncomeTotal = pmIncomes.Sum(i => ResolveIncomeAccountAmount(i, pm.PmtCurrency));
             // pmTotalConverted: sum in project currency (for cross-method % comparisons)
             var pmTotalConverted = pmExpenses.Sum(e => e.ExpConvertedAmount);
             var pmIncomeTotalConverted = pmIncomes.Sum(i => i.IncConvertedAmount);
@@ -218,6 +218,8 @@ public class UserReportController : ControllerBase
                     CategoryName = i.Category?.CatName ?? "Unknown",
                     OriginalAmount = i.IncOriginalAmount,
                     OriginalCurrency = i.IncOriginalCurrency,
+                    AccountAmount = i.IncAccountAmount ?? ResolveIncomeAccountAmount(i, pm.PmtCurrency),
+                    AccountCurrency = i.IncAccountCurrency ?? pm.PmtCurrency,
                     ConvertedAmount = i.IncConvertedAmount,
                     ProjectCurrency = i.Project?.PrjCurrencyCode ?? "USD",
                     CurrencyExchanges = i.CurrencyExchanges?.Select(x => x.ToResponse()).ToList(),
@@ -411,5 +413,24 @@ public class UserReportController : ControllerBase
     {
         var invalid = Path.GetInvalidFileNameChars();
         return string.Concat(name.Select(c => invalid.Contains(c) ? '_' : c));
+    }
+
+    private static decimal ResolveIncomeAccountAmount(Models.Income income, string paymentMethodCurrency)
+    {
+        if (income.IncAccountAmount is > 0)
+            return income.IncAccountAmount.Value;
+
+        if (string.Equals(income.IncOriginalCurrency, paymentMethodCurrency, StringComparison.OrdinalIgnoreCase))
+            return income.IncOriginalAmount;
+
+        var projectCurrency = income.Project?.PrjCurrencyCode;
+        if (!string.IsNullOrWhiteSpace(projectCurrency)
+            && string.Equals(projectCurrency, paymentMethodCurrency, StringComparison.OrdinalIgnoreCase))
+        {
+            return income.IncConvertedAmount;
+        }
+
+        // Legacy fallback when the account amount was not persisted yet.
+        return income.IncOriginalAmount;
     }
 }

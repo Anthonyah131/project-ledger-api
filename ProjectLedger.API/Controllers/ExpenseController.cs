@@ -24,21 +24,34 @@ namespace ProjectLedger.API.Controllers;
 [Produces("application/json")]
 public class ExpenseController : ControllerBase
 {
+    private const string OcrUsageEntityName = "expense_document_read";
+    // Must match allowed values in audit_logs_action_type_check.
+    private const string OcrUsageActionType = "create";
+
     private readonly IExpenseService _expenseService;
     private readonly IProjectAccessService _accessService;
+    private readonly IProjectService _projectService;
     private readonly IPlanAuthorizationService _planAuth;
+    private readonly IAuditLogService _auditLogService;
     private readonly ITransactionCurrencyExchangeService _exchangeService;
+    private readonly IExpenseDocumentIntelligenceService _expenseDocumentAiService;
 
     public ExpenseController(
         IExpenseService expenseService,
         IProjectAccessService accessService,
+        IProjectService projectService,
         IPlanAuthorizationService planAuth,
-        ITransactionCurrencyExchangeService exchangeService)
+        IAuditLogService auditLogService,
+        ITransactionCurrencyExchangeService exchangeService,
+        IExpenseDocumentIntelligenceService expenseDocumentAiService)
     {
         _expenseService = expenseService;
         _accessService = accessService;
+        _projectService = projectService;
         _planAuth = planAuth;
+        _auditLogService = auditLogService;
         _exchangeService = exchangeService;
+        _expenseDocumentAiService = expenseDocumentAiService;
     }
 
     // ── GET /api/projects/{projectId}/expenses ──────────────
@@ -169,6 +182,90 @@ public class ExpenseController : ControllerBase
         return Ok(expense.ToResponse());
     }
 
+    // ── GET /api/projects/{projectId}/expenses/extract-from-image/quota ──
+
+    /// <summary>
+    /// Retorna el cupo mensual de lecturas de documentos (OCR) para este proyecto,
+    /// gobernado por el plan del owner del proyecto.
+    /// </summary>
+    /// <response code="200">Cupo mensual y lecturas restantes.</response>
+    /// <response code="403">Sin acceso de edición al proyecto.</response>
+    [HttpGet("extract-from-image/quota")]
+    [Authorize(Policy = "ProjectEditor")]
+    [ProducesResponseType(typeof(DocumentReadQuotaResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetDocumentReadQuota(Guid projectId, CancellationToken ct)
+    {
+        var userId = User.GetRequiredUserId();
+        await _planAuth.ValidateProjectWriteAccessAsync(projectId, userId, ct);
+        await _accessService.ValidateAccessAsync(userId, projectId, ProjectRoles.Editor, ct);
+
+        var quota = await BuildDocumentReadQuotaAsync(projectId, ct);
+        return Ok(quota);
+    }
+
+    // ── POST /api/projects/{projectId}/expenses/extract-from-image ──
+
+    /// <summary>
+    /// Analiza una imagen/PDF de recibo o factura y retorna un borrador de gasto
+    /// para que el usuario lo revise y lo ajuste manualmente antes de guardar.
+    /// </summary>
+    /// <response code="200">Borrador de gasto extraido por IA.</response>
+    /// <response code="400">Archivo invalido o error de extraccion.</response>
+    /// <response code="403">Sin acceso al proyecto.</response>
+    [HttpPost("extract-from-image")]
+    [Authorize(Policy = "ProjectEditor")]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(typeof(ExtractExpenseFromDocumentResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> ExtractFromImage(
+        Guid projectId,
+        [FromForm] ExtractExpenseFromDocumentRequest request,
+        CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var userId = User.GetRequiredUserId();
+        await _planAuth.ValidateProjectWriteAccessAsync(projectId, userId, ct);
+        await _accessService.ValidateAccessAsync(userId, projectId, ProjectRoles.Editor, ct);
+
+        var quota = await BuildDocumentReadQuotaAsync(projectId, ct);
+
+        if (!quota.CanUseOcr)
+            throw new PlanDeniedException(PlanPermission.CanUseOcr, quota.PlanName);
+
+        if (quota.MonthlyLimit is not null && quota.UsedThisMonth >= quota.MonthlyLimit.Value)
+            throw new PlanLimitExceededException(
+                PlanLimits.MaxDocumentReadsPerMonth,
+                quota.MonthlyLimit.Value,
+                quota.PlanName);
+
+        var response = await _expenseDocumentAiService.ExtractDraftAsync(
+            projectId,
+            request.File,
+            request.DocumentKind,
+            ct);
+
+        await _auditLogService.LogAsync(
+            OcrUsageEntityName,
+            projectId,
+            OcrUsageActionType,
+            quota.ProjectOwnerUserId,
+            newValues: new
+            {
+                ProjectId = projectId,
+                RequestedByUserId = userId,
+                request.DocumentKind,
+                FileName = request.File.FileName,
+                Source = "azure-document-intelligence"
+            },
+            ct: ct);
+
+        return Ok(response);
+    }
+
     // ── POST /api/projects/{projectId}/expenses ─────────────
 
     /// <summary>
@@ -295,5 +392,55 @@ public class ExpenseController : ControllerBase
         await _expenseService.SoftDeleteAsync(expenseId, userId, ct);
 
         return NoContent();
+    }
+
+    private async Task<DocumentReadQuotaResponse> BuildDocumentReadQuotaAsync(Guid projectId, CancellationToken ct)
+    {
+        var project = await _projectService.GetByIdAsync(projectId, ct)
+            ?? throw new KeyNotFoundException($"Project '{projectId}' not found.");
+
+        if (project.PrjIsDeleted)
+            throw new KeyNotFoundException($"Project '{projectId}' not found.");
+
+        var ownerUserId = project.PrjOwnerUserId;
+        var capabilities = await _planAuth.GetCapabilitiesAsync(ownerUserId, ct);
+
+        var canUseOcr = capabilities.Permissions.TryGetValue(nameof(PlanPermission.CanUseOcr), out var hasOcrPermission)
+            && hasOcrPermission;
+
+        var monthlyLimit = capabilities.Limits.TryGetValue(PlanLimits.MaxDocumentReadsPerMonth, out var configuredLimit)
+            ? configuredLimit
+            : null;
+
+        var periodStartUtc = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var periodEndUtc = periodStartUtc.AddMonths(1);
+
+        var usedThisMonth = await _auditLogService.CountByUserAndActionInRangeAsync(
+            ownerUserId,
+            OcrUsageEntityName,
+            OcrUsageActionType,
+            periodStartUtc,
+            periodEndUtc,
+            ct);
+
+        var isUnlimited = monthlyLimit is null;
+        int? remainingThisMonth = isUnlimited
+            ? null
+            : Math.Max(monthlyLimit.GetValueOrDefault() - usedThisMonth, 0);
+
+        return new DocumentReadQuotaResponse
+        {
+            ProjectOwnerUserId = ownerUserId,
+            PlanName = capabilities.PlanName,
+            PlanSlug = capabilities.PlanSlug,
+            CanUseOcr = canUseOcr,
+            UsedThisMonth = usedThisMonth,
+            MonthlyLimit = monthlyLimit,
+            RemainingThisMonth = remainingThisMonth,
+            IsUnlimited = isUnlimited,
+            IsAvailable = canUseOcr && (isUnlimited || usedThisMonth < monthlyLimit.GetValueOrDefault()),
+            PeriodStartUtc = periodStartUtc,
+            PeriodEndUtc = periodEndUtc
+        };
     }
 }

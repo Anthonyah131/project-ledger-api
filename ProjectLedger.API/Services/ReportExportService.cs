@@ -9,7 +9,7 @@ namespace ProjectLedger.API.Services;
 /// <summary>
 /// Genera reportes en Excel (ClosedXML) y PDF (QuestPDF).
 /// </summary>
-public class ReportExportService : IReportExportService
+public partial class ReportExportService : IReportExportService
 {
     private const string ExcelFontName = "Arial";
     private const double ExcelFontSize = 10;
@@ -39,10 +39,18 @@ public class ReportExportService : IReportExportService
         ws.Cell(4, 1).Value = "Total Gastado";
         ws.Cell(4, 2).Value = report.TotalSpent;
         ws.Cell(4, 2).Style.NumberFormat.Format = ExcelCurrencyFormat;
-        ws.Cell(5, 1).Value = "Total Gastos";
-        ws.Cell(5, 2).Value = report.TotalExpenseCount;
-        ws.Cell(6, 1).Value = "Generado";
-        ws.Cell(6, 2).Value = report.GeneratedAt.ToString("yyyy-MM-dd HH:mm UTC");
+        ws.Cell(5, 1).Value = "Total Ingresos";
+        ws.Cell(5, 2).Value = report.TotalIncome;
+        ws.Cell(5, 2).Style.NumberFormat.Format = ExcelCurrencyFormat;
+        ws.Cell(6, 1).Value = "Balance Neto";
+        ws.Cell(6, 2).Value = report.NetBalance;
+        ws.Cell(6, 2).Style.NumberFormat.Format = ExcelCurrencyFormat;
+        ws.Cell(7, 1).Value = "Total Gastos";
+        ws.Cell(7, 2).Value = report.TotalExpenseCount;
+        ws.Cell(8, 1).Value = "Total Ingresos (reg.)";
+        ws.Cell(8, 2).Value = report.TotalIncomeCount;
+        ws.Cell(9, 1).Value = "Generado";
+        ws.Cell(9, 2).Value = report.GeneratedAt.ToString("yyyy-MM-dd HH:mm UTC");
 
         ws.Cell(1, 4).Value = "Mes Mayor Gasto";
         ws.Cell(1, 5).Value = GetPeakExpenseMonthLabel(report);
@@ -54,11 +62,11 @@ public class ReportExportService : IReportExportService
         ws.Cell(4, 5).Value = report.ObligationSummary?.OverdueAmount ?? 0m;
         ws.Cell(4, 5).Style.NumberFormat.Format = ExcelCurrencyFormat;
 
-        StyleHeaderRange(ws.Range(1, 1, 6, 1));
+        StyleHeaderRange(ws.Range(1, 1, 9, 1));
         StyleHeaderRange(ws.Range(1, 4, 4, 4));
 
         // Columnas de la tabla de gastos
-        var row = 8;
+        var row = 11;
         var headers = new[]
         {
             "Fecha", "Título", "Categoría", "Método de Pago", "Tipo",
@@ -112,14 +120,28 @@ public class ReportExportService : IReportExportService
             ws.Cell(row, 9).Style.NumberFormat.Format = ExcelCurrencyFormat;
             ws.Cell(row, 9).Style.Font.Bold = true;
             row++;
+
+            ws.Cell(row, 8).Value = "Ingresos:";
+            ws.Cell(row, 8).Style.Font.Bold = true;
+            ws.Cell(row, 9).Value = section.SectionIncomeTotal;
+            ws.Cell(row, 9).Style.NumberFormat.Format = ExcelCurrencyFormat;
+            ws.Cell(row, 9).Style.Font.Bold = true;
+            row++;
+
+            ws.Cell(row, 8).Value = "Balance Neto:";
+            ws.Cell(row, 8).Style.Font.Bold = true;
+            ws.Cell(row, 9).Value = section.SectionNetBalance;
+            ws.Cell(row, 9).Style.NumberFormat.Format = ExcelCurrencyFormat;
+            ws.Cell(row, 9).Style.Font.Bold = true;
+            row++;
         }
 
         FinalizeSheetLayout(
             ws,
-            headerRow: 8,
-            lastRow: Math.Max(8, row - 1),
+            headerRow: 11,
+            lastRow: Math.Max(11, row - 1),
             lastColumn: headers.Length,
-            freezeRows: 8,
+            freezeRows: 11,
             enableAutoFilter: false,
             maxColumnWidth: 44,
             wrapColumns: [10, 12, 14]);
@@ -262,32 +284,46 @@ public class ReportExportService : IReportExportService
         ws.Cell(2, 1).Value = "Total Gastado";
         ws.Cell(2, 2).Value = report.GrandTotalSpent;
         ws.Cell(2, 2).Style.NumberFormat.Format = ExcelCurrencyFormat;
-        ws.Cell(3, 1).Value = "Total Gastos";
-        ws.Cell(3, 2).Value = report.GrandTotalExpenseCount;
-        ws.Cell(4, 1).Value = "Generado";
-        ws.Cell(4, 2).Value = report.GeneratedAt.ToString("yyyy-MM-dd HH:mm UTC");
+        ws.Cell(3, 1).Value = "Total Ingresos";
+        ws.Cell(3, 2).Value = report.GrandTotalIncome;
+        ws.Cell(3, 2).Style.NumberFormat.Format = ExcelCurrencyFormat;
+        ws.Cell(4, 1).Value = "Balance Neto";
+        ws.Cell(4, 2).Value = report.GrandNetFlow;
+        ws.Cell(4, 2).Style.NumberFormat.Format = ExcelCurrencyFormat;
+        ws.Cell(5, 1).Value = "Total Gastos";
+        ws.Cell(5, 2).Value = report.GrandTotalExpenseCount;
+        ws.Cell(6, 1).Value = "Total Ingresos (reg.)";
+        ws.Cell(6, 2).Value = report.GrandTotalIncomeCount;
+        ws.Cell(7, 1).Value = "Generado";
+        ws.Cell(7, 2).Value = report.GeneratedAt.ToString("yyyy-MM-dd HH:mm UTC");
 
         ws.Cell(1, 4).Value = "Método Líder";
         ws.Cell(1, 5).Value = GetTopPaymentMethodLabel(report);
         ws.Cell(2, 4).Value = "Mes Pico";
         ws.Cell(2, 5).Value = GetPeakTrendMonthLabel(report);
-        ws.Cell(3, 4).Value = "Promedio / Transacción";
-        ws.Cell(3, 5).Value = report.GrandTotalExpenseCount > 0
-            ? report.GrandTotalSpent / report.GrandTotalExpenseCount
+        ws.Cell(3, 4).Value = "Prom. Ingreso / Transacción";
+        ws.Cell(3, 5).Value = report.GrandTotalIncomeCount > 0
+            ? report.GrandTotalIncome / report.GrandTotalIncomeCount
             : 0m;
         ws.Cell(3, 5).Style.NumberFormat.Format = ExcelCurrencyFormat;
+        ws.Cell(4, 4).Value = "Prom. Gasto / Transacción";
+        ws.Cell(4, 5).Value = report.GrandTotalExpenseCount > 0
+            ? report.GrandTotalSpent / report.GrandTotalExpenseCount
+            : 0m;
+        ws.Cell(4, 5).Style.NumberFormat.Format = ExcelCurrencyFormat;
 
-        StyleHeaderRange(ws.Range(1, 1, 4, 1));
-        StyleHeaderRange(ws.Range(1, 4, 3, 4));
+        StyleHeaderRange(ws.Range(1, 1, 7, 1));
+        StyleHeaderRange(ws.Range(1, 4, 4, 4));
 
         var headers = new[]
         {
             "Método de Pago", "Tipo", "Moneda", "Banco",
-            "Total Gastado", "Nro. Gastos", "% del Total",
-            "Promedio", "Primer Uso", "Último Uso"
+            "Total Gastado", "Nro. Gastos", "Total Ingresos", "Nro. Ingresos",
+            "Balance Neto", "% del Gasto", "Promedio Gasto", "Promedio Ingreso",
+            "Primer Uso", "Último Uso"
         };
 
-        var row = 6;
+        var row = 9;
         for (var col = 1; col <= headers.Length; col++)
             ws.Cell(row, col).Value = headers[col - 1];
         StyleTableHeader(ws.Range(row, 1, row, headers.Length));
@@ -302,21 +338,28 @@ public class ReportExportService : IReportExportService
             ws.Cell(row, 5).Value = pm.TotalSpent;
             ws.Cell(row, 5).Style.NumberFormat.Format = ExcelCurrencyFormat;
             ws.Cell(row, 6).Value = pm.ExpenseCount;
-            ws.Cell(row, 7).Value = pm.Percentage;
-            ws.Cell(row, 7).Style.NumberFormat.Format = ExcelPercentFormat;
-            ws.Cell(row, 8).Value = pm.AverageExpenseAmount;
-            ws.Cell(row, 8).Style.NumberFormat.Format = ExcelCurrencyFormat;
-            ws.Cell(row, 9).Value = pm.FirstUseDate?.ToString("yyyy-MM-dd") ?? "—";
-            ws.Cell(row, 10).Value = pm.LastUseDate?.ToString("yyyy-MM-dd") ?? "—";
+            ws.Cell(row, 7).Value = pm.TotalIncome;
+            ws.Cell(row, 7).Style.NumberFormat.Format = ExcelCurrencyFormat;
+            ws.Cell(row, 8).Value = pm.IncomeCount;
+            ws.Cell(row, 9).Value = pm.NetFlow;
+            ws.Cell(row, 9).Style.NumberFormat.Format = ExcelCurrencyFormat;
+            ws.Cell(row, 10).Value = pm.Percentage;
+            ws.Cell(row, 10).Style.NumberFormat.Format = ExcelPercentFormat;
+            ws.Cell(row, 11).Value = pm.AverageExpenseAmount;
+            ws.Cell(row, 11).Style.NumberFormat.Format = ExcelCurrencyFormat;
+            ws.Cell(row, 12).Value = pm.AverageIncomeAmount;
+            ws.Cell(row, 12).Style.NumberFormat.Format = ExcelCurrencyFormat;
+            ws.Cell(row, 13).Value = pm.FirstUseDate?.ToString("yyyy-MM-dd") ?? "—";
+            ws.Cell(row, 14).Value = pm.LastUseDate?.ToString("yyyy-MM-dd") ?? "—";
             row++;
         }
 
         FinalizeSheetLayout(
             ws,
-            headerRow: 6,
-            lastRow: Math.Max(6, row - 1),
+            headerRow: 9,
+            lastRow: Math.Max(9, row - 1),
             lastColumn: headers.Length,
-            freezeRows: 6,
+            freezeRows: 9,
             maxColumnWidth: 36,
             wrapColumns: [1, 4]);
 
@@ -401,9 +444,60 @@ public class ReportExportService : IReportExportService
             maxColumnWidth: 42,
             wrapColumns: [2, 4, 10]);
 
-        // ── Hoja 4: Tendencia mensual ───────────────────────
+        // ── Hoja 4: Ingresos detallados ─────────────────────
+        var incWs = workbook.Worksheets.Add("Ingresos");
+        var incHeaders = new[]
+        {
+            "Fecha", "Título", "Método de Pago", "Proyecto",
+            "Categoría", "Monto Original", "Mon. Original",
+            "Monto Cuenta", "Mon. Cuenta",
+            "Monto Convertido", "Mon. Proyecto", "Descripción"
+        };
+
+        for (var col = 1; col <= incHeaders.Length; col++)
+            incWs.Cell(1, col).Value = incHeaders[col - 1];
+        StyleTableHeader(incWs.Range(1, 1, 1, incHeaders.Length));
+
+        var incRow = 2;
+        foreach (var pm in report.PaymentMethods)
+        {
+            foreach (var inc in pm.Incomes)
+            {
+                incWs.Cell(incRow, 1).Value = inc.IncomeDate.ToString("yyyy-MM-dd");
+                incWs.Cell(incRow, 2).Value = inc.Title;
+                incWs.Cell(incRow, 3).Value = pm.Name;
+                incWs.Cell(incRow, 4).Value = inc.ProjectName;
+                incWs.Cell(incRow, 5).Value = inc.CategoryName;
+                incWs.Cell(incRow, 6).Value = inc.OriginalAmount;
+                incWs.Cell(incRow, 6).Style.NumberFormat.Format = ExcelCurrencyFormat;
+                incWs.Cell(incRow, 7).Value = inc.OriginalCurrency;
+                incWs.Cell(incRow, 8).Value = inc.AccountAmount;
+                incWs.Cell(incRow, 8).Style.NumberFormat.Format = ExcelCurrencyFormat;
+                incWs.Cell(incRow, 9).Value = inc.AccountCurrency ?? "—";
+                incWs.Cell(incRow, 10).Value = inc.ConvertedAmount;
+                incWs.Cell(incRow, 10).Style.NumberFormat.Format = ExcelCurrencyFormat;
+                incWs.Cell(incRow, 11).Value = inc.ProjectCurrency;
+                incWs.Cell(incRow, 12).Value = inc.Description ?? "";
+                incRow++;
+            }
+        }
+
+        FinalizeSheetLayout(
+            incWs,
+            headerRow: 1,
+            lastRow: Math.Max(1, incRow - 1),
+            lastColumn: incHeaders.Length,
+            freezeRows: 1,
+            maxColumnWidth: 42,
+            wrapColumns: [2, 4, 12]);
+
+        // ── Hoja 5: Tendencia mensual ───────────────────────
         var trendWs = workbook.Worksheets.Add("Tendencia Mensual");
-        var trendHeaders = new[] { "Mes", "Total Gastado", "Nro. Gastos" };
+        var trendHeaders = new[]
+        {
+            "Mes", "Total Gastado", "Nro. Gastos",
+            "Total Ingresos", "Nro. Ingresos", "Balance Neto"
+        };
 
         for (var col = 1; col <= trendHeaders.Length; col++)
             trendWs.Cell(1, col).Value = trendHeaders[col - 1];
@@ -416,6 +510,11 @@ public class ReportExportService : IReportExportService
             trendWs.Cell(trendRow, 2).Value = m.TotalSpent;
             trendWs.Cell(trendRow, 2).Style.NumberFormat.Format = ExcelCurrencyFormat;
             trendWs.Cell(trendRow, 3).Value = m.ExpenseCount;
+            trendWs.Cell(trendRow, 4).Value = m.TotalIncome;
+            trendWs.Cell(trendRow, 4).Style.NumberFormat.Format = ExcelCurrencyFormat;
+            trendWs.Cell(trendRow, 5).Value = m.IncomeCount;
+            trendWs.Cell(trendRow, 6).Value = m.NetBalance;
+            trendWs.Cell(trendRow, 6).Style.NumberFormat.Format = ExcelCurrencyFormat;
             trendRow++;
         }
 
@@ -493,6 +592,10 @@ public class ReportExportService : IReportExportService
             });
 
             col.Item().PaddingTop(6).Text($"Top categoría: {topCategory}")
+                .FontSize(8).FontColor(Colors.Grey.Darken1);
+
+            col.Item().PaddingTop(2)
+                .Text($"Total ingresos: {FormatCurrency(report.CurrencyCode, report.TotalIncome)}  ·  Balance neto: {FormatCurrency(report.CurrencyCode, report.NetBalance)}")
                 .FontSize(8).FontColor(Colors.Grey.Darken1);
 
             col.Item().PaddingVertical(8).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
@@ -720,6 +823,21 @@ public class ReportExportService : IReportExportService
                         });
                     });
 
+                    col.Item().PaddingTop(6).Row(row =>
+                    {
+                        row.RelativeItem().Background(Colors.Green.Lighten4).Padding(8).Column(c =>
+                        {
+                            c.Item().Text("Total Ingresos").FontSize(8).FontColor(Colors.Grey.Darken2);
+                            c.Item().Text($"{report.GrandTotalIncome:N2}").FontSize(12).Bold();
+                        });
+                        row.ConstantItem(10);
+                        row.RelativeItem().Background(Colors.Orange.Lighten4).Padding(8).Column(c =>
+                        {
+                            c.Item().Text("Balance Neto").FontSize(8).FontColor(Colors.Grey.Darken2);
+                            c.Item().Text($"{report.GrandNetFlow:N2}").FontSize(12).Bold();
+                        });
+                    });
+
                     col.Item().PaddingVertical(8).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
                 });
 
@@ -743,9 +861,10 @@ public class ReportExportService : IReportExportService
                             columns.ConstantColumn(45);  // Tipo
                             columns.ConstantColumn(40);  // Moneda
                             columns.ConstantColumn(70);  // Total
+                            columns.ConstantColumn(70);  // Ingresos
+                            columns.ConstantColumn(70);  // Balance
                             columns.ConstantColumn(40);  // Gastos
-                            columns.ConstantColumn(40);  // %
-                            columns.ConstantColumn(65);  // Promedio
+                            columns.ConstantColumn(40);  // Ingresos (count)
                         });
 
                         table.Header(header =>
@@ -754,9 +873,10 @@ public class ReportExportService : IReportExportService
                             PdfTableHeaderCell(header, "Tipo");
                             PdfTableHeaderCell(header, "Moneda");
                             PdfTableHeaderCell(header, "Total", true);
+                            PdfTableHeaderCell(header, "Ingresos", true);
+                            PdfTableHeaderCell(header, "Balance", true);
                             PdfTableHeaderCell(header, "Gastos", true);
-                            PdfTableHeaderCell(header, "%", true);
-                            PdfTableHeaderCell(header, "Promedio", true);
+                            PdfTableHeaderCell(header, "Ingr.", true);
                         });
 
                         foreach (var pm in report.PaymentMethods)
@@ -765,9 +885,10 @@ public class ReportExportService : IReportExportService
                             PdfTableCell(table, pm.Type);
                             PdfTableCell(table, pm.Currency);
                             PdfTableCell(table, FormatCurrency(pm.Currency, pm.TotalSpent), true);
+                            PdfTableCell(table, FormatCurrency(pm.Currency, pm.TotalIncome), true);
+                            PdfTableCell(table, FormatCurrency(pm.Currency, pm.NetFlow), true);
                             PdfTableCell(table, $"{pm.ExpenseCount}", true);
-                            PdfTableCell(table, $"{pm.Percentage:N1}%", true);
-                            PdfTableCell(table, FormatCurrency(pm.Currency, pm.AverageExpenseAmount), true);
+                            PdfTableCell(table, $"{pm.IncomeCount}", true);
                         }
                     });
 
@@ -827,6 +948,9 @@ public class ReportExportService : IReportExportService
                                 columns.RelativeColumn(3);   // Mes
                                 columns.ConstantColumn(70);  // Total
                                 columns.ConstantColumn(50);  // Gastos
+                                columns.ConstantColumn(70);  // Ingresos
+                                columns.ConstantColumn(50);  // Ingresos count
+                                columns.ConstantColumn(70);  // Balance
                             });
 
                             table.Header(header =>
@@ -834,6 +958,9 @@ public class ReportExportService : IReportExportService
                                 PdfTableHeaderCell(header, "Mes");
                                 PdfTableHeaderCell(header, "Total", true);
                                 PdfTableHeaderCell(header, "Gastos", true);
+                                PdfTableHeaderCell(header, "Ingresos", true);
+                                PdfTableHeaderCell(header, "Ingr.", true);
+                                PdfTableHeaderCell(header, "Balance", true);
                             });
 
                             foreach (var m in report.MonthlyTrend)
@@ -841,6 +968,9 @@ public class ReportExportService : IReportExportService
                                 PdfTableCell(table, m.MonthLabel);
                                 PdfTableCell(table, $"{m.TotalSpent:N2}", true);
                                 PdfTableCell(table, $"{m.ExpenseCount}", true);
+                                PdfTableCell(table, $"{m.TotalIncome:N2}", true);
+                                PdfTableCell(table, $"{m.IncomeCount}", true);
+                                PdfTableCell(table, $"{m.NetBalance:N2}", true);
                             }
                         });
                     }
@@ -851,195 +981,5 @@ public class ReportExportService : IReportExportService
         });
 
         return document.GeneratePdf();
-    }
-
-    // ════════════════════════════════════════════════════════
-    //  SHARED HELPERS
-    // ════════════════════════════════════════════════════════
-
-    private static byte[] WorkbookToBytes(XLWorkbook workbook)
-    {
-        using var ms = new MemoryStream();
-        workbook.SaveAs(ms);
-        return ms.ToArray();
-    }
-
-    private static void ApplyWorkbookDefaults(XLWorkbook workbook, string title, string subject)
-    {
-        workbook.Style.Font.FontName = ExcelFontName;
-        workbook.Style.Font.FontSize = ExcelFontSize;
-
-        workbook.Properties.Title = title;
-        workbook.Properties.Subject = subject;
-        workbook.Properties.Author = "Project Ledger";
-        workbook.Properties.Company = "Project Ledger";
-    }
-
-    private static void FinalizeSheetLayout(
-        IXLWorksheet ws,
-        int headerRow,
-        int lastRow,
-        int lastColumn,
-        int freezeRows,
-        bool enableAutoFilter = true,
-        int maxColumnWidth = 40,
-        params int[] wrapColumns)
-    {
-        if (freezeRows > 0)
-            ws.SheetView.FreezeRows(freezeRows);
-
-        if (enableAutoFilter && lastRow >= headerRow && lastColumn > 0)
-            ws.Range(headerRow, 1, lastRow, lastColumn).SetAutoFilter();
-
-        foreach (var col in wrapColumns)
-            ws.Column(col).Style.Alignment.WrapText = true;
-
-        ws.Columns().AdjustToContents();
-
-        foreach (var column in ws.ColumnsUsed())
-        {
-            if (column.Width > maxColumnWidth)
-                column.Width = maxColumnWidth;
-        }
-    }
-
-    private static string GetPeakExpenseMonthLabel(DetailedExpenseReportResponse report)
-    {
-        var peak = report.Sections
-            .OrderByDescending(s => s.SectionTotal)
-            .FirstOrDefault();
-
-        return peak is null
-            ? "—"
-            : $"{peak.MonthLabel} ({peak.SectionTotal:N2})";
-    }
-
-    private static string GetTopExpenseCategoryLabel(DetailedExpenseReportResponse report)
-    {
-        if (report.CategoryAnalysis is { Count: > 0 })
-        {
-            var topFromAnalysis = report.CategoryAnalysis
-                .OrderByDescending(c => c.SpentAmount)
-                .First();
-            return $"{topFromAnalysis.CategoryName} ({topFromAnalysis.SpentAmount:N2})";
-        }
-
-        var topFromRows = report.Sections
-            .SelectMany(s => s.Expenses)
-            .GroupBy(e => e.CategoryName)
-            .Select(g => new { Category = g.Key, Total = g.Sum(e => e.ConvertedAmount) })
-            .OrderByDescending(x => x.Total)
-            .FirstOrDefault();
-
-        return topFromRows is null
-            ? "—"
-            : $"{topFromRows.Category} ({topFromRows.Total:N2})";
-    }
-
-    private static string GetTopPaymentMethodLabel(PaymentMethodReportResponse report)
-    {
-        var top = report.PaymentMethods
-            .OrderByDescending(pm => pm.TotalSpent)
-            .FirstOrDefault();
-
-        return top is null
-            ? "—"
-            : $"{top.Name} ({top.TotalSpent:N2})";
-    }
-
-    private static string GetPeakTrendMonthLabel(PaymentMethodReportResponse report)
-    {
-        var peak = report.MonthlyTrend
-            .OrderByDescending(m => m.TotalSpent)
-            .FirstOrDefault();
-
-        return peak is null
-            ? "—"
-            : $"{peak.MonthLabel} ({peak.TotalSpent:N2})";
-    }
-
-    private static string FormatCurrency(string currencyCode, decimal amount)
-        => string.IsNullOrWhiteSpace(currencyCode)
-            ? $"{amount:N2}"
-            : $"{currencyCode} {amount:N2}";
-
-    private static void ComposePdfEmptyState(ColumnDescriptor col, string message)
-    {
-        col.Item().PaddingTop(10).Background(Colors.Grey.Lighten3).Padding(10).Column(inner =>
-        {
-            inner.Item().Text("Sin datos para mostrar")
-                .FontSize(11).Bold().FontColor(Colors.Grey.Darken2);
-            inner.Item().PaddingTop(2).Text(message)
-                .FontSize(9).FontColor(Colors.Grey.Darken1);
-        });
-    }
-
-    private static string FormatDateRange(DateOnly? from, DateOnly? to)
-    {
-        if (from.HasValue && to.HasValue)
-            return $"{from.Value:yyyy-MM-dd} — {to.Value:yyyy-MM-dd}";
-        if (from.HasValue)
-            return $"Desde {from.Value:yyyy-MM-dd}";
-        if (to.HasValue)
-            return $"Hasta {to.Value:yyyy-MM-dd}";
-        return "Todo el historial";
-    }
-
-    private static string FormatStatus(string status) => status switch
-    {
-        "open" => "Abierta",
-        "partially_paid" => "Parcial",
-        "paid" => "Pagada",
-        "overdue" => "Vencida",
-        _ => status
-    };
-
-    private static void StyleTableHeader(IXLRange range)
-    {
-        range.Style.Font.Bold = true;
-        range.Style.Fill.BackgroundColor = XLColor.DarkBlue;
-        range.Style.Font.FontColor = XLColor.White;
-        range.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-    }
-
-    private static void StyleHeaderRange(IXLRange range)
-    {
-        range.Style.Font.Bold = true;
-        range.Style.Font.FontColor = XLColor.DarkBlue;
-    }
-
-    private static void PdfTableHeaderCell(TableCellDescriptor header, string text, bool alignRight = false)
-    {
-        var cell = header.Cell()
-            .Background(Colors.Blue.Darken3)
-            .PaddingVertical(4).PaddingHorizontal(4);
-
-        if (alignRight)
-            cell.AlignRight().Text(text).FontSize(8).FontColor(Colors.White).Bold();
-        else
-            cell.Text(text).FontSize(8).FontColor(Colors.White).Bold();
-    }
-
-    private static void PdfTableCell(TableDescriptor table, string text, bool alignRight = false)
-    {
-        var cell = table.Cell()
-            .BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2)
-            .PaddingVertical(3).PaddingHorizontal(4);
-
-        if (alignRight)
-            cell.AlignRight().Text(text).FontSize(8);
-        else
-            cell.Text(text).FontSize(8);
-    }
-
-    private static void ComposeFooter(IContainer container)
-    {
-        container.AlignCenter().Text(text =>
-        {
-            text.Span("Project Ledger — Página ").FontSize(8).FontColor(Colors.Grey.Medium);
-            text.CurrentPageNumber().FontSize(8).FontColor(Colors.Grey.Medium);
-            text.Span(" de ").FontSize(8).FontColor(Colors.Grey.Medium);
-            text.TotalPages().FontSize(8).FontColor(Colors.Grey.Medium);
-        });
     }
 }

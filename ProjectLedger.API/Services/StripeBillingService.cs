@@ -81,6 +81,7 @@ public class StripeBillingService : IStripeBillingService
 
     public async Task<IReadOnlyList<StripePlanSyncResult>> SyncPlansAndPaymentLinksAsync(CancellationToken ct = default)
     {
+        EnsureStripeEnabled();
         EnsureStripeSecretConfigured();
         StripeConfiguration.ApiKey = _stripeSettings.SecretKey;
 
@@ -137,6 +138,7 @@ public class StripeBillingService : IStripeBillingService
 
     public async Task ProcessWebhookAsync(string payload, string signatureHeader, CancellationToken ct = default)
     {
+        EnsureStripeEnabled();
         EnsureStripeWebhookConfigured();
         EnsureStripeSecretConfigured();
         StripeConfiguration.ApiKey = _stripeSettings.SecretKey;
@@ -224,6 +226,7 @@ public class StripeBillingService : IStripeBillingService
 
     public async Task<UserSubscription?> GetCurrentUserSubscriptionAsync(Guid userId, CancellationToken ct = default)
     {
+        EnsureStripeEnabled();
         // 1) Búsqueda directa por userId (camino feliz)
         var byUserId = await _userSubscriptionRepo.GetCurrentByUserIdAsync(userId, ct);
         if (byUserId is not null)
@@ -335,6 +338,7 @@ public class StripeBillingService : IStripeBillingService
         bool prorate = true,
         CancellationToken ct = default)
     {
+        EnsureStripeEnabled();
         EnsureStripeSecretConfigured();
         StripeConfiguration.ApiKey = _stripeSettings.SecretKey;
 
@@ -406,6 +410,7 @@ public class StripeBillingService : IStripeBillingService
         bool cancelAtPeriodEnd = true,
         CancellationToken ct = default)
     {
+        EnsureStripeEnabled();
         EnsureStripeSecretConfigured();
         StripeConfiguration.ApiKey = _stripeSettings.SecretKey;
 
@@ -673,6 +678,7 @@ public class StripeBillingService : IStripeBillingService
     public async Task<(string SessionId, string CheckoutUrl)> CreateCheckoutSessionAsync(
         Guid userId, string userEmail, Guid planId, CancellationToken ct = default)
     {
+        EnsureStripeEnabled();
         EnsureStripeSecretConfigured();
         StripeConfiguration.ApiKey = _stripeSettings.SecretKey;
 
@@ -1249,6 +1255,12 @@ public class StripeBillingService : IStripeBillingService
 
     private bool IsCanceledSubscriptionStatus(string? status)
         => status is "canceled" or "incomplete_expired" or "unpaid";
+
+    private void EnsureStripeEnabled()
+    {
+        if (!_stripeSettings.Enabled)
+            throw new InvalidOperationException("Stripe billing is disabled by configuration.");
+    }
 
     private void EnsureStripeSecretConfigured()
     {

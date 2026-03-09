@@ -12,6 +12,8 @@ public static class IncomeMappingExtensions
     {
         Id = entity.IncId,
         ProjectId = entity.IncProjectId,
+        ProjectName = entity.Project?.PrjName,
+        ProjectCurrency = entity.Project?.PrjCurrencyCode,
         CategoryId = entity.IncCategoryId,
         CategoryName = entity.Category?.CatName ?? string.Empty,
         PaymentMethodId = entity.IncPaymentMethodId,
@@ -20,6 +22,8 @@ public static class IncomeMappingExtensions
         OriginalCurrency = entity.IncOriginalCurrency,
         ExchangeRate = entity.IncExchangeRate,
         ConvertedAmount = entity.IncConvertedAmount,
+        AccountAmount = entity.IncAccountAmount,
+        AccountCurrency = entity.IncAccountCurrency,
         Title = entity.IncTitle,
         Description = entity.IncDescription,
         IncomeDate = entity.IncIncomeDate,
@@ -46,6 +50,7 @@ public static class IncomeMappingExtensions
         IncOriginalCurrency = request.OriginalCurrency,
         IncExchangeRate = request.ExchangeRate,
         IncConvertedAmount = request.ConvertedAmount,
+        IncAccountAmount = request.AccountAmount,
         IncTitle = request.Title,
         IncDescription = request.Description,
         IncIncomeDate = request.IncomeDate,
@@ -65,6 +70,7 @@ public static class IncomeMappingExtensions
         entity.IncOriginalCurrency = request.OriginalCurrency;
         entity.IncExchangeRate = request.ExchangeRate;
         entity.IncConvertedAmount = request.ConvertedAmount;
+        entity.IncAccountAmount = request.AccountAmount;
         entity.IncTitle = request.Title;
         entity.IncDescription = request.Description;
         entity.IncIncomeDate = request.IncomeDate;

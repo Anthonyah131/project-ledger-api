@@ -18,6 +18,8 @@ public class Income
     public string IncOriginalCurrency { get; set; } = null!;   // ISO 4217
     public decimal IncExchangeRate { get; set; } = 1.000000m;
     public decimal IncConvertedAmount { get; set; }
+    public decimal? IncAccountAmount { get; set; }
+    public string? IncAccountCurrency { get; set; }
 
     // ── Datos descriptivos ──────────────────────────────────
     public string IncTitle { get; set; } = null!;

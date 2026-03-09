@@ -67,8 +67,8 @@ public static class ExpenseMappingExtensions
     {
         entity.ExpCategoryId = request.CategoryId;
         entity.ExpPaymentMethodId = request.PaymentMethodId;
-        if (request.ObligationEquivalentAmount.HasValue)
-            entity.ExpObligationEquivalentAmount = request.ObligationEquivalentAmount;
+        entity.ExpObligationId = request.ObligationId;
+        entity.ExpObligationEquivalentAmount = request.ObligationEquivalentAmount;
         entity.ExpOriginalAmount = request.OriginalAmount;
         entity.ExpOriginalCurrency = request.OriginalCurrency;
         entity.ExpExchangeRate = request.ExchangeRate;
@@ -78,6 +78,8 @@ public static class ExpenseMappingExtensions
         entity.ExpExpenseDate = request.ExpenseDate;
         entity.ExpReceiptNumber = request.ReceiptNumber;
         entity.ExpNotes = request.Notes;
+        if (request.IsTemplate.HasValue)
+            entity.ExpIsTemplate = request.IsTemplate.Value;
         entity.ExpUpdatedAt = DateTime.UtcNow;
     }
 

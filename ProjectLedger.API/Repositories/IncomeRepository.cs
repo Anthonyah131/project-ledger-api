@@ -11,6 +11,7 @@ public class IncomeRepository : Repository<Income>, IIncomeRepository
     public override async Task<Income?> GetByIdAsync(Guid id, CancellationToken ct = default)
         => await DbSet
             .Include(e => e.Category)
+            .Include(e => e.Project)
             .Include(e => e.CurrencyExchanges)
             .FirstOrDefaultAsync(e => e.IncId == id, ct);
 
@@ -20,6 +21,7 @@ public class IncomeRepository : Repository<Income>, IIncomeRepository
     public async Task<IEnumerable<Income>> GetByProjectIdAsync(Guid projectId, bool includeDeleted, CancellationToken ct = default)
         => await DbSet
             .Include(e => e.Category)
+            .Include(e => e.Project)
             .Include(e => e.CurrencyExchanges)
             .Where(e => e.IncProjectId == projectId && (includeDeleted || !e.IncIsDeleted))
             .OrderByDescending(e => e.IncIncomeDate)
@@ -30,6 +32,7 @@ public class IncomeRepository : Repository<Income>, IIncomeRepository
     {
         var query = DbSet
             .Include(e => e.Category)
+            .Include(e => e.Project)
             .Include(e => e.CurrencyExchanges)
             .Where(e => e.IncProjectId == projectId && (includeDeleted || !e.IncIsDeleted));
 
@@ -44,6 +47,7 @@ public class IncomeRepository : Repository<Income>, IIncomeRepository
     public async Task<IEnumerable<Income>> GetByCategoryIdAsync(Guid categoryId, CancellationToken ct = default)
         => await DbSet
             .Include(e => e.Category)
+            .Include(e => e.Project)
             .Include(e => e.CurrencyExchanges)
             .Where(e => e.IncCategoryId == categoryId && !e.IncIsDeleted)
             .OrderByDescending(e => e.IncIncomeDate)
@@ -57,6 +61,40 @@ public class IncomeRepository : Repository<Income>, IIncomeRepository
             .Where(e => e.IncPaymentMethodId == paymentMethodId && !e.IncIsDeleted)
             .OrderByDescending(e => e.IncIncomeDate)
             .ToListAsync(ct);
+
+    public async Task<(IReadOnlyList<Income> Items, int TotalCount)> GetByPaymentMethodIdPagedAsync(
+        Guid paymentMethodId,
+        int skip,
+        int take,
+        string? sortBy,
+        bool descending,
+        DateOnly? from,
+        DateOnly? to,
+        Guid? projectId,
+        CancellationToken ct = default)
+    {
+        var query = DbSet
+            .Include(e => e.Category)
+            .Include(e => e.Project)
+            .Include(e => e.CurrencyExchanges)
+            .Where(e => e.IncPaymentMethodId == paymentMethodId && !e.IncIsDeleted);
+
+        if (from.HasValue)
+            query = query.Where(e => e.IncIncomeDate >= from.Value);
+
+        if (to.HasValue)
+            query = query.Where(e => e.IncIncomeDate <= to.Value);
+
+        if (projectId.HasValue)
+            query = query.Where(e => e.IncProjectId == projectId.Value);
+
+        var totalCount = await query.CountAsync(ct);
+
+        query = ApplyIncomeSort(query, sortBy, descending);
+        var items = await query.Skip(skip).Take(take).ToListAsync(ct);
+
+        return (items, totalCount);
+    }
 
     public async Task<IEnumerable<Income>> GetByPaymentMethodIdsWithDetailsAsync(
         IEnumerable<Guid> paymentMethodIds, DateOnly? from, DateOnly? to, CancellationToken ct = default)
@@ -92,8 +130,10 @@ public class IncomeRepository : Repository<Income>, IIncomeRepository
         return sortBy?.ToLowerInvariant() switch
         {
             "title" => descending ? query.OrderByDescending(e => e.IncTitle) : query.OrderBy(e => e.IncTitle),
+            "convertedamount" => descending ? query.OrderByDescending(e => e.IncConvertedAmount) : query.OrderBy(e => e.IncConvertedAmount),
             "amount" => descending ? query.OrderByDescending(e => e.IncConvertedAmount) : query.OrderBy(e => e.IncConvertedAmount),
             "createdat" => descending ? query.OrderByDescending(e => e.IncCreatedAt) : query.OrderBy(e => e.IncCreatedAt),
+            "incomedate" => descending ? query.OrderByDescending(e => e.IncIncomeDate) : query.OrderBy(e => e.IncIncomeDate),
             _ => descending ? query.OrderByDescending(e => e.IncIncomeDate) : query.OrderBy(e => e.IncIncomeDate),
         };
     }

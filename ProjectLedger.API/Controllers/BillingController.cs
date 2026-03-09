@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Stripe;
 using ProjectLedger.API.DTOs.Billing;
 using ProjectLedger.API.Models;
@@ -44,10 +45,14 @@ namespace ProjectLedger.API.Controllers;
 public class BillingController : ControllerBase
 {
     private readonly IStripeBillingService _stripeBillingService;
+    private readonly StripeSettings _stripeSettings;
 
-    public BillingController(IStripeBillingService stripeBillingService)
+    public BillingController(
+        IStripeBillingService stripeBillingService,
+        IOptions<StripeSettings> stripeSettings)
     {
         _stripeBillingService = stripeBillingService;
+        _stripeSettings = stripeSettings.Value;
     }
 
     [HttpPost("stripe/sync-plans")]
@@ -56,6 +61,10 @@ public class BillingController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> SyncStripePlans(CancellationToken ct)
     {
+        var stripeDisabled = EnsureStripeEnabledForClientCalls();
+        if (stripeDisabled is not null)
+            return stripeDisabled;
+
         if (!IsAdmin())
             return Forbid();
 
@@ -95,6 +104,10 @@ public class BillingController : ControllerBase
         [FromBody] CreateCheckoutSessionRequest request,
         CancellationToken ct)
     {
+        var stripeDisabled = EnsureStripeEnabledForClientCalls();
+        if (stripeDisabled is not null)
+            return stripeDisabled;
+
         var userId = User.GetRequiredUserId();
         var email = User.GetEmail()
                     ?? throw new InvalidOperationException("Email claim not found in JWT.");
@@ -126,6 +139,10 @@ public class BillingController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetMySubscription(CancellationToken ct)
     {
+        var stripeDisabled = EnsureStripeEnabledForClientCalls();
+        if (stripeDisabled is not null)
+            return stripeDisabled;
+
         var userId = User.GetRequiredUserId();
         var subscription = await _stripeBillingService.GetCurrentUserSubscriptionAsync(userId, ct);
 
@@ -144,6 +161,10 @@ public class BillingController : ControllerBase
         [FromBody] ChangeSubscriptionPlanRequest request,
         CancellationToken ct)
     {
+        var stripeDisabled = EnsureStripeEnabledForClientCalls();
+        if (stripeDisabled is not null)
+            return stripeDisabled;
+
         var userId = User.GetRequiredUserId();
 
         try
@@ -170,6 +191,10 @@ public class BillingController : ControllerBase
         [FromBody] CancelSubscriptionRequest request,
         CancellationToken ct)
     {
+        var stripeDisabled = EnsureStripeEnabledForClientCalls();
+        if (stripeDisabled is not null)
+            return stripeDisabled;
+
         var userId = User.GetRequiredUserId();
 
         try
@@ -193,6 +218,12 @@ public class BillingController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> StripeWebhook(CancellationToken ct)
     {
+        if (!_stripeSettings.Enabled)
+        {
+            // Respond 200 to avoid Stripe retry loops when billing is intentionally disabled.
+            return Ok(new { received = true, skipped = true, reason = "Stripe billing is disabled." });
+        }
+
         using var reader = new StreamReader(Request.Body);
         var payload = await reader.ReadToEndAsync(ct);
 
@@ -203,6 +234,10 @@ public class BillingController : ControllerBase
         try
         {
             await _stripeBillingService.ProcessWebhookAsync(payload, signature, ct);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
         catch (StripeException ex)
         {
@@ -245,5 +280,14 @@ public class BillingController : ControllerBase
     {
         var claim = User.FindFirst("is_admin")?.Value;
         return claim == "true";
+    }
+
+    private IActionResult? EnsureStripeEnabledForClientCalls()
+    {
+        if (_stripeSettings.Enabled)
+            return null;
+
+        return StatusCode(StatusCodes.Status503ServiceUnavailable,
+            new { message = "Stripe billing is disabled by configuration." });
     }
 }

@@ -16,6 +16,14 @@ public class ProjectPaymentMethodRepository : Repository<ProjectPaymentMethod>, 
                        && !ppm.PaymentMethod.PmtIsDeleted)
             .ToListAsync(ct);
 
+    public async Task<IEnumerable<ProjectPaymentMethod>> GetByPaymentMethodIdAsync(Guid paymentMethodId, CancellationToken ct = default)
+        => await DbSet
+            .Include(ppm => ppm.Project)
+            .Where(ppm => ppm.PpmPaymentMethodId == paymentMethodId
+                       && !ppm.Project.PrjIsDeleted)
+            .OrderBy(ppm => ppm.Project.PrjName)
+            .ToListAsync(ct);
+
     public async Task<ProjectPaymentMethod?> GetByProjectAndPaymentMethodAsync(
         Guid projectId, Guid paymentMethodId, CancellationToken ct = default)
         => await DbSet.FirstOrDefaultAsync(

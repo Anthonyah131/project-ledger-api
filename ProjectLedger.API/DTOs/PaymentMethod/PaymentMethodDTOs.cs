@@ -67,3 +67,32 @@ public class PaymentMethodResponse
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
+
+/// <summary>Proyecto relacionado a un método de pago.</summary>
+public class PaymentMethodProjectResponse
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = null!;
+    public string CurrencyCode { get; set; } = null!;
+    public string? Description { get; set; }
+    public Guid OwnerUserId { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
+/// <summary>Respuesta de proyectos relacionados a un método de pago.</summary>
+public class PaymentMethodProjectsResponse
+{
+    public IReadOnlyList<PaymentMethodProjectResponse> Items { get; set; } = [];
+    public int TotalCount { get; set; }
+}
+
+/// <summary>Resumen agregado de uso del método de pago.</summary>
+public class PaymentMethodSummaryResponse
+{
+    public int RelatedExpensesCount { get; set; }
+    public int RelatedIncomesCount { get; set; }
+    public int RelatedProjectsCount { get; set; }
+    public decimal TotalExpenseAmount { get; set; }
+    public decimal TotalIncomeAmount { get; set; }
+}

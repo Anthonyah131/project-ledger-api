@@ -21,7 +21,8 @@ public class PlanAuthorizationService : IPlanAuthorizationService
     private readonly IProjectRepository _projectRepo;
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        PropertyNameCaseInsensitive = true
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
     };
 
     public PlanAuthorizationService(
@@ -112,7 +113,8 @@ public class PlanAuthorizationService : IPlanAuthorizationService
                 [PlanLimits.MaxPaymentMethods]        = limits?.MaxPaymentMethods,
                 [PlanLimits.MaxTeamMembersPerProject] = limits?.MaxTeamMembersPerProject,
                 [PlanLimits.MaxAlternativeCurrenciesPerProject] = limits?.MaxAlternativeCurrenciesPerProject,
-                [PlanLimits.MaxIncomesPerMonth]       = limits?.MaxIncomesPerMonth
+                [PlanLimits.MaxIncomesPerMonth]       = limits?.MaxIncomesPerMonth,
+                [PlanLimits.MaxDocumentReadsPerMonth] = limits?.MaxDocumentReadsPerMonth
             }
         };
     }
@@ -201,6 +203,7 @@ public class PlanAuthorizationService : IPlanAuthorizationService
             PlanLimits.MaxTeamMembersPerProject => limits.MaxTeamMembersPerProject,
             PlanLimits.MaxAlternativeCurrenciesPerProject => limits.MaxAlternativeCurrenciesPerProject,
             PlanLimits.MaxIncomesPerMonth       => limits.MaxIncomesPerMonth,
+            PlanLimits.MaxDocumentReadsPerMonth => limits.MaxDocumentReadsPerMonth,
             _ => null
         };
     }
@@ -212,11 +215,63 @@ public class PlanAuthorizationService : IPlanAuthorizationService
 
         try
         {
-            return JsonSerializer.Deserialize<PlanLimitsDto>(json, JsonOptions);
+            var limits = JsonSerializer.Deserialize<PlanLimitsDto>(json, JsonOptions);
+            if (limits is null)
+                return null;
+
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            // Compatibilidad con datasets legacy.
+            if (limits.MaxExpensesPerMonth is null
+                && TryGetNullableInt(root, "max_expenses", out var legacyMaxExpenses))
+            {
+                limits.MaxExpensesPerMonth = legacyMaxExpenses;
+            }
+
+            NormalizeLegacyUnlimitedValues(limits);
+            return limits;
         }
         catch
         {
             return null;
         }
+    }
+
+    private static void NormalizeLegacyUnlimitedValues(PlanLimitsDto limits)
+    {
+        limits.MaxProjects = NormalizeLegacyUnlimited(limits.MaxProjects);
+        limits.MaxExpensesPerMonth = NormalizeLegacyUnlimited(limits.MaxExpensesPerMonth);
+        limits.MaxCategoriesPerProject = NormalizeLegacyUnlimited(limits.MaxCategoriesPerProject);
+        limits.MaxPaymentMethods = NormalizeLegacyUnlimited(limits.MaxPaymentMethods);
+        limits.MaxTeamMembersPerProject = NormalizeLegacyUnlimited(limits.MaxTeamMembersPerProject);
+        limits.MaxAlternativeCurrenciesPerProject = NormalizeLegacyUnlimited(limits.MaxAlternativeCurrenciesPerProject);
+        limits.MaxIncomesPerMonth = NormalizeLegacyUnlimited(limits.MaxIncomesPerMonth);
+        limits.MaxDocumentReadsPerMonth = NormalizeLegacyUnlimited(limits.MaxDocumentReadsPerMonth);
+    }
+
+    private static int? NormalizeLegacyUnlimited(int? value)
+        => value is < 0 ? null : value;
+
+    private static bool TryGetNullableInt(JsonElement root, string propertyName, out int? value)
+    {
+        value = null;
+
+        if (!root.TryGetProperty(propertyName, out var property))
+            return false;
+
+        if (property.ValueKind == JsonValueKind.Null)
+        {
+            value = null;
+            return true;
+        }
+
+        if (property.ValueKind == JsonValueKind.Number && property.TryGetInt32(out var parsed))
+        {
+            value = parsed;
+            return true;
+        }
+
+        return false;
     }
 }

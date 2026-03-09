@@ -54,4 +54,19 @@ public class AuditLogRepository : Repository<AuditLog>, IAuditLogRepository
 
         return (items, totalCount);
     }
+
+    public async Task<int> CountByUserAndActionInRangeAsync(
+        Guid userId,
+        string entityName,
+        string actionType,
+        DateTime fromInclusiveUtc,
+        DateTime toExclusiveUtc,
+        CancellationToken ct = default)
+        => await DbSet.CountAsync(a =>
+            a.AudPerformedByUserId == userId &&
+            a.AudEntityName == entityName &&
+            a.AudActionType == actionType &&
+            a.AudPerformedAt >= fromInclusiveUtc &&
+            a.AudPerformedAt < toExclusiveUtc,
+            ct);
 }

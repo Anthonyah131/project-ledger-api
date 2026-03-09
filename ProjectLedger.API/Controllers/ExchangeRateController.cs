@@ -6,7 +6,7 @@ using ProjectLedger.API.Services;
 namespace ProjectLedger.API.Controllers;
 
 /// <summary>
-/// Consulta de tasas de cambio via Open ER API.
+/// Consulta de tasas de cambio via ExchangeRate-API.
 /// Requiere autenticación pero no pertenece a un proyecto específico.
 /// </summary>
 [ApiController]
