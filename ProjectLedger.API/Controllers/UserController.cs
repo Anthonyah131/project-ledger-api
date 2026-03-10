@@ -61,6 +61,8 @@ public class UserController : ControllerBase
     /// <summary>
     /// Actualiza el perfil del usuario autenticado (nombre, avatar).
     /// UserId se obtiene del JWT — nunca del body.
+    /// Si avatarUrl no se envía, se conserva el avatar actual.
+    /// Si avatarUrl se envía como null, se limpia el avatar.
     /// </summary>
     /// <response code="200">Perfil actualizado.</response>
     /// <response code="404">Usuario no encontrado.</response>
@@ -95,10 +97,14 @@ public class UserController : ControllerBase
     /// </summary>
     /// <response code="204">Contraseña cambiada exitosamente.</response>
     /// <response code="400">Contraseña actual incorrecta o request inválido.</response>
+    /// <response code="401">JWT ausente o inválido.</response>
+    /// <response code="403">Usuario autenticado sin permiso de escritura (ej: cuenta desactivada).</response>
     /// <response code="404">Usuario no encontrado.</response>
     [HttpPut("password")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ChangePassword(
         [FromBody] ChangePasswordRequest request,
@@ -142,7 +148,11 @@ public class UserController : ControllerBase
     public async Task<IActionResult> DeleteAccount(CancellationToken ct)
     {
         var userId = User.GetRequiredUserId();
+
+        // Invalidate refresh tokens to prevent new sessions after account deletion.
+        await _authService.RevokeAllTokensAsync(userId, ct);
         await _userService.SoftDeleteAsync(userId, userId, ct);
+
         return NoContent();
     }
 }

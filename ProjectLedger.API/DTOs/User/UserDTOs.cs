@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace ProjectLedger.API.DTOs.User;
 
@@ -11,8 +12,22 @@ public class UpdateProfileRequest
     [StringLength(255, MinimumLength = 1, ErrorMessage = "FullName must be between 1 and 255 characters.")]
     public string FullName { get; set; } = null!;
 
+    private string? _avatarUrl;
+
     [Url(ErrorMessage = "AvatarUrl must be a valid URL.")]
-    public string? AvatarUrl { get; set; }
+    [RegularExpression(@"^https?://", ErrorMessage = "AvatarUrl must be a valid http/https URL.")]
+    public string? AvatarUrl
+    {
+        get => _avatarUrl;
+        set
+        {
+            _avatarUrl = value;
+            AvatarUrlSpecified = true;
+        }
+    }
+
+    [JsonIgnore]
+    public bool AvatarUrlSpecified { get; private set; }
 }
 
 /// <summary>Request para cambiar contraseña.</summary>

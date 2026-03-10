@@ -44,6 +44,9 @@ namespace ProjectLedger.API.Controllers;
 [Produces("application/json")]
 public class BillingController : ControllerBase
 {
+    private const string StripeDisabledCode = "STRIPE_DISABLED";
+    private const string StripeDisabledMessage = "Stripe billing is disabled by configuration.";
+
     private readonly IStripeBillingService _stripeBillingService;
     private readonly StripeSettings _stripeSettings;
 
@@ -59,6 +62,7 @@ public class BillingController : ControllerBase
     [Authorize]
     [ProducesResponseType(typeof(StripePlanSyncResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(BillingUnavailableResponse), StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> SyncStripePlans(CancellationToken ct)
     {
         var stripeDisabled = EnsureStripeEnabledForClientCalls();
@@ -88,6 +92,18 @@ public class BillingController : ControllerBase
         return Ok(response);
     }
 
+    [HttpGet("status")]
+    [Authorize]
+    [ProducesResponseType(typeof(BillingStatusResponse), StatusCodes.Status200OK)]
+    public IActionResult GetBillingStatus()
+    {
+        return Ok(new BillingStatusResponse
+        {
+            StripeEnabled = _stripeSettings.Enabled,
+            Reason = _stripeSettings.Enabled ? null : StripeDisabledMessage
+        });
+    }
+
     /// <summary>
     /// Crea una Stripe Checkout Session vinculada al usuario autenticado.
     /// El frontend debe redirigir al CheckoutUrl devuelto.
@@ -100,6 +116,7 @@ public class BillingController : ControllerBase
     [ProducesResponseType(typeof(CreateCheckoutSessionResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(BillingUnavailableResponse), StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> CreateCheckoutSession(
         [FromBody] CreateCheckoutSessionRequest request,
         CancellationToken ct)
@@ -139,12 +156,10 @@ public class BillingController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetMySubscription(CancellationToken ct)
     {
-        var stripeDisabled = EnsureStripeEnabledForClientCalls();
-        if (stripeDisabled is not null)
-            return stripeDisabled;
-
         var userId = User.GetRequiredUserId();
-        var subscription = await _stripeBillingService.GetCurrentUserSubscriptionAsync(userId, ct);
+        var subscription = _stripeSettings.Enabled
+            ? await _stripeBillingService.GetCurrentUserSubscriptionAsync(userId, ct)
+            : await _stripeBillingService.GetCurrentUserSubscriptionReadOnlyAsync(userId, ct);
 
         if (subscription is null)
             return NotFound(new { message = "No subscription found for current user." });
@@ -157,6 +172,7 @@ public class BillingController : ControllerBase
     [ProducesResponseType(typeof(MySubscriptionResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(BillingUnavailableResponse), StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> ChangePlan(
         [FromBody] ChangeSubscriptionPlanRequest request,
         CancellationToken ct)
@@ -187,6 +203,7 @@ public class BillingController : ControllerBase
     [ProducesResponseType(typeof(MySubscriptionResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(BillingUnavailableResponse), StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> CancelSubscription(
         [FromBody] CancelSubscriptionRequest request,
         CancellationToken ct)
@@ -288,6 +305,10 @@ public class BillingController : ControllerBase
             return null;
 
         return StatusCode(StatusCodes.Status503ServiceUnavailable,
-            new { message = "Stripe billing is disabled by configuration." });
+            new BillingUnavailableResponse
+            {
+                Code = StripeDisabledCode,
+                Message = StripeDisabledMessage
+            });
     }
 }

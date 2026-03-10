@@ -2,6 +2,18 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ProjectLedger.API.DTOs.Billing;
 
+public class BillingStatusResponse
+{
+    public bool StripeEnabled { get; set; }
+    public string? Reason { get; set; }
+}
+
+public class BillingUnavailableResponse
+{
+    public string Code { get; set; } = "STRIPE_DISABLED";
+    public string Message { get; set; } = "Stripe billing is disabled by configuration.";
+}
+
 // ── Checkout Session ────────────────────────────────────────
 
 public class CreateCheckoutSessionRequest

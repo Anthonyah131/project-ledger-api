@@ -6,6 +6,13 @@ public interface IStripeBillingService
 {
     Task<IReadOnlyList<StripePlanSyncResult>> SyncPlansAndPaymentLinksAsync(CancellationToken ct = default);
     Task ProcessWebhookAsync(string payload, string signatureHeader, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns subscription state from local persistence only (no Stripe API calls).
+    /// Used by billing read-only mode when Stripe is disabled.
+    /// </summary>
+    Task<UserSubscription?> GetCurrentUserSubscriptionReadOnlyAsync(Guid userId, CancellationToken ct = default);
+
     Task<UserSubscription?> GetCurrentUserSubscriptionAsync(Guid userId, CancellationToken ct = default);
     Task<UserSubscription> ChangePlanAsync(Guid userId, Guid newPlanId, bool prorate = true, CancellationToken ct = default);
     Task<UserSubscription> CancelSubscriptionAsync(Guid userId, bool cancelAtPeriodEnd = true, CancellationToken ct = default);

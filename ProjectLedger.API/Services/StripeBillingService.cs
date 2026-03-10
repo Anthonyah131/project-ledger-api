@@ -227,11 +227,12 @@ public class StripeBillingService : IStripeBillingService
     public async Task<UserSubscription?> GetCurrentUserSubscriptionAsync(Guid userId, CancellationToken ct = default)
     {
         EnsureStripeEnabled();
-        // 1) Búsqueda directa por userId (camino feliz)
-        var byUserId = await _userSubscriptionRepo.GetCurrentByUserIdAsync(userId, ct);
-        if (byUserId is not null)
+
+        // 1) Local lookup first (no Stripe calls). Fast path and shared with read-only mode.
+        var localSubscription = await GetCurrentUserSubscriptionReadOnlyAsync(userId, ct);
+        if (localSubscription is not null)
         {
-            if (ShouldReconcileSubscription(byUserId))
+            if (ShouldReconcileSubscription(localSubscription))
             {
                 var knownUser = await _userRepo.GetByIdAsync(userId, ct);
                 if (knownUser is not null)
@@ -242,39 +243,12 @@ public class StripeBillingService : IStripeBillingService
                 }
             }
 
-            return byUserId;
+            return localSubscription;
         }
 
-        // 2) Fallback: buscar por StripeCustomerId del usuario
         var user = await _userRepo.GetByIdAsync(userId, ct);
-        if (user is not null && !string.IsNullOrWhiteSpace(user.UsrStripeCustomerId))
-        {
-            var byCustomer = await _userSubscriptionRepo.GetByStripeCustomerIdAsync(user.UsrStripeCustomerId, ct);
-            if (byCustomer is not null)
-            {
-                // Auto-vincular la suscripción huérfana al usuario
-                _logger.LogInformation(
-                    "Auto-claiming orphaned subscription {SubId} for user {UserId} via StripeCustomerId {CustomerId}.",
-                    byCustomer.UssStripeSubscriptionId, userId, user.UsrStripeCustomerId);
 
-                byCustomer.UssUserId = userId;
-                byCustomer.UssUpdatedAt = DateTime.UtcNow;
-                _userSubscriptionRepo.Update(byCustomer);
-
-                // Sincronizar UsrPlanId si la suscripción está activa
-                if (byCustomer.UssPlanId is not null && IsActiveSubscriptionStatus(byCustomer.UssStatus))
-                {
-                    user.UsrPlanId = byCustomer.UssPlanId.Value;
-                    user.UsrUpdatedAt = DateTime.UtcNow;
-                    _userRepo.Update(user);
-                }
-
-                await _userSubscriptionRepo.SaveChangesAsync(ct);
-                return byCustomer;
-            }
-        }
-
-        // 3) Fallback: buscar clientes Stripe por email del usuario y reclamar
+        // 2) Fallback: buscar clientes Stripe por email del usuario y reclamar
         if (user is not null && !string.IsNullOrWhiteSpace(user.UsrEmail))
         {
             EnsureStripeSecretConfigured();
@@ -320,7 +294,7 @@ public class StripeBillingService : IStripeBillingService
             }
         }
 
-        // 4) Fallback de resiliencia: reconciliar directamente desde Stripe.
+        // 3) Fallback de resiliencia: reconciliar directamente desde Stripe.
         // Esto cubre el caso donde el webhook no llega (ej. entorno local sin forwarder).
         if (user is not null)
         {
@@ -330,6 +304,43 @@ public class StripeBillingService : IStripeBillingService
         }
 
         return null;
+    }
+
+    public async Task<UserSubscription?> GetCurrentUserSubscriptionReadOnlyAsync(Guid userId, CancellationToken ct = default)
+    {
+        // 1) Búsqueda directa por userId (camino feliz)
+        var byUserId = await _userSubscriptionRepo.GetCurrentByUserIdAsync(userId, ct);
+        if (byUserId is not null)
+            return byUserId;
+
+        // 2) Fallback local por StripeCustomerId (sin consultar Stripe)
+        var user = await _userRepo.GetByIdAsync(userId, ct);
+        if (user is null || string.IsNullOrWhiteSpace(user.UsrStripeCustomerId))
+            return null;
+
+        var byCustomer = await _userSubscriptionRepo.GetByStripeCustomerIdAsync(user.UsrStripeCustomerId, ct);
+        if (byCustomer is null)
+            return null;
+
+        // Auto-vincular la suscripción huérfana al usuario
+        _logger.LogInformation(
+            "Auto-claiming orphaned subscription {SubId} for user {UserId} via StripeCustomerId {CustomerId} (read-only path).",
+            byCustomer.UssStripeSubscriptionId, userId, user.UsrStripeCustomerId);
+
+        byCustomer.UssUserId = userId;
+        byCustomer.UssUpdatedAt = DateTime.UtcNow;
+        _userSubscriptionRepo.Update(byCustomer);
+
+        // Sincronizar UsrPlanId si la suscripción está activa
+        if (byCustomer.UssPlanId is not null && IsActiveSubscriptionStatus(byCustomer.UssStatus))
+        {
+            user.UsrPlanId = byCustomer.UssPlanId.Value;
+            user.UsrUpdatedAt = DateTime.UtcNow;
+            _userRepo.Update(user);
+        }
+
+        await _userSubscriptionRepo.SaveChangesAsync(ct);
+        return byCustomer;
     }
 
     public async Task<UserSubscription> ChangePlanAsync(

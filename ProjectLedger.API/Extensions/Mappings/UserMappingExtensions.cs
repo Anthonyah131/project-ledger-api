@@ -55,7 +55,11 @@ public static class UserMappingExtensions
     public static void ApplyUpdate(this User entity, UpdateProfileRequest request)
     {
         entity.UsrFullName = request.FullName;
-        entity.UsrAvatarUrl = request.AvatarUrl;
+
+        // Distinguish omitted field vs explicit null to support avatar removal.
+        if (request.AvatarUrlSpecified)
+            entity.UsrAvatarUrl = request.AvatarUrl;
+
         entity.UsrUpdatedAt = DateTime.UtcNow;
     }
 
