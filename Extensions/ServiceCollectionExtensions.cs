@@ -99,6 +99,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuditLogService, AuditLogService>();
         services.AddScoped<IProjectBudgetService, ProjectBudgetService>();
         services.AddScoped<IProjectPaymentMethodService, ProjectPaymentMethodService>();
+        services.AddScoped<ITransactionReferenceGuardService, TransactionReferenceGuardService>();
 
         // Reportes
         services.AddScoped<IReportExportService, ReportExportService>();

@@ -143,9 +143,11 @@ public class PaymentMethodController : ControllerBase
     /// <summary>
     /// Soft-delete de un método de pago. Solo el dueño puede eliminarlo.
     /// </summary>
+    /// <response code="400">El método de pago no se puede eliminar porque tiene movimientos activos relacionados.</response>
     /// <response code="204">Método de pago eliminado.</response>
     /// <response code="404">No encontrado o no pertenece al usuario.</response>
     [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)

@@ -76,6 +76,7 @@ public class ProjectAlternativeCurrencyController : ControllerBase
     /// <param name="ct">Token de cancelación.</param>
     [HttpDelete("{code}")]
     [Authorize(Policy = "ProjectEditor")]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

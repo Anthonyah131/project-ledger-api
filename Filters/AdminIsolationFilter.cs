@@ -23,6 +23,7 @@ public class AdminIsolationFilter : IAsyncActionFilter
         "/api/currencies",  // Consulta de monedas (público)
         "/api/billing",     // Billing (Stripe sync/webhooks/subscriptions)
         "/api/users",       // Perfil propio (self-service)
+        "/api/dashboard",   // Dashboard (respuestas vacías para admin)
         "/swagger"          // Documentación
     ];
 

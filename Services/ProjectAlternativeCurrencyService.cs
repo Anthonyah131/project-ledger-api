@@ -14,19 +14,22 @@ public class ProjectAlternativeCurrencyService : IProjectAlternativeCurrencyServ
     private readonly ICurrencyRepository _currencyRepo;
     private readonly IPlanAuthorizationService _planAuth;
     private readonly IAuditLogService _auditLog;
+    private readonly ITransactionReferenceGuardService _transactionReferenceGuard;
 
     public ProjectAlternativeCurrencyService(
         IProjectAlternativeCurrencyRepository pacRepo,
         IProjectRepository projectRepo,
         ICurrencyRepository currencyRepo,
         IPlanAuthorizationService planAuth,
-        IAuditLogService auditLog)
+        IAuditLogService auditLog,
+        ITransactionReferenceGuardService transactionReferenceGuard)
     {
         _pacRepo = pacRepo;
         _projectRepo = projectRepo;
         _currencyRepo = currencyRepo;
         _planAuth = planAuth;
         _auditLog = auditLog;
+        _transactionReferenceGuard = transactionReferenceGuard;
     }
 
     public async Task<IEnumerable<ProjectAlternativeCurrency>> GetByProjectIdAsync(
@@ -93,6 +96,11 @@ public class ProjectAlternativeCurrencyService : IProjectAlternativeCurrencyServ
         var pac = await _pacRepo.GetByProjectAndCurrencyAsync(projectId, currencyCode, ct)
             ?? throw new KeyNotFoundException(
                 $"Alternative currency '{currencyCode}' not found for project '{projectId}'.");
+
+        await _transactionReferenceGuard.EnsureAlternativeCurrencyCanBeRemovedAsync(
+            projectId,
+            pac.PacCurrencyCode,
+            ct);
 
         var project = await _projectRepo.GetByIdAsync(projectId, ct);
 
