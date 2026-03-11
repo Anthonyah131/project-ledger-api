@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
 
 env:
-  SOLUTION_FILE: [project-ledger-api.sln](http://_vscodecontentref_/0)
-  PROJECT_FILE: [ProjectLedger.API.csproj](http://_vscodecontentref_/1)
+  SOLUTION_FILE: project-ledger-api.sln
+  PROJECT_FILE: ProjectLedger.API.csproj
   PUBLISH_DIR: ./publish
 
 jobs:

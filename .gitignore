@@ -13,6 +13,7 @@ appsettings.Staging.json
 [Bb]in/
 [Oo]bj/
 artifacts/
+publish/
 
 # ── Visual Studio / VS Code ─────────────────────
 .vs/
