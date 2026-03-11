@@ -144,10 +144,12 @@ public class CategoryController : ControllerBase
     /// <summary>
     /// Soft-delete de una categoría. Requiere editor+.
     /// </summary>
+    /// <response code="400">La categoría no se puede eliminar porque tiene movimientos activos relacionados.</response>
     /// <response code="204">Categoría eliminada.</response>
     /// <response code="404">Categoría no encontrada.</response>
     [HttpDelete("{categoryId:guid}")]
     [Authorize(Policy = "ProjectEditor")]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(

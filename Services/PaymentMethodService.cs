@@ -11,13 +11,16 @@ public class PaymentMethodService : IPaymentMethodService
 {
     private readonly IPaymentMethodRepository _paymentMethodRepo;
     private readonly IPlanAuthorizationService _planAuth;
+    private readonly ITransactionReferenceGuardService _transactionReferenceGuard;
 
     public PaymentMethodService(
         IPaymentMethodRepository paymentMethodRepo,
-        IPlanAuthorizationService planAuth)
+        IPlanAuthorizationService planAuth,
+        ITransactionReferenceGuardService transactionReferenceGuard)
     {
         _paymentMethodRepo = paymentMethodRepo;
         _planAuth = planAuth;
+        _transactionReferenceGuard = transactionReferenceGuard;
     }
 
     public async Task<PaymentMethod?> GetByIdAsync(Guid id, CancellationToken ct = default)
@@ -60,6 +63,8 @@ public class PaymentMethodService : IPaymentMethodService
 
         if (pm.PmtIsDeleted)
             throw new KeyNotFoundException($"Payment method '{id}' not found.");
+
+        await _transactionReferenceGuard.EnsurePaymentMethodCanBeDeletedAsync(id, ct);
 
         pm.PmtIsDeleted = true;
         pm.PmtDeletedAt = DateTime.UtcNow;

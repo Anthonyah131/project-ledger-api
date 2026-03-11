@@ -15,6 +15,47 @@ public class MonthlyOverviewResponse
     public List<DashboardAlertResponse> Alerts { get; set; } = [];
 }
 
+public class MonthlySummaryDashboardResponse
+{
+    public string Month { get; set; } = null!;
+    public MonthlyNavigationResponse Navigation { get; set; } = new();
+    public string CurrencyCode { get; set; } = null!;
+    public DateTime GeneratedAt { get; set; }
+    public ExecutiveMonthlySummaryResponse Summary { get; set; } = new();
+    public MonthlyComparisonResponse Comparison { get; set; } = new();
+    public List<DashboardAlertResponse> Alerts { get; set; } = [];
+}
+
+public class ExecutiveMonthlySummaryResponse
+{
+    public decimal TotalSpent { get; set; }
+    public decimal TotalIncome { get; set; }
+    public decimal NetBalance { get; set; }
+}
+
+public class MonthlyDailyTrendResponse
+{
+    public string Month { get; set; } = null!;
+    public string CurrencyCode { get; set; } = null!;
+    public Guid? ProjectId { get; set; }
+    public List<DailyTrendPointResponse> TrendByDay { get; set; } = [];
+}
+
+public class MonthlyTopCategoriesResponse
+{
+    public string Month { get; set; } = null!;
+    public string CurrencyCode { get; set; } = null!;
+    public Guid? ProjectId { get; set; }
+    public List<TopCategoryRowResponse> TopCategories { get; set; } = [];
+}
+
+public class MonthlyPaymentMethodsResponse
+{
+    public string Month { get; set; } = null!;
+    public string CurrencyCode { get; set; } = null!;
+    public List<PaymentMethodSplitRowResponse> PaymentMethodSplit { get; set; } = [];
+}
+
 public class MonthlyNavigationResponse
 {
     public string PreviousMonth { get; set; } = null!;

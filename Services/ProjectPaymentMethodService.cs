@@ -11,13 +11,16 @@ public class ProjectPaymentMethodService : IProjectPaymentMethodService
 {
     private readonly IProjectPaymentMethodRepository _ppmRepo;
     private readonly IPaymentMethodRepository _pmRepo;
+    private readonly ITransactionReferenceGuardService _transactionReferenceGuard;
 
     public ProjectPaymentMethodService(
         IProjectPaymentMethodRepository ppmRepo,
-        IPaymentMethodRepository pmRepo)
+        IPaymentMethodRepository pmRepo,
+        ITransactionReferenceGuardService transactionReferenceGuard)
     {
         _ppmRepo = ppmRepo;
         _pmRepo = pmRepo;
+        _transactionReferenceGuard = transactionReferenceGuard;
     }
 
     public async Task<IEnumerable<ProjectPaymentMethod>> GetByProjectIdAsync(
@@ -62,6 +65,11 @@ public class ProjectPaymentMethodService : IProjectPaymentMethodService
         var link = await _ppmRepo.GetByProjectAndPaymentMethodAsync(projectId, paymentMethodId, ct)
             ?? throw new KeyNotFoundException(
                 "Payment method is not linked to this project.");
+
+        await _transactionReferenceGuard.EnsureProjectPaymentMethodCanBeUnlinkedAsync(
+            projectId,
+            paymentMethodId,
+            ct);
 
         _ppmRepo.Remove(link);
         await _ppmRepo.SaveChangesAsync(ct);

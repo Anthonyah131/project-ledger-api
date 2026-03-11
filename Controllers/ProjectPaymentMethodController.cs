@@ -86,6 +86,7 @@ public class ProjectPaymentMethodController : ControllerBase
     /// <summary>Desvincula un método de pago del proyecto (solo owner).</summary>
     [HttpDelete("{paymentMethodId:guid}")]
     [Authorize(Policy = "ProjectOwner")]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UnlinkPaymentMethod(

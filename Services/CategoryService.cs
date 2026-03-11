@@ -13,17 +13,20 @@ public class CategoryService : ICategoryService
     private readonly IProjectRepository _projectRepo;
     private readonly IPlanAuthorizationService _planAuth;
     private readonly IAuditLogService _auditLog;
+    private readonly ITransactionReferenceGuardService _transactionReferenceGuard;
 
     public CategoryService(
         ICategoryRepository categoryRepo,
         IProjectRepository projectRepo,
         IPlanAuthorizationService planAuth,
-        IAuditLogService auditLog)
+        IAuditLogService auditLog,
+        ITransactionReferenceGuardService transactionReferenceGuard)
     {
         _categoryRepo = categoryRepo;
         _projectRepo = projectRepo;
         _planAuth = planAuth;
         _auditLog = auditLog;
+        _transactionReferenceGuard = transactionReferenceGuard;
     }
 
     public async Task<Category?> GetByIdAsync(Guid id, CancellationToken ct = default)
@@ -79,6 +82,8 @@ public class CategoryService : ICategoryService
             throw new InvalidOperationException(
                 "No se puede eliminar la categoría por defecto 'General'. " +
                 "Puedes renombrarla o crear otras categorías.");
+
+        await _transactionReferenceGuard.EnsureCategoryCanBeDeletedAsync(id, ct);
 
         category.CatIsDeleted = true;
         category.CatDeletedAt = DateTime.UtcNow;
