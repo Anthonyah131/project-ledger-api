@@ -109,6 +109,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProjectAlternativeCurrencyService, ProjectAlternativeCurrencyService>();
         services.AddScoped<ITransactionCurrencyExchangeService, TransactionCurrencyExchangeService>();
 
+        // MCP assistant read model
+        services.AddScoped<IMcpService, McpService>();
+
         return services;
     }
 }
