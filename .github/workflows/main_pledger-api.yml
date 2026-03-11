@@ -24,16 +24,16 @@ jobs:
           dotnet-version: '10.x'
 
       - name: Build with dotnet
-        run: dotnet build --configuration Release
+        run: dotnet build project-ledger-api.sln --configuration Release
 
       - name: dotnet publish
-        run: dotnet publish -c Release -o "${{env.DOTNET_ROOT}}/myapp"
+        run: dotnet publish ProjectLedger.API.csproj -c Release -o ./publish
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: .net-app
-          path: ${{env.DOTNET_ROOT}}/myapp
+          path: ./publish
 
   deploy:
     runs-on: windows-latest
@@ -44,6 +44,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: .net-app
+          path: ./artifact
       
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
@@ -51,5 +52,5 @@ jobs:
         with:
           app-name: 'pledger-api'
           slot-name: 'Production'
-          package: .
+          package: ./artifact
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_7F280FBE33E24DAFA0CD10A5FC244808 }}
