@@ -69,7 +69,8 @@ public class McpService : IMcpService
         CancellationToken ct = default)
     {
         var scope = await ResolveScopeAsync(userId, query.ProjectId, ct);
-        var items = await BuildPortfolioItemsAsync(userId, scope.SelectedProjects, query.ActivityDays, ct);
+        var activityDays = query.ActivityDays ?? 30;
+        var items = await BuildPortfolioItemsAsync(userId, scope.SelectedProjects, activityDays, ct);
 
         if (!string.IsNullOrWhiteSpace(query.Status))
         {
@@ -92,6 +93,7 @@ public class McpService : IMcpService
         var scope = await ResolveScopeAsync(userId, query.ProjectId, ct);
         var obligations = await LoadObligationsWithPaymentsAsync(scope.SelectedProjects, ct);
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var includeOverdue = query.IncludeOverdue ?? true;
 
         var items = new List<McpProjectDeadlineItemResponse>();
         foreach (var obligation in obligations)
@@ -105,7 +107,7 @@ public class McpService : IMcpService
             if (remaining <= 0)
                 continue;
 
-            if (!query.IncludeOverdue && obligation.OblDueDate.Value < today)
+            if (!includeOverdue && obligation.OblDueDate.Value < today)
                 continue;
 
             if (query.DueFrom.HasValue && obligation.OblDueDate.Value < query.DueFrom.Value)
@@ -141,7 +143,8 @@ public class McpService : IMcpService
         CancellationToken ct = default)
     {
         var scope = await ResolveScopeAsync(userId, query.ProjectId, ct);
-        var portfolio = await BuildPortfolioItemsAsync(userId, scope.SelectedProjects, query.ActivityDays, ct);
+        var activityDays = query.ActivityDays ?? 30;
+        var portfolio = await BuildPortfolioItemsAsync(userId, scope.SelectedProjects, activityDays, ct);
 
         var response = new McpProjectActivitySplitResponse
         {
@@ -252,6 +255,7 @@ public class McpService : IMcpService
         var scope = await ResolveScopeAsync(userId, query.ProjectId, ct);
         var obligations = await LoadObligationsWithPaymentsAsync(scope.SelectedProjects, ct);
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var overdueDaysMin = query.OverdueDaysMin ?? 0;
 
         var items = obligations
             .Select(o =>
@@ -263,7 +267,7 @@ public class McpService : IMcpService
                 return new { Obligation = o, Paid = paid, Remaining = remaining, Status = status, DaysOverdue = daysOverdue };
             })
             .Where(x => x.Status == "overdue")
-            .Where(x => x.DaysOverdue >= query.OverdueDaysMin)
+            .Where(x => x.DaysOverdue >= overdueDaysMin)
             .Where(x => !query.MinRemainingAmount.HasValue || x.Remaining >= query.MinRemainingAmount.Value)
             .Select(x => new McpPaymentObligationItemResponse
             {
@@ -292,6 +296,8 @@ public class McpService : IMcpService
         CancellationToken ct = default)
     {
         EnsureValidDateRange(query.From, query.To);
+        var direction = string.IsNullOrWhiteSpace(query.Direction) ? "both" : query.Direction;
+        var top = query.Top ?? 10;
 
         var scope = await ResolveScopeAsync(userId, query.ProjectId, ct);
         var expenses = await LoadExpensesAsync(scope.SelectedProjects, query.From, query.To, ct);
@@ -327,7 +333,7 @@ public class McpService : IMcpService
             })
             .ToList();
 
-        var totalForShare = query.Direction.ToLowerInvariant() switch
+        var totalForShare = direction.ToLowerInvariant() switch
         {
             "expense" => items.Sum(i => i.TotalOutgoing),
             "income" => items.Sum(i => i.TotalIncoming),
@@ -336,7 +342,7 @@ public class McpService : IMcpService
 
         foreach (var item in items)
         {
-            var value = query.Direction.ToLowerInvariant() switch
+            var value = direction.ToLowerInvariant() switch
             {
                 "expense" => item.TotalOutgoing,
                 "income" => item.TotalIncoming,
@@ -352,10 +358,10 @@ public class McpService : IMcpService
         {
             From = query.From,
             To = query.To,
-            Direction = query.Direction,
+            Direction = direction,
             Items = items
                 .OrderByDescending(i => i.TotalOutgoing + i.TotalIncoming)
-                .Take(query.Top)
+                .Take(top)
                 .ToList()
         };
     }
@@ -383,7 +389,7 @@ public class McpService : IMcpService
             AverageExpense = count > 0 ? Math.Round(total / count, 2) : 0m
         };
 
-        if (query.ComparePreviousPeriod && query.From.HasValue && query.To.HasValue)
+        if (query.ComparePreviousPeriod == true && query.From.HasValue && query.To.HasValue)
         {
             var length = query.To.Value.DayNumber - query.From.Value.DayNumber + 1;
             var prevFrom = query.From.Value.AddDays(-length);
@@ -408,13 +414,16 @@ public class McpService : IMcpService
         CancellationToken ct = default)
     {
         EnsureValidDateRange(query.From, query.To);
+        var includeTrend = query.IncludeTrend == true;
+        var includeOthers = query.IncludeOthers == true;
+        var top = query.Top ?? 10;
 
         var scope = await ResolveScopeAsync(userId, query.ProjectId, ct);
         var expenses = await LoadExpensesAsync(scope.SelectedProjects, query.From, query.To, ct);
         var totalSpent = expenses.Sum(e => e.ExpConvertedAmount);
 
         Dictionary<Guid, decimal>? previousPeriodByCategory = null;
-        if (query.IncludeTrend && query.From.HasValue && query.To.HasValue)
+        if (includeTrend && query.From.HasValue && query.To.HasValue)
         {
             var length = query.To.Value.DayNumber - query.From.Value.DayNumber + 1;
             var prevFrom = query.From.Value.AddDays(-length);
@@ -451,10 +460,10 @@ public class McpService : IMcpService
             .OrderByDescending(x => x.TotalAmount)
             .ToList();
 
-        var topItems = grouped.Take(query.Top).ToList();
-        if (query.IncludeOthers && grouped.Count > query.Top)
+        var topItems = grouped.Take(top).ToList();
+        if (includeOthers && grouped.Count > top)
         {
-            var rest = grouped.Skip(query.Top).ToList();
+            var rest = grouped.Skip(top).ToList();
             topItems.Add(new McpExpenseByCategoryItemResponse
             {
                 CategoryId = Guid.Empty,
@@ -481,13 +490,15 @@ public class McpService : IMcpService
         CancellationToken ct = default)
     {
         EnsureValidDateRange(query.From, query.To);
+        var includeBudgetContext = query.IncludeBudgetContext ?? true;
+        var top = query.Top ?? 10;
 
         var scope = await ResolveScopeAsync(userId, null, ct);
         var expenses = await LoadExpensesAsync(scope.SelectedProjects, query.From, query.To, ct);
         var totalSpent = expenses.Sum(e => e.ExpConvertedAmount);
 
         var budgetMap = new Dictionary<Guid, ProjectBudget?>();
-        if (query.IncludeBudgetContext)
+        if (includeBudgetContext)
         {
             foreach (var project in scope.SelectedProjects)
                 budgetMap[project.PrjId] = await _budgetRepo.GetActiveByProjectIdAsync(project.PrjId, ct);
@@ -514,7 +525,7 @@ public class McpService : IMcpService
                 };
             })
             .OrderByDescending(x => x.TotalSpent)
-            .Take(query.Top)
+            .Take(top)
             .ToList();
 
         return new McpExpenseByProjectResponse
@@ -532,8 +543,9 @@ public class McpService : IMcpService
         CancellationToken ct = default)
     {
         EnsureValidDateRange(query.From, query.To);
+        var granularity = string.IsNullOrWhiteSpace(query.Granularity) ? "month" : query.Granularity;
 
-        var (from, to) = ResolveRangeOrDefaults(query.From, query.To, query.Granularity);
+        var (from, to) = ResolveRangeOrDefaults(query.From, query.To, granularity);
 
         var scope = await ResolveScopeAsync(userId, query.ProjectId, ct);
         var expenses = await LoadExpensesAsync(scope.SelectedProjects, from, to, ct);
@@ -542,12 +554,12 @@ public class McpService : IMcpService
             expenses = expenses.Where(e => e.ExpCategoryId == query.CategoryId.Value).ToList();
 
         var points = expenses
-            .GroupBy(e => GetPeriodStart(e.ExpExpenseDate, query.Granularity))
+            .GroupBy(e => GetPeriodStart(e.ExpExpenseDate, granularity))
             .OrderBy(g => g.Key)
             .Select(g => new McpExpenseTrendPointResponse
             {
                 PeriodStart = g.Key,
-                PeriodLabel = BuildPeriodLabel(g.Key, query.Granularity),
+                PeriodLabel = BuildPeriodLabel(g.Key, granularity),
                 TotalSpent = g.Sum(x => x.ExpConvertedAmount),
                 ExpenseCount = g.Count()
             })
@@ -558,7 +570,7 @@ public class McpService : IMcpService
             ProjectId = query.ProjectId,
             From = from,
             To = to,
-            Granularity = query.Granularity,
+            Granularity = granularity,
             Points = points
         };
     }
@@ -569,19 +581,20 @@ public class McpService : IMcpService
         CancellationToken ct = default)
     {
         EnsureValidDateRange(query.From, query.To);
+        var granularity = string.IsNullOrWhiteSpace(query.Granularity) ? "month" : query.Granularity;
 
-        var (from, to) = ResolveRangeOrDefaults(query.From, query.To, query.Granularity);
+        var (from, to) = ResolveRangeOrDefaults(query.From, query.To, granularity);
 
         var scope = await ResolveScopeAsync(userId, query.ProjectId, ct);
         var incomes = await LoadIncomesAsync(scope.SelectedProjects, from, to, ct);
 
         var points = incomes
-            .GroupBy(i => GetPeriodStart(i.IncIncomeDate, query.Granularity))
+            .GroupBy(i => GetPeriodStart(i.IncIncomeDate, granularity))
             .OrderBy(g => g.Key)
             .Select(g => new McpIncomePeriodPointResponse
             {
                 PeriodStart = g.Key,
-                PeriodLabel = BuildPeriodLabel(g.Key, query.Granularity),
+                PeriodLabel = BuildPeriodLabel(g.Key, granularity),
                 TotalIncome = g.Sum(x => x.IncConvertedAmount),
                 IncomeCount = g.Count()
             })
@@ -595,13 +608,13 @@ public class McpService : IMcpService
             ProjectId = query.ProjectId,
             From = from,
             To = to,
-            Granularity = query.Granularity,
+            Granularity = granularity,
             TotalIncome = total,
             IncomeCount = count,
             Points = points
         };
 
-        if (query.ComparePreviousPeriod && from.HasValue && to.HasValue)
+        if (query.ComparePreviousPeriod == true && from.HasValue && to.HasValue)
         {
             var length = to.Value.DayNumber - from.Value.DayNumber + 1;
             var prevFrom = from.Value.AddDays(-length);
@@ -625,6 +638,7 @@ public class McpService : IMcpService
         CancellationToken ct = default)
     {
         EnsureValidDateRange(query.From, query.To);
+        var top = query.Top ?? 10;
 
         var scope = await ResolveScopeAsync(userId, null, ct);
         var incomes = await LoadIncomesAsync(scope.SelectedProjects, query.From, query.To, ct);
@@ -643,7 +657,7 @@ public class McpService : IMcpService
                 };
             })
             .OrderByDescending(i => i.TotalIncome)
-            .Take(query.Top)
+            .Take(top)
             .ToList();
 
         return new McpIncomeByProjectResponse
@@ -663,7 +677,8 @@ public class McpService : IMcpService
         var scope = await ResolveScopeAsync(userId, query.ProjectId, ct);
         var obligations = await LoadObligationsWithPaymentsAsync(scope.SelectedProjects, ct);
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var end = today.AddDays(query.DueWithinDays);
+        var dueWithinDays = query.DueWithinDays ?? 30;
+        var end = today.AddDays(dueWithinDays);
 
         var items = obligations
             .Where(o => o.OblDueDate.HasValue && o.OblDueDate.Value >= today && o.OblDueDate.Value <= end)
@@ -923,6 +938,7 @@ public class McpService : IMcpService
         McpAlertsQuery query,
         CancellationToken ct = default)
     {
+        var minPriority = query.MinPriority ?? 0;
         DateOnly? from = null;
         DateOnly? to = null;
 
@@ -934,7 +950,7 @@ public class McpService : IMcpService
         }
 
         var scope = await ResolveScopeAsync(userId, query.ProjectId, ct);
-        var items = await BuildAlertsAsync(scope.SelectedProjects, from, to, query.MinPriority, ct);
+        var items = await BuildAlertsAsync(scope.SelectedProjects, from, to, minPriority, ct);
 
         return new McpAlertsResponse
         {

@@ -29,10 +29,10 @@ public class McpProjectPortfolioQuery : PagedRequest
     public string? Status { get; set; }
 
     [Range(1, 3650)]
-    public int ActivityDays { get; set; } = 30;
+    public int? ActivityDays { get; set; }
 
     [Range(1, 3650)]
-    public int DueInDays { get; set; } = 30;
+    public int? DueInDays { get; set; }
 }
 
 public class McpProjectPortfolioItemResponse
@@ -58,7 +58,7 @@ public class McpProjectDeadlinesQuery : PagedRequest
     public Guid? ProjectId { get; set; }
     public DateOnly? DueFrom { get; set; }
     public DateOnly? DueTo { get; set; }
-    public bool IncludeOverdue { get; set; } = true;
+    public bool? IncludeOverdue { get; set; }
 }
 
 public class McpProjectDeadlineItemResponse
@@ -80,7 +80,7 @@ public class McpProjectActivitySplitQuery
     public Guid? ProjectId { get; set; }
 
     [Range(1, 3650)]
-    public int ActivityDays { get; set; } = 30;
+    public int? ActivityDays { get; set; }
 }
 
 public class McpProjectActivitySplitResponse
@@ -123,7 +123,7 @@ public class McpOverduePaymentsQuery : PagedRequest
 {
     public Guid? ProjectId { get; set; }
     [Range(0, 3650)]
-    public int OverdueDaysMin { get; set; }
+    public int? OverdueDaysMin { get; set; }
     [Range(0, 99999999999999.99)]
     public decimal? MinRemainingAmount { get; set; }
 }
@@ -166,10 +166,10 @@ public class McpPaymentMethodUsageQuery
     public DateOnly? To { get; set; }
 
     [RegularExpression("^(expense|income|both)$", ErrorMessage = "Direction must be expense, income or both.")]
-    public string Direction { get; set; } = "both";
+    public string? Direction { get; set; }
 
     [Range(1, 100)]
-    public int Top { get; set; } = 10;
+    public int? Top { get; set; }
 }
 
 public class McpPaymentMethodUsageResponse
@@ -198,7 +198,7 @@ public class McpExpenseTotalsQuery
     public Guid? ProjectId { get; set; }
     public DateOnly? From { get; set; }
     public DateOnly? To { get; set; }
-    public bool ComparePreviousPeriod { get; set; }
+    public bool? ComparePreviousPeriod { get; set; }
 }
 
 public class McpExpenseTotalsResponse
@@ -220,9 +220,9 @@ public class McpExpenseByCategoryQuery
     public DateOnly? From { get; set; }
     public DateOnly? To { get; set; }
     [Range(1, 100)]
-    public int Top { get; set; } = 10;
-    public bool IncludeOthers { get; set; }
-    public bool IncludeTrend { get; set; }
+    public int? Top { get; set; }
+    public bool? IncludeOthers { get; set; }
+    public bool? IncludeTrend { get; set; }
 }
 
 public class McpExpenseByCategoryResponse
@@ -249,8 +249,8 @@ public class McpExpenseByProjectQuery
     public DateOnly? From { get; set; }
     public DateOnly? To { get; set; }
     [Range(1, 100)]
-    public int Top { get; set; } = 10;
-    public bool IncludeBudgetContext { get; set; } = true;
+    public int? Top { get; set; }
+    public bool? IncludeBudgetContext { get; set; }
 }
 
 public class McpExpenseByProjectResponse
@@ -279,7 +279,7 @@ public class McpExpenseTrendsQuery
     public DateOnly? To { get; set; }
 
     [RegularExpression("^(day|week|month)$", ErrorMessage = "Granularity must be day, week or month.")]
-    public string Granularity { get; set; } = "month";
+    public string? Granularity { get; set; }
 
     public Guid? CategoryId { get; set; }
 }
@@ -308,9 +308,9 @@ public class McpIncomeByPeriodQuery
     public DateOnly? To { get; set; }
 
     [RegularExpression("^(day|week|month)$", ErrorMessage = "Granularity must be day, week or month.")]
-    public string Granularity { get; set; } = "month";
+    public string? Granularity { get; set; }
 
-    public bool ComparePreviousPeriod { get; set; }
+    public bool? ComparePreviousPeriod { get; set; }
 }
 
 public class McpIncomeByPeriodResponse
@@ -340,7 +340,7 @@ public class McpIncomeByProjectQuery
     public DateOnly? From { get; set; }
     public DateOnly? To { get; set; }
     [Range(1, 100)]
-    public int Top { get; set; } = 10;
+    public int? Top { get; set; }
 }
 
 public class McpIncomeByProjectResponse
@@ -364,7 +364,7 @@ public class McpUpcomingObligationsQuery : PagedRequest
 {
     public Guid? ProjectId { get; set; }
     [Range(1, 3650)]
-    public int DueWithinDays { get; set; } = 30;
+    public int? DueWithinDays { get; set; }
     [Range(0, 99999999999999.99)]
     public decimal? MinRemainingAmount { get; set; }
 }
@@ -456,7 +456,7 @@ public class McpAlertsQuery
     public string? Month { get; set; }
     public Guid? ProjectId { get; set; }
     [Range(0, 100)]
-    public int MinPriority { get; set; }
+    public int? MinPriority { get; set; }
 }
 
 public class McpAlertsResponse
