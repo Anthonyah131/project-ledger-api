@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using ProjectLedger.API.DTOs.Common;
 using ProjectLedger.API.DTOs.Mcp;
 using ProjectLedger.API.Services;
 
@@ -31,7 +30,7 @@ public class McpController : ControllerBase
     }
 
     [HttpGet("projects/portfolio")]
-    [ProducesResponseType(typeof(PagedResponse<McpProjectPortfolioItemResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(McpPagedResponse<McpProjectPortfolioItemResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetProjectsPortfolio([FromQuery] McpProjectPortfolioQuery query, CancellationToken ct)
     {
         if (!ModelState.IsValid)
@@ -43,7 +42,7 @@ public class McpController : ControllerBase
     }
 
     [HttpGet("projects/deadlines")]
-    [ProducesResponseType(typeof(PagedResponse<McpProjectDeadlineItemResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(McpPagedResponse<McpProjectDeadlineItemResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetProjectDeadlines([FromQuery] McpProjectDeadlinesQuery query, CancellationToken ct)
     {
         if (!ModelState.IsValid)
@@ -67,7 +66,7 @@ public class McpController : ControllerBase
     }
 
     [HttpGet("payments/pending")]
-    [ProducesResponseType(typeof(PagedResponse<McpPaymentObligationItemResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(McpPagedResponse<McpPaymentObligationItemResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetPendingPayments([FromQuery] McpPendingPaymentsQuery query, CancellationToken ct)
     {
         if (!ModelState.IsValid)
@@ -79,7 +78,7 @@ public class McpController : ControllerBase
     }
 
     [HttpGet("payments/received")]
-    [ProducesResponseType(typeof(PagedResponse<McpReceivedPaymentItemResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(McpPagedResponse<McpReceivedPaymentItemResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetReceivedPayments([FromQuery] McpReceivedPaymentsQuery query, CancellationToken ct)
     {
         if (!ModelState.IsValid)
@@ -91,7 +90,7 @@ public class McpController : ControllerBase
     }
 
     [HttpGet("payments/overdue")]
-    [ProducesResponseType(typeof(PagedResponse<McpPaymentObligationItemResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(McpPagedResponse<McpPaymentObligationItemResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetOverduePayments([FromQuery] McpOverduePaymentsQuery query, CancellationToken ct)
     {
         if (!ModelState.IsValid)
@@ -187,7 +186,7 @@ public class McpController : ControllerBase
     }
 
     [HttpGet("obligations/upcoming")]
-    [ProducesResponseType(typeof(PagedResponse<McpObligationItemResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(McpPagedResponse<McpObligationItemResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetUpcomingObligations([FromQuery] McpUpcomingObligationsQuery query, CancellationToken ct)
     {
         if (!ModelState.IsValid)
@@ -199,7 +198,7 @@ public class McpController : ControllerBase
     }
 
     [HttpGet("obligations/unpaid")]
-    [ProducesResponseType(typeof(PagedResponse<McpObligationItemResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(McpPagedResponse<McpObligationItemResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetUnpaidObligations([FromQuery] McpUnpaidObligationsQuery query, CancellationToken ct)
     {
         if (!ModelState.IsValid)

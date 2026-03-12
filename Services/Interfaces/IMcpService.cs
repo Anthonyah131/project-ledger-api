@@ -1,4 +1,3 @@
-using ProjectLedger.API.DTOs.Common;
 using ProjectLedger.API.DTOs.Mcp;
 
 namespace ProjectLedger.API.Services;
@@ -7,12 +6,12 @@ public interface IMcpService
 {
     Task<McpContextResponse> GetContextAsync(Guid userId, CancellationToken ct = default);
 
-    Task<PagedResponse<McpProjectPortfolioItemResponse>> GetProjectPortfolioAsync(
+    Task<McpPagedResponse<McpProjectPortfolioItemResponse>> GetProjectPortfolioAsync(
         Guid userId,
         McpProjectPortfolioQuery query,
         CancellationToken ct = default);
 
-    Task<PagedResponse<McpProjectDeadlineItemResponse>> GetProjectDeadlinesAsync(
+    Task<McpPagedResponse<McpProjectDeadlineItemResponse>> GetProjectDeadlinesAsync(
         Guid userId,
         McpProjectDeadlinesQuery query,
         CancellationToken ct = default);
@@ -22,17 +21,17 @@ public interface IMcpService
         McpProjectActivitySplitQuery query,
         CancellationToken ct = default);
 
-    Task<PagedResponse<McpPaymentObligationItemResponse>> GetPendingPaymentsAsync(
+    Task<McpPagedResponse<McpPaymentObligationItemResponse>> GetPendingPaymentsAsync(
         Guid userId,
         McpPendingPaymentsQuery query,
         CancellationToken ct = default);
 
-    Task<PagedResponse<McpReceivedPaymentItemResponse>> GetReceivedPaymentsAsync(
+    Task<McpPagedResponse<McpReceivedPaymentItemResponse>> GetReceivedPaymentsAsync(
         Guid userId,
         McpReceivedPaymentsQuery query,
         CancellationToken ct = default);
 
-    Task<PagedResponse<McpPaymentObligationItemResponse>> GetOverduePaymentsAsync(
+    Task<McpPagedResponse<McpPaymentObligationItemResponse>> GetOverduePaymentsAsync(
         Guid userId,
         McpOverduePaymentsQuery query,
         CancellationToken ct = default);
@@ -72,12 +71,12 @@ public interface IMcpService
         McpIncomeByProjectQuery query,
         CancellationToken ct = default);
 
-    Task<PagedResponse<McpObligationItemResponse>> GetUpcomingObligationsAsync(
+    Task<McpPagedResponse<McpObligationItemResponse>> GetUpcomingObligationsAsync(
         Guid userId,
         McpUpcomingObligationsQuery query,
         CancellationToken ct = default);
 
-    Task<PagedResponse<McpObligationItemResponse>> GetUnpaidObligationsAsync(
+    Task<McpPagedResponse<McpObligationItemResponse>> GetUnpaidObligationsAsync(
         Guid userId,
         McpUnpaidObligationsQuery query,
         CancellationToken ct = default);
