@@ -252,6 +252,19 @@ builder.Services.PostConfigure<JwtSettings>(settings =>
     }
 });
 
+builder.Services.Configure<McpSettings>(
+    builder.Configuration.GetSection(McpSettings.SectionName));
+builder.Services.PostConfigure<McpSettings>(settings =>
+{
+    if (!string.IsNullOrWhiteSpace(settings.ServiceToken)
+        && settings.ServiceToken.StartsWith("${")
+        && settings.ServiceToken.EndsWith("}"))
+    {
+        settings.ServiceToken = Environment.GetEnvironmentVariable(
+            settings.ServiceToken[2..^1]) ?? string.Empty;
+    }
+});
+
 // Security
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddCorsPolicy(builder.Configuration);
@@ -307,11 +320,16 @@ app.UseRateLimiter();
 // 5. CORS (antes de auth)
 app.UseCors(CorsSettings.PolicyName);
 
-// 6. Auth pipeline
+// 6. MCP auth aislado (solo /api/mcp)
+app.UseWhen(
+    context => context.Request.Path.StartsWithSegments("/api/mcp"),
+    branch => branch.UseMiddleware<McpAuthMiddleware>());
+
+// 7. Auth pipeline
 app.UseAuthentication();
 app.UseAuthorization();
 
-// 7. Controllers
+// 8. Controllers
 app.MapControllers();
 
 app.Run();

@@ -32,19 +32,22 @@ Implicaciones de diseño:
 
 - Base path: `/api/mcp`
 - Todos los endpoints son `GET`.
-- Requieren JWT Bearer válido.
+- Requieren service token Bearer válido del servidor MCP.
 - Requieren policy `Plan:CanUseApi`.
 
 Headers recomendados:
 
 ```http
-Authorization: Bearer <token>
+Authorization: Bearer <mcp_service_token>
+X-User-Id: <userId>
 Accept: application/json
 ```
 
 Notas importantes:
 
-- El `userId` se resuelve desde el JWT (`sub`), no se recibe por query/body.
+- El service token se valida contra la variable de entorno `MCP_SERVICE_TOKEN`.
+- `X-User-Id` debe contener el `userId` real del usuario en la base de datos.
+- La API construye internamente un principal autenticado equivalente al JWT para reutilizar filters, policies y acceso multi-tenant sin bifurcar controladores/servicios.
 - Si se envía `projectId`, la API valida acceso del usuario al proyecto.
 
 ## 3. Convenciones Comunes
