@@ -16,7 +16,7 @@ public class ObligationRepository : Repository<Obligation>, IObligationRepositor
 
     public async Task<IEnumerable<Obligation>> GetByProjectIdWithPaymentsAsync(Guid projectId, CancellationToken ct = default)
         => await DbSet
-            .Include(o => o.Payments.Where(p => !p.ExpIsDeleted))
+            .Include(o => o.Payments.Where(p => !p.ExpIsDeleted && p.ExpIsActive))
             .Where(o => o.OblProjectId == projectId && !o.OblIsDeleted)
             .OrderByDescending(o => o.OblCreatedAt)
             .ToListAsync(ct);

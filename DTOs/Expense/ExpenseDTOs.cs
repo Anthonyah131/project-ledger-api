@@ -67,6 +67,7 @@ public class CreateExpenseRequest
 
     public string? Notes { get; set; }
     public bool IsTemplate { get; set; }
+    public bool IsActive { get; set; } = true;
 
     /// <summary>
     /// Conversiones a monedas alternativas del proyecto.
@@ -135,6 +136,12 @@ public class UpdateExpenseRequest
     public bool? IsTemplate { get; set; }
 
     /// <summary>
+    /// Si viene con valor se actualiza el estado contable.
+    /// false = recordatorio (no cuenta en totales/pagos).
+    /// </summary>
+    public bool? IsActive { get; set; }
+
+    /// <summary>
     /// Conversiones a monedas alternativas del proyecto.
     /// Si es null, no se modifican los exchanges existentes.
     /// Si es lista vacía, se eliminan todos los exchanges.
@@ -160,6 +167,14 @@ public class CreateFromTemplateRequest
     [Range(0.01, 99999999999999.99, ErrorMessage = "ObligationEquivalentAmount must be greater than 0.")]
     public decimal? ObligationEquivalentAmount { get; set; }
     public string? Notes { get; set; }
+}
+
+/// <summary>
+/// Request para activar/desactivar un gasto sin enviar el payload completo.
+/// </summary>
+public class UpdateExpenseActiveStateRequest
+{
+    public bool IsActive { get; set; }
 }
 
 /// <summary>
@@ -199,6 +214,7 @@ public class ExpenseResponse
     public string? ReceiptNumber { get; set; }
     public string? Notes { get; set; }
     public bool IsTemplate { get; set; }
+    public bool IsActive { get; set; }
 
     public List<CurrencyExchangeResponse>? CurrencyExchanges { get; set; }
 

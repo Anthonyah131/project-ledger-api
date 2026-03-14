@@ -297,7 +297,9 @@ public partial class McpService : IMcpService
 
     private static decimal ComputePaidAmount(Obligation obligation)
     {
-        return obligation.Payments.Sum(payment =>
+        return obligation.Payments
+            .Where(payment => !payment.ExpIsDeleted && payment.ExpIsActive)
+            .Sum(payment =>
             string.Equals(payment.ExpOriginalCurrency, obligation.OblCurrency, StringComparison.OrdinalIgnoreCase)
                 ? payment.ExpOriginalAmount
                 : payment.ExpObligationEquivalentAmount ?? payment.ExpConvertedAmount);

@@ -586,7 +586,15 @@ public class ReportController : ControllerBase
 
             var oblRows = obligations.Select(o =>
             {
-                var paid = o.Payments.Sum(p => p.ExpConvertedAmount);
+                var activePayments = o.Payments
+                    .Where(p => !p.ExpIsDeleted && p.ExpIsActive)
+                    .ToList();
+
+                var paid = activePayments.Sum(p =>
+                    string.Equals(p.ExpOriginalCurrency, o.OblCurrency, StringComparison.OrdinalIgnoreCase)
+                        ? p.ExpOriginalAmount
+                        : p.ExpObligationEquivalentAmount ?? p.ExpConvertedAmount);
+
                 var remaining = o.OblTotalAmount - paid;
                 var status = ComputeObligationStatus(o, paid, today);
 
@@ -601,8 +609,8 @@ public class ReportController : ControllerBase
                     Currency = o.OblCurrency,
                     DueDate = o.OblDueDate,
                     Status = status,
-                    PaymentCount = o.Payments.Count,
-                    LastPaymentDate = o.Payments
+                    PaymentCount = activePayments.Count,
+                    LastPaymentDate = activePayments
                         .OrderByDescending(p => p.ExpExpenseDate)
                         .Select(p => (DateOnly?)p.ExpExpenseDate)
                         .FirstOrDefault()

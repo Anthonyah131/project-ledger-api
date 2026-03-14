@@ -439,7 +439,7 @@ public class DashboardController : ControllerBase
         foreach (var obligation in obligations)
         {
             var paidUntilMonthEnd = obligation.Payments
-                .Where(p => p.ExpExpenseDate <= monthEnd)
+                .Where(p => p.ExpExpenseDate <= monthEnd && !p.ExpIsDeleted && p.ExpIsActive)
                 .Sum(p => p.ExpOriginalCurrency == obligation.OblCurrency
                     ? p.ExpOriginalAmount
                     : p.ExpObligationEquivalentAmount ?? p.ExpConvertedAmount);

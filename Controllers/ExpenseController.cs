@@ -69,6 +69,7 @@ public class ExpenseController : ControllerBase
         Guid projectId,
         [FromQuery] PagedRequest pagination,
         [FromQuery] bool includeDeleted = false,
+        [FromQuery] bool? isActive = null,
         CancellationToken ct = default)
     {
         // Solo Editor+ puede ver gastos eliminados
@@ -79,7 +80,7 @@ public class ExpenseController : ControllerBase
         }
 
         var (items, totalCount) = await _expenseService.GetByProjectIdPagedAsync(
-            projectId, includeDeleted, pagination.Skip, pagination.PageSize,
+            projectId, includeDeleted, isActive, pagination.Skip, pagination.PageSize,
             pagination.SortBy, pagination.IsDescending, ct);
 
         var response = PagedResponse<ExpenseResponse>.Create(
@@ -359,6 +360,39 @@ public class ExpenseController : ControllerBase
         {
             await _exchangeService.ReplaceExchangesAsync("expense", expense.ExpId, request.CurrencyExchanges, ct);
         }
+
+        expense = (await _expenseService.GetByIdAsync(expense.ExpId, ct))!;
+        return Ok(expense.ToResponse());
+    }
+
+    // ── PATCH /api/projects/{projectId}/expenses/{expenseId}/active-state ──
+
+    /// <summary>
+    /// Activa o desactiva un gasto sin requerir el payload completo de actualización.
+    /// </summary>
+    /// <response code="200">Estado del gasto actualizado.</response>
+    /// <response code="404">Gasto no encontrado o no pertenece al proyecto.</response>
+    [HttpPatch("{expenseId:guid}/active-state")]
+    [Authorize(Policy = "ProjectEditor")]
+    [ProducesResponseType(typeof(ExpenseResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> UpdateActiveState(
+        Guid projectId,
+        Guid expenseId,
+        [FromBody] UpdateExpenseActiveStateRequest request,
+        CancellationToken ct)
+    {
+        var userId = User.GetRequiredUserId();
+        await _planAuth.ValidateProjectWriteAccessAsync(projectId, userId, ct);
+        await _accessService.ValidateAccessAsync(userId, projectId, ProjectRoles.Editor, ct);
+
+        var expense = await _expenseService.GetByIdAsync(expenseId, ct);
+        if (expense == null || expense.ExpProjectId != projectId)
+            return NotFound(new { message = "Expense not found in this project." });
+
+        expense.ExpIsActive = request.IsActive;
+        await _expenseService.UpdateAsync(expense, ct);
 
         expense = (await _expenseService.GetByIdAsync(expense.ExpId, ct))!;
         return Ok(expense.ToResponse());

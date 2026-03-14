@@ -28,6 +28,10 @@ public class Income
     public string? IncReceiptNumber { get; set; }
     public string? IncNotes { get; set; }
 
+    // ── Estado contable ──────────────────────────────────────
+    // false = recordatorio (no cuenta en totales)
+    public bool IncIsActive { get; set; } = true;
+
     // ── Timestamps y soft delete ────────────────────────────
     public DateTime IncCreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime IncUpdatedAt { get; set; } = DateTime.UtcNow;

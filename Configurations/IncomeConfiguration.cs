@@ -32,6 +32,7 @@ public class IncomeConfiguration : IEntityTypeConfiguration<Income>
         builder.Property(e => e.IncIncomeDate).HasColumnName("inc_income_date").IsRequired();
         builder.Property(e => e.IncReceiptNumber).HasColumnName("inc_receipt_number").HasMaxLength(100);
         builder.Property(e => e.IncNotes).HasColumnName("inc_notes");
+        builder.Property(e => e.IncIsActive).HasColumnName("inc_is_active").HasDefaultValue(true);
 
         // Timestamps y soft delete
         builder.Property(e => e.IncCreatedAt).HasColumnName("inc_created_at").HasDefaultValueSql("now()");
@@ -47,6 +48,7 @@ public class IncomeConfiguration : IEntityTypeConfiguration<Income>
         builder.HasIndex(e => e.IncCreatedByUserId);
         builder.HasIndex(e => e.IncIncomeDate);
         builder.HasIndex(e => e.IncIsDeleted);
+        builder.HasIndex(e => e.IncIsActive);
 
         // Relaciones
         builder.HasOne(e => e.Project)

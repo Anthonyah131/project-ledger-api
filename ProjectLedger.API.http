@@ -1,6 +1,46 @@
 @ProjectLedger.API_HostAddress = http://localhost:5192
+@JwtToken = REPLACE_WITH_JWT
+@ProjectId = REPLACE_WITH_PROJECT_ID
+@ExpenseId = REPLACE_WITH_EXPENSE_ID
+@IncomeId = REPLACE_WITH_INCOME_ID
 
-GET {{ProjectLedger.API_HostAddress}}/weatherforecast/
+### Health
+GET {{ProjectLedger.API_HostAddress}}/api/health
 Accept: application/json
 
-###
+### Disable expense (reminder mode)
+PATCH {{ProjectLedger.API_HostAddress}}/api/projects/{{ProjectId}}/expenses/{{ExpenseId}}/active-state
+Authorization: Bearer {{JwtToken}}
+Content-Type: application/json
+
+{
+	"isActive": false
+}
+
+### Activate expense (starts counting in totals)
+PATCH {{ProjectLedger.API_HostAddress}}/api/projects/{{ProjectId}}/expenses/{{ExpenseId}}/active-state
+Authorization: Bearer {{JwtToken}}
+Content-Type: application/json
+
+{
+	"isActive": true
+}
+
+### Disable income (reminder mode)
+PATCH {{ProjectLedger.API_HostAddress}}/api/projects/{{ProjectId}}/incomes/{{IncomeId}}/active-state
+Authorization: Bearer {{JwtToken}}
+Content-Type: application/json
+
+{
+	"isActive": false
+}
+
+### Activate income (starts counting in totals)
+PATCH {{ProjectLedger.API_HostAddress}}/api/projects/{{ProjectId}}/incomes/{{IncomeId}}/active-state
+Authorization: Bearer {{JwtToken}}
+Content-Type: application/json
+
+{
+	"isActive": true
+}
+

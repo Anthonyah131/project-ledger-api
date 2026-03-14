@@ -91,6 +91,7 @@ public partial class McpService
         }
 
         var filtered = incomes
+            .Where(i => !query.IsActive.HasValue || i.IncIsActive == query.IsActive.Value)
             .Where(i => !query.PaymentMethodId.HasValue || i.IncPaymentMethodId == query.PaymentMethodId.Value)
             .Where(i => paymentMethodIdsFromName is null || paymentMethodIdsFromName.Contains(i.IncPaymentMethodId))
             .Where(i => !query.CategoryId.HasValue || i.IncCategoryId == query.CategoryId.Value)
@@ -112,7 +113,8 @@ public partial class McpService
                 Title = i.IncTitle,
                 OriginalAmount = i.IncOriginalAmount,
                 OriginalCurrency = i.IncOriginalCurrency,
-                ConvertedAmount = i.IncConvertedAmount
+                ConvertedAmount = i.IncConvertedAmount,
+                IsActive = i.IncIsActive
             })
             .ToList();
 

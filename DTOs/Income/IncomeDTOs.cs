@@ -54,6 +54,7 @@ public class CreateIncomeRequest
     public string? ReceiptNumber { get; set; }
 
     public string? Notes { get; set; }
+    public bool IsActive { get; set; } = true;
 
     // ── Monedas alternativas (opcional) ─────────────────────
 
@@ -101,8 +102,17 @@ public class UpdateIncomeRequest
     public string? ReceiptNumber { get; set; }
 
     public string? Notes { get; set; }
+    public bool? IsActive { get; set; }
 
     public List<CurrencyExchangeRequest>? CurrencyExchanges { get; set; }
+}
+
+/// <summary>
+/// Request para activar/desactivar un ingreso sin enviar el payload completo.
+/// </summary>
+public class UpdateIncomeActiveStateRequest
+{
+    public bool IsActive { get; set; }
 }
 
 /// <summary>
@@ -143,6 +153,7 @@ public class IncomeResponse
     public DateOnly IncomeDate { get; set; }
     public string? ReceiptNumber { get; set; }
     public string? Notes { get; set; }
+    public bool IsActive { get; set; }
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

@@ -36,6 +36,9 @@ public class ExpenseConfiguration : IEntityTypeConfiguration<Expense>
         // Plantilla
         builder.Property(e => e.ExpIsTemplate).HasColumnName("exp_is_template").HasDefaultValue(false);
 
+        // Estado contable
+        builder.Property(e => e.ExpIsActive).HasColumnName("exp_is_active").HasDefaultValue(true);
+
         // Timestamps y soft delete
         builder.Property(e => e.ExpCreatedAt).HasColumnName("exp_created_at").HasDefaultValueSql("now()");
         builder.Property(e => e.ExpUpdatedAt).HasColumnName("exp_updated_at").HasDefaultValueSql("now()");
@@ -52,6 +55,7 @@ public class ExpenseConfiguration : IEntityTypeConfiguration<Expense>
         builder.HasIndex(e => e.ExpObligationId);
         builder.HasIndex(e => e.ExpIsDeleted);
         builder.HasIndex(e => e.ExpIsTemplate);
+        builder.HasIndex(e => e.ExpIsActive);
 
         // Relaciones
         builder.HasOne(e => e.Project)

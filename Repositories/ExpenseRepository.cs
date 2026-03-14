@@ -21,7 +21,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
         => await DbSet
             .Include(e => e.Category)
             .Include(e => e.CurrencyExchanges)
-            .Where(e => e.ExpProjectId == projectId && (includeDeleted || !e.ExpIsDeleted))
+            .Where(e => e.ExpProjectId == projectId && (includeDeleted || !e.ExpIsDeleted) && e.ExpIsActive)
             .OrderByDescending(e => e.ExpExpenseDate)
             .ToListAsync(ct);
 
@@ -29,7 +29,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
         => await DbSet
             .Include(e => e.Category)
             .Include(e => e.CurrencyExchanges)
-            .Where(e => e.ExpCategoryId == categoryId && !e.ExpIsDeleted)
+            .Where(e => e.ExpCategoryId == categoryId && !e.ExpIsDeleted && e.ExpIsActive)
             .OrderByDescending(e => e.ExpExpenseDate)
             .ToListAsync(ct);
 
@@ -37,7 +37,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
         => await DbSet
             .Include(e => e.Category)
             .Include(e => e.CurrencyExchanges)
-            .Where(e => e.ExpObligationId == obligationId && !e.ExpIsDeleted)
+            .Where(e => e.ExpObligationId == obligationId && !e.ExpIsDeleted && e.ExpIsActive)
             .OrderByDescending(e => e.ExpExpenseDate)
             .ToListAsync(ct);
 
@@ -53,7 +53,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
             .Include(e => e.Category)
             .Include(e => e.Project)
             .Include(e => e.CurrencyExchanges)
-            .Where(e => e.ExpPaymentMethodId == paymentMethodId && !e.ExpIsDeleted)
+            .Where(e => e.ExpPaymentMethodId == paymentMethodId && !e.ExpIsDeleted && e.ExpIsActive)
             .OrderByDescending(e => e.ExpExpenseDate)
             .ToListAsync(ct);
 
@@ -62,7 +62,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
             .Include(e => e.Category)
             .Include(e => e.PaymentMethod)
             .Include(e => e.CurrencyExchanges)
-            .Where(e => e.ExpProjectId == projectId && !e.ExpIsDeleted)
+            .Where(e => e.ExpProjectId == projectId && !e.ExpIsDeleted && e.ExpIsActive)
             .OrderByDescending(e => e.ExpExpenseDate)
             .ToListAsync(ct);
 
@@ -74,7 +74,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
             .Include(e => e.PaymentMethod)
             .Include(e => e.Obligation)
             .Include(e => e.CurrencyExchanges)
-            .Where(e => e.ExpProjectId == projectId && !e.ExpIsDeleted && !e.ExpIsTemplate);
+            .Where(e => e.ExpProjectId == projectId && !e.ExpIsDeleted && !e.ExpIsTemplate && e.ExpIsActive);
 
         if (from.HasValue)
             query = query.Where(e => e.ExpExpenseDate >= from.Value);
@@ -98,7 +98,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
             .Include(e => e.Project)
             .Include(e => e.PaymentMethod)
             .Include(e => e.CurrencyExchanges)
-            .Where(e => ids.Contains(e.ExpPaymentMethodId) && !e.ExpIsDeleted && !e.ExpIsTemplate);
+            .Where(e => ids.Contains(e.ExpPaymentMethodId) && !e.ExpIsDeleted && !e.ExpIsTemplate && e.ExpIsActive);
 
         if (from.HasValue)
             query = query.Where(e => e.ExpExpenseDate >= from.Value);
@@ -111,12 +111,15 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
     }
 
     public async Task<(IReadOnlyList<Expense> Items, int TotalCount)> GetByProjectIdPagedAsync(
-        Guid projectId, bool includeDeleted, int skip, int take, string? sortBy, bool descending, CancellationToken ct = default)
+        Guid projectId, bool includeDeleted, bool? isActive, int skip, int take, string? sortBy, bool descending, CancellationToken ct = default)
     {
         var query = DbSet
             .Include(e => e.Category)
             .Include(e => e.CurrencyExchanges)
             .Where(e => e.ExpProjectId == projectId && (includeDeleted || !e.ExpIsDeleted));
+
+        if (isActive.HasValue)
+            query = query.Where(e => e.ExpIsActive == isActive.Value);
 
         var totalCount = await query.CountAsync(ct);
 
@@ -128,6 +131,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
 
     public async Task<(IReadOnlyList<Expense> Items, int TotalCount)> GetByPaymentMethodIdPagedAsync(
         Guid paymentMethodId,
+        bool? isActive,
         int skip,
         int take,
         string? sortBy,
@@ -142,6 +146,9 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
             .Include(e => e.Project)
             .Include(e => e.CurrencyExchanges)
             .Where(e => e.ExpPaymentMethodId == paymentMethodId && !e.ExpIsDeleted);
+
+        if (isActive.HasValue)
+            query = query.Where(e => e.ExpIsActive == isActive.Value);
 
         if (from.HasValue)
             query = query.Where(e => e.ExpExpenseDate >= from.Value);
@@ -164,7 +171,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
 
     public async Task<decimal> GetSpentAmountByProjectIdAsync(Guid projectId, CancellationToken ct = default)
         => await DbSet
-            .Where(e => e.ExpProjectId == projectId && !e.ExpIsDeleted && !e.ExpIsTemplate)
+            .Where(e => e.ExpProjectId == projectId && !e.ExpIsDeleted && !e.ExpIsTemplate && e.ExpIsActive)
             .SumAsync(e => e.ExpConvertedAmount, ct);
 
     private static IQueryable<Expense> ApplyExpenseSort(IQueryable<Expense> query, string? sortBy, bool descending)
@@ -190,7 +197,8 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
         var payments = await DbSet
             .Where(e => e.ExpObligationId.HasValue
                      && ids.Contains(e.ExpObligationId.Value)
-                     && !e.ExpIsDeleted)
+                     && !e.ExpIsDeleted
+                     && e.ExpIsActive)
             .Select(e => new
             {
                 ObligationId = e.ExpObligationId!.Value,

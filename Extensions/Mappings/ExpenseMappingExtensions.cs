@@ -28,6 +28,7 @@ public static class ExpenseMappingExtensions
         ReceiptNumber = entity.ExpReceiptNumber,
         Notes = entity.ExpNotes,
         IsTemplate = entity.ExpIsTemplate,
+        IsActive = entity.ExpIsActive,
         CurrencyExchanges = entity.CurrencyExchanges?.Select(e => e.ToResponse()).ToList(),
         CreatedAt = entity.ExpCreatedAt,
         UpdatedAt = entity.ExpUpdatedAt,
@@ -57,6 +58,7 @@ public static class ExpenseMappingExtensions
         ExpReceiptNumber = request.ReceiptNumber,
         ExpNotes = request.Notes,
         ExpIsTemplate = request.IsTemplate,
+        ExpIsActive = request.IsActive,
         ExpCreatedAt = DateTime.UtcNow,
         ExpUpdatedAt = DateTime.UtcNow
     };
@@ -80,6 +82,8 @@ public static class ExpenseMappingExtensions
         entity.ExpNotes = request.Notes;
         if (request.IsTemplate.HasValue)
             entity.ExpIsTemplate = request.IsTemplate.Value;
+        if (request.IsActive.HasValue)
+            entity.ExpIsActive = request.IsActive.Value;
         entity.ExpUpdatedAt = DateTime.UtcNow;
     }
 
@@ -112,6 +116,7 @@ public static class ExpenseMappingExtensions
         ExpReceiptNumber = null,
         ExpNotes = request.Notes,
         ExpIsTemplate = false,
+        ExpIsActive = true,
         ExpCreatedAt = DateTime.UtcNow,
         ExpUpdatedAt = DateTime.UtcNow
     };

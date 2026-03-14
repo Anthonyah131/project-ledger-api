@@ -23,18 +23,21 @@ public class IncomeRepository : Repository<Income>, IIncomeRepository
             .Include(e => e.Category)
             .Include(e => e.Project)
             .Include(e => e.CurrencyExchanges)
-            .Where(e => e.IncProjectId == projectId && (includeDeleted || !e.IncIsDeleted))
+            .Where(e => e.IncProjectId == projectId && (includeDeleted || !e.IncIsDeleted) && e.IncIsActive)
             .OrderByDescending(e => e.IncIncomeDate)
             .ToListAsync(ct);
 
     public async Task<(IReadOnlyList<Income> Items, int TotalCount)> GetByProjectIdPagedAsync(
-        Guid projectId, bool includeDeleted, int skip, int take, string? sortBy, bool descending, CancellationToken ct = default)
+        Guid projectId, bool includeDeleted, bool? isActive, int skip, int take, string? sortBy, bool descending, CancellationToken ct = default)
     {
         var query = DbSet
             .Include(e => e.Category)
             .Include(e => e.Project)
             .Include(e => e.CurrencyExchanges)
             .Where(e => e.IncProjectId == projectId && (includeDeleted || !e.IncIsDeleted));
+
+        if (isActive.HasValue)
+            query = query.Where(e => e.IncIsActive == isActive.Value);
 
         var totalCount = await query.CountAsync(ct);
 
@@ -49,7 +52,7 @@ public class IncomeRepository : Repository<Income>, IIncomeRepository
             .Include(e => e.Category)
             .Include(e => e.Project)
             .Include(e => e.CurrencyExchanges)
-            .Where(e => e.IncCategoryId == categoryId && !e.IncIsDeleted)
+            .Where(e => e.IncCategoryId == categoryId && !e.IncIsDeleted && e.IncIsActive)
             .OrderByDescending(e => e.IncIncomeDate)
             .ToListAsync(ct);
 
@@ -58,12 +61,13 @@ public class IncomeRepository : Repository<Income>, IIncomeRepository
             .Include(e => e.Category)
             .Include(e => e.Project)
             .Include(e => e.CurrencyExchanges)
-            .Where(e => e.IncPaymentMethodId == paymentMethodId && !e.IncIsDeleted)
+            .Where(e => e.IncPaymentMethodId == paymentMethodId && !e.IncIsDeleted && e.IncIsActive)
             .OrderByDescending(e => e.IncIncomeDate)
             .ToListAsync(ct);
 
     public async Task<(IReadOnlyList<Income> Items, int TotalCount)> GetByPaymentMethodIdPagedAsync(
         Guid paymentMethodId,
+        bool? isActive,
         int skip,
         int take,
         string? sortBy,
@@ -78,6 +82,9 @@ public class IncomeRepository : Repository<Income>, IIncomeRepository
             .Include(e => e.Project)
             .Include(e => e.CurrencyExchanges)
             .Where(e => e.IncPaymentMethodId == paymentMethodId && !e.IncIsDeleted);
+
+        if (isActive.HasValue)
+            query = query.Where(e => e.IncIsActive == isActive.Value);
 
         if (from.HasValue)
             query = query.Where(e => e.IncIncomeDate >= from.Value);
@@ -108,7 +115,7 @@ public class IncomeRepository : Repository<Income>, IIncomeRepository
             .Include(e => e.Project)
             .Include(e => e.PaymentMethod)
             .Include(e => e.CurrencyExchanges)
-            .Where(e => ids.Contains(e.IncPaymentMethodId) && !e.IncIsDeleted);
+            .Where(e => ids.Contains(e.IncPaymentMethodId) && !e.IncIsDeleted && e.IncIsActive);
 
         if (from.HasValue)
             query = query.Where(e => e.IncIncomeDate >= from.Value);
@@ -122,7 +129,7 @@ public class IncomeRepository : Repository<Income>, IIncomeRepository
 
     public async Task<decimal> GetTotalIncomeByProjectIdAsync(Guid projectId, CancellationToken ct = default)
         => await DbSet
-            .Where(e => e.IncProjectId == projectId && !e.IncIsDeleted)
+            .Where(e => e.IncProjectId == projectId && !e.IncIsDeleted && e.IncIsActive)
             .SumAsync(e => e.IncConvertedAmount, ct);
 
     private static IQueryable<Income> ApplyIncomeSort(IQueryable<Income> query, string? sortBy, bool descending)

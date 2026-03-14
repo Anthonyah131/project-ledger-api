@@ -30,6 +30,7 @@ public class McpReceivedPaymentItemResponse
     public decimal OriginalAmount { get; set; }
     public string OriginalCurrency { get; set; } = null!;
     public decimal ConvertedAmount { get; set; }
+    public bool IsActive { get; set; }
 }
 
 public class McpPaymentMethodUsageResponse

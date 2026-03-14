@@ -29,6 +29,7 @@ public static class IncomeMappingExtensions
         IncomeDate = entity.IncIncomeDate,
         ReceiptNumber = entity.IncReceiptNumber,
         Notes = entity.IncNotes,
+        IsActive = entity.IncIsActive,
         CreatedAt = entity.IncCreatedAt,
         UpdatedAt = entity.IncUpdatedAt,
         IsDeleted = entity.IncIsDeleted,
@@ -56,6 +57,7 @@ public static class IncomeMappingExtensions
         IncIncomeDate = request.IncomeDate,
         IncReceiptNumber = request.ReceiptNumber,
         IncNotes = request.Notes,
+        IncIsActive = request.IsActive,
         IncCreatedAt = DateTime.UtcNow,
         IncUpdatedAt = DateTime.UtcNow
     };
@@ -76,6 +78,8 @@ public static class IncomeMappingExtensions
         entity.IncIncomeDate = request.IncomeDate;
         entity.IncReceiptNumber = request.ReceiptNumber;
         entity.IncNotes = request.Notes;
+        if (request.IsActive.HasValue)
+            entity.IncIsActive = request.IsActive.Value;
         entity.IncUpdatedAt = DateTime.UtcNow;
     }
 

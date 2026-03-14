@@ -46,6 +46,8 @@ public class McpReceivedPaymentsQuery : PagedRequest
     [Range(0, 99999999999999.99)]
     public decimal? MinAmount { get; set; }
 
+    public bool? IsActive { get; set; }
+
     public string? Search { get; set; }
 }
 

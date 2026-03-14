@@ -176,6 +176,7 @@ public class PaymentMethodController : ControllerBase
     public async Task<IActionResult> GetExpensesByPaymentMethod(
         Guid id,
         [FromQuery] PagedRequest pagination,
+        [FromQuery] bool? isActive,
         [FromQuery] DateOnly? from,
         [FromQuery] DateOnly? to,
         [FromQuery] Guid? projectId,
@@ -191,7 +192,7 @@ public class PaymentMethodController : ControllerBase
             return NotFound(new { message = "Payment method not found." });
 
         var (items, totalCount) = await _expenseService.GetByPaymentMethodIdPagedAsync(
-            id, pagination.Skip, pagination.PageSize,
+            id, isActive, pagination.Skip, pagination.PageSize,
             pagination.SortBy, pagination.IsDescending,
             from, to, projectId, ct);
 
@@ -215,6 +216,7 @@ public class PaymentMethodController : ControllerBase
     public async Task<IActionResult> GetIncomesByPaymentMethod(
         Guid id,
         [FromQuery] PagedRequest pagination,
+        [FromQuery] bool? isActive,
         [FromQuery] DateOnly? from,
         [FromQuery] DateOnly? to,
         [FromQuery] Guid? projectId,
@@ -230,7 +232,7 @@ public class PaymentMethodController : ControllerBase
             return NotFound(new { message = "Payment method not found." });
 
         var (items, totalCount) = await _incomeService.GetByPaymentMethodIdPagedAsync(
-            id, pagination.Skip, pagination.PageSize,
+            id, isActive, pagination.Skip, pagination.PageSize,
             pagination.SortBy, pagination.IsDescending,
             from, to, projectId, ct);
 

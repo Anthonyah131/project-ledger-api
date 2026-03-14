@@ -65,6 +65,7 @@ public class IncomeController : ControllerBase
         Guid projectId,
         [FromQuery] PagedRequest pagination,
         [FromQuery] bool includeDeleted = false,
+        [FromQuery] bool? isActive = null,
         CancellationToken ct = default)
     {
         if (includeDeleted)
@@ -74,7 +75,7 @@ public class IncomeController : ControllerBase
         }
 
         var (items, totalCount) = await _incomeService.GetByProjectIdPagedAsync(
-            projectId, includeDeleted, pagination.Skip, pagination.PageSize,
+            projectId, includeDeleted, isActive, pagination.Skip, pagination.PageSize,
             pagination.SortBy, pagination.IsDescending, ct);
 
         var response = PagedResponse<IncomeResponse>.Create(
@@ -327,6 +328,37 @@ public class IncomeController : ControllerBase
         {
             await _exchangeService.ReplaceExchangesAsync("income", income.IncId, request.CurrencyExchanges, ct);
         }
+
+        income = (await _incomeService.GetByIdAsync(incomeId, ct))!;
+        return Ok(income.ToResponse());
+    }
+
+    // ── PATCH /api/projects/{projectId}/incomes/{incomeId}/active-state ────
+
+    /// <summary>
+    /// Activa o desactiva un ingreso sin requerir el payload completo de actualización.
+    /// </summary>
+    [HttpPatch("{incomeId:guid}/active-state")]
+    [Authorize(Policy = "ProjectEditor")]
+    [ProducesResponseType(typeof(IncomeResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> UpdateActiveState(
+        Guid projectId,
+        Guid incomeId,
+        [FromBody] UpdateIncomeActiveStateRequest request,
+        CancellationToken ct)
+    {
+        var userId = User.GetRequiredUserId();
+        await _planAuth.ValidateProjectWriteAccessAsync(projectId, userId, ct);
+        await _accessService.ValidateAccessAsync(userId, projectId, ProjectRoles.Editor, ct);
+
+        var income = await _incomeService.GetByIdAsync(incomeId, ct);
+        if (income == null || income.IncProjectId != projectId)
+            return NotFound(new { message = "Income not found in this project." });
+
+        income.IncIsActive = request.IsActive;
+        await _incomeService.UpdateAsync(income, ct);
 
         income = (await _incomeService.GetByIdAsync(incomeId, ct))!;
         return Ok(income.ToResponse());

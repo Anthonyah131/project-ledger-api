@@ -45,8 +45,8 @@ public class IncomeService : IIncomeService
         => await _incomeRepo.GetByProjectIdAsync(projectId, includeDeleted, ct);
 
     public async Task<(IReadOnlyList<Income> Items, int TotalCount)> GetByProjectIdPagedAsync(
-        Guid projectId, bool includeDeleted, int skip, int take, string? sortBy, bool descending, CancellationToken ct = default)
-        => await _incomeRepo.GetByProjectIdPagedAsync(projectId, includeDeleted, skip, take, sortBy, descending, ct);
+        Guid projectId, bool includeDeleted, bool? isActive, int skip, int take, string? sortBy, bool descending, CancellationToken ct = default)
+        => await _incomeRepo.GetByProjectIdPagedAsync(projectId, includeDeleted, isActive, skip, take, sortBy, descending, ct);
 
     public async Task<IEnumerable<Income>> GetByPaymentMethodIdAsync(
         Guid paymentMethodId, CancellationToken ct = default)
@@ -54,6 +54,7 @@ public class IncomeService : IIncomeService
 
     public async Task<(IReadOnlyList<Income> Items, int TotalCount)> GetByPaymentMethodIdPagedAsync(
         Guid paymentMethodId,
+        bool? isActive,
         int skip,
         int take,
         string? sortBy,
@@ -64,6 +65,7 @@ public class IncomeService : IIncomeService
         CancellationToken ct = default)
         => await _incomeRepo.GetByPaymentMethodIdPagedAsync(
             paymentMethodId,
+            isActive,
             skip,
             take,
             sortBy,
@@ -75,6 +77,9 @@ public class IncomeService : IIncomeService
 
     public async Task<Income> CreateAsync(Income income, CancellationToken ct = default)
     {
+        if (income.IncIsActive)
+            ValidateAccountingReadinessForActivation(income);
+
         var project = await _projectRepo.GetByIdAsync(income.IncProjectId, ct)
             ?? throw new KeyNotFoundException($"Project '{income.IncProjectId}' not found.");
 
@@ -120,6 +125,9 @@ public class IncomeService : IIncomeService
 
     public async Task UpdateAsync(Income income, CancellationToken ct = default)
     {
+        if (income.IncIsActive)
+            ValidateAccountingReadinessForActivation(income);
+
         var project = await _projectRepo.GetByIdAsync(income.IncProjectId, ct)
             ?? throw new KeyNotFoundException($"Project '{income.IncProjectId}' not found.");
 
@@ -193,5 +201,26 @@ public class IncomeService : IIncomeService
 
         throw new InvalidOperationException(
             "AccountAmount is required when payment method currency differs from both original and project currencies.");
+    }
+
+    private static void ValidateAccountingReadinessForActivation(Income income)
+    {
+        if (income.IncOriginalAmount <= 0)
+            throw new InvalidOperationException("Cannot activate income: OriginalAmount must be greater than 0.");
+
+        if (income.IncConvertedAmount <= 0)
+            throw new InvalidOperationException("Cannot activate income: ConvertedAmount must be greater than 0.");
+
+        if (income.IncExchangeRate <= 0)
+            throw new InvalidOperationException("Cannot activate income: ExchangeRate must be greater than 0.");
+
+        if (string.IsNullOrWhiteSpace(income.IncOriginalCurrency) || income.IncOriginalCurrency.Length != 3)
+            throw new InvalidOperationException("Cannot activate income: OriginalCurrency must be a valid 3-letter ISO code.");
+
+        if (string.IsNullOrWhiteSpace(income.IncTitle))
+            throw new InvalidOperationException("Cannot activate income: Title is required.");
+
+        if (income.IncIncomeDate == default)
+            throw new InvalidOperationException("Cannot activate income: IncomeDate is required.");
     }
 }

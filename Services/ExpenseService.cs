@@ -45,8 +45,8 @@ public class ExpenseService : IExpenseService
         => await _expenseRepo.GetByProjectIdAsync(projectId, includeDeleted, ct);
 
     public async Task<(IReadOnlyList<Expense> Items, int TotalCount)> GetByProjectIdPagedAsync(
-        Guid projectId, bool includeDeleted, int skip, int take, string? sortBy, bool descending, CancellationToken ct = default)
-        => await _expenseRepo.GetByProjectIdPagedAsync(projectId, includeDeleted, skip, take, sortBy, descending, ct);
+        Guid projectId, bool includeDeleted, bool? isActive, int skip, int take, string? sortBy, bool descending, CancellationToken ct = default)
+        => await _expenseRepo.GetByProjectIdPagedAsync(projectId, includeDeleted, isActive, skip, take, sortBy, descending, ct);
 
     public async Task<IEnumerable<Expense>> GetByCategoryIdAsync(Guid categoryId, CancellationToken ct = default)
         => await _expenseRepo.GetByCategoryIdAsync(categoryId, ct);
@@ -59,6 +59,9 @@ public class ExpenseService : IExpenseService
 
     public async Task<Expense> CreateAsync(Expense expense, CancellationToken ct = default)
     {
+        if (expense.ExpIsActive)
+            ValidateAccountingReadinessForActivation(expense);
+
         var project = await _projectRepo.GetByIdAsync(expense.ExpProjectId, ct)
             ?? throw new KeyNotFoundException($"Project '{expense.ExpProjectId}' not found.");
 
@@ -86,7 +89,8 @@ public class ExpenseService : IExpenseService
                 "Link it first via /api/projects/{projectId}/payment-methods.");
 
         // Validar que la obligación pertenece al mismo proyecto y no se sobre-paga
-        if (expense.ExpObligationId.HasValue)
+        // solo cuando el gasto está activo.
+        if (expense.ExpObligationId.HasValue && expense.ExpIsActive)
         {
             var obligation = await _obligationRepo.GetByIdAsync(expense.ExpObligationId.Value, ct)
                 ?? throw new KeyNotFoundException(
@@ -153,8 +157,11 @@ public class ExpenseService : IExpenseService
 
     public async Task UpdateAsync(Expense expense, CancellationToken ct = default)
     {
-        // Validar sobre-pago si el gasto está vinculado a una obligación
-        if (expense.ExpObligationId.HasValue)
+        if (expense.ExpIsActive)
+            ValidateAccountingReadinessForActivation(expense);
+
+        // Validar sobre-pago solo para pagos activos vinculados a obligación.
+        if (expense.ExpObligationId.HasValue && expense.ExpIsActive)
         {
             var obligation = await _obligationRepo.GetByIdAsync(expense.ExpObligationId.Value, ct);
             if (obligation is not null && !obligation.OblIsDeleted)
@@ -217,6 +224,7 @@ public class ExpenseService : IExpenseService
 
     public async Task<(IReadOnlyList<Expense> Items, int TotalCount)> GetByPaymentMethodIdPagedAsync(
         Guid paymentMethodId,
+        bool? isActive,
         int skip,
         int take,
         string? sortBy,
@@ -227,6 +235,7 @@ public class ExpenseService : IExpenseService
         CancellationToken ct = default)
         => await _expenseRepo.GetByPaymentMethodIdPagedAsync(
             paymentMethodId,
+            isActive,
             skip,
             take,
             sortBy,
@@ -264,5 +273,26 @@ public class ExpenseService : IExpenseService
 
         // Compatibilidad con pagos históricos sin equivalente persistido.
         return convertedAmount;
+    }
+
+    private static void ValidateAccountingReadinessForActivation(Expense expense)
+    {
+        if (expense.ExpOriginalAmount <= 0)
+            throw new InvalidOperationException("Cannot activate expense: OriginalAmount must be greater than 0.");
+
+        if (expense.ExpConvertedAmount <= 0)
+            throw new InvalidOperationException("Cannot activate expense: ConvertedAmount must be greater than 0.");
+
+        if (expense.ExpExchangeRate <= 0)
+            throw new InvalidOperationException("Cannot activate expense: ExchangeRate must be greater than 0.");
+
+        if (string.IsNullOrWhiteSpace(expense.ExpOriginalCurrency) || expense.ExpOriginalCurrency.Length != 3)
+            throw new InvalidOperationException("Cannot activate expense: OriginalCurrency must be a valid 3-letter ISO code.");
+
+        if (string.IsNullOrWhiteSpace(expense.ExpTitle))
+            throw new InvalidOperationException("Cannot activate expense: Title is required.");
+
+        if (expense.ExpExpenseDate == default)
+            throw new InvalidOperationException("Cannot activate expense: ExpenseDate is required.");
     }
 }

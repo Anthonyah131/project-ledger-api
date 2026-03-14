@@ -31,6 +31,10 @@ public class Expense
     // ── Plantilla ───────────────────────────────────────────
     public bool ExpIsTemplate { get; set; }
 
+    // ── Estado contable ──────────────────────────────────────
+    // false = recordatorio (no cuenta en totales/pagos)
+    public bool ExpIsActive { get; set; } = true;
+
     // ── Timestamps y soft delete ────────────────────────────
     public DateTime ExpCreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime ExpUpdatedAt { get; set; } = DateTime.UtcNow;
