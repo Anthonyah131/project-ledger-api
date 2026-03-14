@@ -74,6 +74,8 @@ builder.Services.Configure<ExchangeRateSettings>(
     builder.Configuration.GetSection(ExchangeRateSettings.SectionName));
 builder.Services.Configure<AzureDocumentIntelligenceSettings>(
     builder.Configuration.GetSection(AzureDocumentIntelligenceSettings.SectionName));
+builder.Services.Configure<GoogleAuthSettings>(
+    builder.Configuration.GetSection(GoogleAuthSettings.SectionName));
 // Resolver placeholders ${ENV_VAR} en las settings de email
 builder.Services.PostConfigure<EmailSettings>(settings =>
 {
@@ -238,6 +240,20 @@ builder.Services.PostConfigure<AzureDocumentIntelligenceSettings>(settings =>
         value = false;
         return false;
     }
+});
+
+builder.Services.PostConfigure<GoogleAuthSettings>(settings =>
+{
+    settings.ClientId = Resolve(settings.ClientId);
+    settings.ClientSecret = Resolve(settings.ClientSecret);
+    settings.FrontendCallbackUrl = Resolve(settings.FrontendCallbackUrl);
+
+    static string Resolve(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && value.StartsWith("${")
+        && value.EndsWith("}")
+            ? Environment.GetEnvironmentVariable(value[2..^1]) ?? string.Empty
+            : value;
 });
 
 // Resolver placeholder ${JWT_SECRET_KEY} en JwtSettings (igual que EmailSettings)

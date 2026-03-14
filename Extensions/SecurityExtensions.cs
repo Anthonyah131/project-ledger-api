@@ -1,5 +1,7 @@
 using System.Text;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
@@ -48,7 +50,13 @@ public static class SecurityExtensions
             KeyId = "ProjectLedger-HS256"
         };
 
-        services
+        var googleSettings = configuration.GetSection(GoogleAuthSettings.SectionName).Get<GoogleAuthSettings>()
+            ?? new GoogleAuthSettings();
+
+        var googleClientId = ResolvePlaceholder(googleSettings.ClientId);
+        var googleClientSecret = ResolvePlaceholder(googleSettings.ClientSecret);
+
+        var authBuilder = services
             .AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -109,6 +117,26 @@ public static class SecurityExtensions
                 };
             });
 
+        if (!string.IsNullOrWhiteSpace(googleClientId)
+            && !string.IsNullOrWhiteSpace(googleClientSecret))
+        {
+            authBuilder
+                .AddCookie(AuthSchemes.ExternalCookieScheme, options =>
+                {
+                    options.Cookie.Name = "projectledger.external-auth";
+                    options.ExpireTimeSpan = TimeSpan.FromMinutes(5);
+                    options.SlidingExpiration = false;
+                })
+                .AddGoogle(AuthSchemes.GoogleScheme, options =>
+                {
+                    options.ClientId = googleClientId;
+                    options.ClientSecret = googleClientSecret;
+                    options.SignInScheme = AuthSchemes.ExternalCookieScheme;
+                    options.CallbackPath = "/signin-google";
+                    options.SaveTokens = false;
+                });
+        }
+
         // ── Authorization Handlers ─────────────────────────────
         services.AddScoped<IAuthorizationHandler, ProjectMemberHandler>();
         services.AddScoped<IAuthorizationHandler, PlanPermissionHandler>();
@@ -141,6 +169,17 @@ public static class SecurityExtensions
         });
 
         return services;
+    }
+
+    private static string ResolvePlaceholder(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        if (value.StartsWith("${") && value.EndsWith("}"))
+            return Environment.GetEnvironmentVariable(value[2..^1]) ?? string.Empty;
+
+        return value;
     }
 
     // ── CORS ────────────────────────────────────────────────

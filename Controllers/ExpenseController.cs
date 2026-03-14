@@ -247,6 +247,7 @@ public class ExpenseController : ControllerBase
             projectId,
             request.File,
             request.DocumentKind,
+            transactionKind: "expense",
             ct);
 
         await _auditLogService.LogAsync(

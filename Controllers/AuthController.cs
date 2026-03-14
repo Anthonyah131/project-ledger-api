@@ -1,6 +1,10 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Options;
 using ProjectLedger.API.DTOs.Auth;
 using ProjectLedger.API.Services;
 
@@ -18,10 +22,14 @@ namespace ProjectLedger.API.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly GoogleAuthSettings _googleAuthSettings;
 
-    public AuthController(IAuthService authService)
+    public AuthController(
+        IAuthService authService,
+        IOptions<GoogleAuthSettings> googleAuthSettings)
     {
         _authService = authService;
+        _googleAuthSettings = googleAuthSettings.Value;
     }
 
     // ── POST /api/auth/register ─────────────────────────────
@@ -76,6 +84,87 @@ public class AuthController : ControllerBase
             return Unauthorized(new { message = "Invalid email or password." });
 
         return Ok(result);
+    }
+
+    // ── GET /api/auth/google/login ─────────────────────────
+
+    /// <summary>
+    /// Inicia el flujo OAuth con Google.
+    /// </summary>
+    /// <response code="302">Redirección a Google OAuth.</response>
+    /// <response code="400">Google OAuth no está configurado.</response>
+    [HttpGet("google/login")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status302Found)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public IActionResult GoogleLogin()
+    {
+        if (string.IsNullOrWhiteSpace(_googleAuthSettings.ClientId)
+            || string.IsNullOrWhiteSpace(_googleAuthSettings.ClientSecret))
+        {
+            return BadRequest(new { message = "Google authentication is not configured." });
+        }
+
+        var callbackUrl = Url.Action(
+            action: nameof(GoogleCallback),
+            controller: "Auth",
+            values: null,
+            protocol: Request.Scheme)
+            ?? $"{Request.Scheme}://{Request.Host}/api/auth/google/callback";
+
+        var properties = new AuthenticationProperties
+        {
+            RedirectUri = callbackUrl
+        };
+
+        return Challenge(properties, AuthSchemes.GoogleScheme);
+    }
+
+    // ── GET /api/auth/google/callback ──────────────────────
+
+    /// <summary>
+    /// Completa el flujo OAuth de Google, vincula/crea usuario y redirige al frontend con JWT.
+    /// </summary>
+    /// <response code="302">Redirección al frontend con el token o error.</response>
+    [HttpGet("google/callback")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status302Found)]
+    public async Task<IActionResult> GoogleCallback(CancellationToken ct)
+    {
+        var authResult = await HttpContext.AuthenticateAsync(AuthSchemes.ExternalCookieScheme);
+        if (!authResult.Succeeded || authResult.Principal == null)
+            return Redirect(BuildFrontendCallbackUrl(error: "google_auth_failed"));
+
+        var principal = authResult.Principal;
+
+        var googleSub = principal.FindFirstValue(ClaimTypes.NameIdentifier)
+                        ?? principal.FindFirstValue("sub");
+
+        var email = principal.FindFirstValue(ClaimTypes.Email)
+                    ?? principal.FindFirstValue("email");
+
+        var fullName = principal.FindFirstValue(ClaimTypes.Name)
+                       ?? principal.FindFirstValue("name")
+                       ?? email;
+
+        var avatarUrl = principal.FindFirstValue("picture");
+
+        await HttpContext.SignOutAsync(AuthSchemes.ExternalCookieScheme);
+
+        if (string.IsNullOrWhiteSpace(googleSub) || string.IsNullOrWhiteSpace(email))
+            return Redirect(BuildFrontendCallbackUrl(error: "google_profile_incomplete"));
+
+        var accessToken = await _authService.LoginWithGoogleAsync(
+            googleSub,
+            email,
+            fullName ?? email,
+            avatarUrl,
+            ct);
+
+        if (string.IsNullOrWhiteSpace(accessToken))
+            return Redirect(BuildFrontendCallbackUrl(error: "google_login_failed"));
+
+        return Redirect(BuildFrontendCallbackUrl(token: accessToken));
     }
 
     // ── POST /api/auth/refresh ──────────────────────────────
@@ -240,4 +329,22 @@ public class AuthController : ControllerBase
             return BadRequest(new { message = "Invalid, expired, or already used OTP code." });
 
         return Ok(new { message = "Password updated successfully." });
-    }}
+    }
+
+    private string BuildFrontendCallbackUrl(string? token = null, string? error = null)
+    {
+        var baseUrl = string.IsNullOrWhiteSpace(_googleAuthSettings.FrontendCallbackUrl)
+            ? "http://localhost:3000/auth/callback"
+            : _googleAuthSettings.FrontendCallbackUrl;
+
+        var callbackUrl = baseUrl;
+
+        if (!string.IsNullOrWhiteSpace(token))
+            callbackUrl = QueryHelpers.AddQueryString(callbackUrl, "token", token);
+
+        if (!string.IsNullOrWhiteSpace(error))
+            callbackUrl = QueryHelpers.AddQueryString(callbackUrl, "error", error);
+
+        return callbackUrl;
+    }
+}

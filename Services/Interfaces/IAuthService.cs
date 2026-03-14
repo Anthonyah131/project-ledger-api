@@ -13,6 +13,9 @@ public interface IAuthService
     /// <summary>Autentica al usuario con email/password. Retorna null si las credenciales son inválidas.</summary>
     Task<AuthResponse?> LoginAsync(LoginRequest request, CancellationToken ct = default);
 
+    /// <summary>Autentica o vincula un usuario usando identidad de Google y retorna un JWT.</summary>
+    Task<string?> LoginWithGoogleAsync(string providerUserId, string email, string fullName, string? avatarUrl, CancellationToken ct = default);
+
     /// <summary>Genera un nuevo access token a partir de un refresh token válido.</summary>
     Task<AuthResponse?> RefreshTokenAsync(string refreshToken, CancellationToken ct = default);
 

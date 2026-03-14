@@ -19,6 +19,7 @@ namespace ProjectLedger.API.Services;
 public class AuthService : IAuthService
 {
     private readonly IUserRepository _userRepo;
+    private readonly IExternalAuthProviderRepository _externalAuthProviderRepo;
     private readonly IRefreshTokenRepository _refreshTokenRepo;
     private readonly IPasswordResetTokenRepository _passwordResetTokenRepo;
     private readonly IPlanRepository _planRepo;
@@ -32,6 +33,7 @@ public class AuthService : IAuthService
 
     public AuthService(
         IUserRepository userRepo,
+        IExternalAuthProviderRepository externalAuthProviderRepo,
         IRefreshTokenRepository refreshTokenRepo,
         IPasswordResetTokenRepository passwordResetTokenRepo,
         IPlanRepository planRepo,
@@ -41,6 +43,7 @@ public class AuthService : IAuthService
         ILogger<AuthService> logger)
     {
         _userRepo = userRepo;
+        _externalAuthProviderRepo = externalAuthProviderRepo;
         _refreshTokenRepo = refreshTokenRepo;
         _passwordResetTokenRepo = passwordResetTokenRepo;
         _planRepo = planRepo;
@@ -160,6 +163,112 @@ public class AuthService : IAuthService
         _logger.LogInformation("User logged in: {UserId}", user.UsrId);
 
         return BuildAuthResponse(user, accessToken, rawRefreshToken);
+    }
+
+    // ── Login With Google ──────────────────────────────────
+
+    /// <inheritdoc />
+    public async Task<string?> LoginWithGoogleAsync(
+        string providerUserId,
+        string email,
+        string fullName,
+        string? avatarUrl,
+        CancellationToken ct = default)
+    {
+        const string provider = "google";
+
+        var normalizedProviderUserId = providerUserId.Trim();
+        var normalizedEmail = email.ToLowerInvariant().Trim();
+
+        if (string.IsNullOrWhiteSpace(normalizedProviderUserId)
+            || string.IsNullOrWhiteSpace(normalizedEmail))
+        {
+            return null;
+        }
+
+        User? user = null;
+
+        // Step 1: buscar vínculo existente por provider/providerUserId.
+        var providerLink = await _externalAuthProviderRepo
+            .GetByProviderAndProviderUserIdAsync(provider, normalizedProviderUserId, ct);
+
+        if (providerLink != null && !providerLink.EapIsDeleted)
+        {
+            user = await _userRepo.GetByIdAsync(providerLink.EapUserId, ct);
+            if (user == null)
+            {
+                _logger.LogWarning(
+                    "Google provider link exists without active user. ProviderUserId: {ProviderUserId}",
+                    normalizedProviderUserId);
+                return null;
+            }
+        }
+
+        // Step 2 + 3: vincular por email existente o crear usuario nuevo.
+        if (user == null)
+        {
+            user = await _userRepo.GetByEmailAsync(normalizedEmail, ct);
+
+            if (user != null)
+            {
+                var linked = await EnsureGoogleProviderLinkedAsync(user, normalizedProviderUserId, normalizedEmail, ct);
+                if (!linked)
+                    return null;
+            }
+            else
+            {
+                var defaultPlan = await _planRepo.GetBySlugAsync("free", ct)
+                                  ?? (await _planRepo.GetActiveAsync(ct)).FirstOrDefault()
+                                  ?? throw new InvalidOperationException(
+                                      "No active plans found. Seed the database with at least one plan.");
+
+                user = new User
+                {
+                    UsrId = Guid.NewGuid(),
+                    UsrEmail = normalizedEmail,
+                    UsrPasswordHash = null,
+                    UsrFullName = string.IsNullOrWhiteSpace(fullName)
+                        ? normalizedEmail
+                        : fullName.Trim(),
+                    UsrPlanId = defaultPlan.PlnId,
+                    UsrIsActive = false,
+                    UsrIsAdmin = false,
+                    UsrAvatarUrl = NormalizeOptional(avatarUrl),
+                    UsrLastLoginAt = DateTime.UtcNow,
+                    UsrCreatedAt = DateTime.UtcNow,
+                    UsrUpdatedAt = DateTime.UtcNow
+                };
+
+                await _userRepo.AddAsync(user, ct);
+
+                var newProviderLink = new ExternalAuthProvider
+                {
+                    EapId = Guid.NewGuid(),
+                    EapUserId = user.UsrId,
+                    EapProvider = provider,
+                    EapProviderUserId = normalizedProviderUserId,
+                    EapProviderEmail = normalizedEmail,
+                    EapCreatedAt = DateTime.UtcNow,
+                    EapUpdatedAt = DateTime.UtcNow
+                };
+
+                await _externalAuthProviderRepo.AddAsync(newProviderLink, ct);
+            }
+        }
+
+        user.UsrLastLoginAt = DateTime.UtcNow;
+        user.UsrUpdatedAt = DateTime.UtcNow;
+
+        var normalizedAvatar = NormalizeOptional(avatarUrl);
+        if (!string.IsNullOrWhiteSpace(normalizedAvatar))
+            user.UsrAvatarUrl = normalizedAvatar;
+
+        _userRepo.Update(user);
+        await _userRepo.SaveChangesAsync(ct);
+
+        _logger.LogInformation("Google login successful for user {UserId}", user.UsrId);
+
+        return _jwtTokenService.GenerateAccessToken(user);
     }
 
     // ── Refresh Token ───────────────────────────────────────
@@ -351,6 +460,61 @@ public class AuthService : IAuthService
         _logger.LogInformation("Password reset successful for user {UserId}", user.UsrId);
         return true;
     }
+
+    private async Task<bool> EnsureGoogleProviderLinkedAsync(
+        User user,
+        string providerUserId,
+        string providerEmail,
+        CancellationToken ct)
+    {
+        const string provider = "google";
+
+        var existingProviders = await _externalAuthProviderRepo.GetByUserIdAsync(user.UsrId, ct);
+        var existingGoogleProvider = existingProviders.FirstOrDefault(e =>
+            string.Equals(e.EapProvider, provider, StringComparison.OrdinalIgnoreCase));
+
+        if (existingGoogleProvider != null)
+        {
+            if (!string.Equals(existingGoogleProvider.EapProviderUserId, providerUserId, StringComparison.Ordinal))
+            {
+                _logger.LogWarning(
+                    "Google link conflict for user {UserId}. Existing ProviderUserId: {ExistingProviderUserId}",
+                    user.UsrId,
+                    existingGoogleProvider.EapProviderUserId);
+                return false;
+            }
+
+            existingGoogleProvider.EapProviderEmail = providerEmail;
+            existingGoogleProvider.EapIsDeleted = false;
+            existingGoogleProvider.EapDeletedAt = null;
+            existingGoogleProvider.EapDeletedByUserId = null;
+            existingGoogleProvider.EapUpdatedAt = DateTime.UtcNow;
+
+            _externalAuthProviderRepo.Update(existingGoogleProvider);
+            return true;
+        }
+
+        var newProviderLink = new ExternalAuthProvider
+        {
+            EapId = Guid.NewGuid(),
+            EapUserId = user.UsrId,
+            EapProvider = provider,
+            EapProviderUserId = providerUserId,
+            EapProviderEmail = providerEmail,
+            EapCreatedAt = DateTime.UtcNow,
+            EapUpdatedAt = DateTime.UtcNow
+        };
+
+        await _externalAuthProviderRepo.AddAsync(newProviderLink, ct);
+        return true;
+    }
+
+    private static string? NormalizeOptional(string? value)
+    {
+        var trimmed = value?.Trim();
+        return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
+    }
+
     // ── Private Helpers ─────────────────────────────────────
 
     /// <summary>

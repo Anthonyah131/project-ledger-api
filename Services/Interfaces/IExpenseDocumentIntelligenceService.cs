@@ -9,5 +9,6 @@ public interface IExpenseDocumentIntelligenceService
         Guid projectId,
         IFormFile file,
         string documentKind,
+    string transactionKind = "expense",
         CancellationToken ct = default);
 }

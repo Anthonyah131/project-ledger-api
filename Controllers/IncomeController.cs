@@ -203,6 +203,7 @@ public class IncomeController : ControllerBase
             projectId,
             request.File,
             request.DocumentKind,
+            transactionKind: "income",
             ct);
 
         await _auditLogService.LogAsync(
