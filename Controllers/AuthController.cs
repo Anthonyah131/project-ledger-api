@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 using ProjectLedger.API.DTOs.Auth;
 using ProjectLedger.API.Services;
+using ProjectLedger.API.Common.Settings;
 
 namespace ProjectLedger.API.Controllers;
 
@@ -23,13 +24,16 @@ public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
     private readonly GoogleAuthSettings _googleAuthSettings;
+    private readonly ILogger<AuthController> _logger;
 
     public AuthController(
         IAuthService authService,
-        IOptions<GoogleAuthSettings> googleAuthSettings)
+        IOptions<GoogleAuthSettings> googleAuthSettings,
+        ILogger<AuthController> logger)
     {
         _authService = authService;
         _googleAuthSettings = googleAuthSettings.Value;
+        _logger = logger;
     }
 
     // ── POST /api/auth/register ─────────────────────────────
@@ -131,40 +135,61 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status302Found)]
     public async Task<IActionResult> GoogleCallback(CancellationToken ct)
     {
-        var authResult = await HttpContext.AuthenticateAsync(AuthSchemes.ExternalCookieScheme);
-        if (!authResult.Succeeded || authResult.Principal == null)
-            return Redirect(BuildFrontendCallbackUrl(error: "google_auth_failed"));
+        try
+        {
+            var authResult = await HttpContext.AuthenticateAsync(AuthSchemes.ExternalCookieScheme);
+            if (!authResult.Succeeded || authResult.Principal == null)
+            {
+                var failureMsg = authResult.Failure?.Message ?? "Unknown auth failure";
+                _logger.LogWarning("Google OAuth cookie authentication failed: {Reason}", failureMsg);
+                return Redirect(BuildFrontendCallbackUrl(error: "google_auth_failed"));
+            }
 
-        var principal = authResult.Principal;
+            var principal = authResult.Principal;
 
-        var googleSub = principal.FindFirstValue(ClaimTypes.NameIdentifier)
-                        ?? principal.FindFirstValue("sub");
+            var googleSub = principal.FindFirstValue(ClaimTypes.NameIdentifier)
+                            ?? principal.FindFirstValue("sub");
 
-        var email = principal.FindFirstValue(ClaimTypes.Email)
-                    ?? principal.FindFirstValue("email");
+            var email = principal.FindFirstValue(ClaimTypes.Email)
+                        ?? principal.FindFirstValue("email");
 
-        var fullName = principal.FindFirstValue(ClaimTypes.Name)
-                       ?? principal.FindFirstValue("name")
-                       ?? email;
+            var fullName = principal.FindFirstValue(ClaimTypes.Name)
+                           ?? principal.FindFirstValue("name")
+                           ?? email;
 
-        var avatarUrl = principal.FindFirstValue("picture");
+            var avatarUrl = principal.FindFirstValue("picture");
 
-        await HttpContext.SignOutAsync(AuthSchemes.ExternalCookieScheme);
+            await HttpContext.SignOutAsync(AuthSchemes.ExternalCookieScheme);
 
-        if (string.IsNullOrWhiteSpace(googleSub) || string.IsNullOrWhiteSpace(email))
-            return Redirect(BuildFrontendCallbackUrl(error: "google_profile_incomplete"));
+            if (string.IsNullOrWhiteSpace(googleSub) || string.IsNullOrWhiteSpace(email))
+            {
+                _logger.LogWarning("Google OAuth profile incomplete — sub: {Sub}, email: {Email}", googleSub, email);
+                return Redirect(BuildFrontendCallbackUrl(error: "google_profile_incomplete"));
+            }
 
-        var accessToken = await _authService.LoginWithGoogleAsync(
-            googleSub,
-            email,
-            fullName ?? email,
-            avatarUrl,
-            ct);
+            _logger.LogInformation("Google OAuth callback received for email: {Email}", email);
 
-        if (string.IsNullOrWhiteSpace(accessToken))
-            return Redirect(BuildFrontendCallbackUrl(error: "google_login_failed"));
+            var accessToken = await _authService.LoginWithGoogleAsync(
+                googleSub,
+                email,
+                fullName ?? email,
+                avatarUrl,
+                ct);
 
-        return Redirect(BuildFrontendCallbackUrl(token: accessToken));
+            if (string.IsNullOrWhiteSpace(accessToken))
+            {
+                _logger.LogWarning("LoginWithGoogleAsync returned null for email: {Email}", email);
+                return Redirect(BuildFrontendCallbackUrl(error: "google_login_failed"));
+            }
+
+            _logger.LogInformation("Google OAuth login successful for email: {Email}", email);
+            return Redirect(BuildFrontendCallbackUrl(token: accessToken));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error in GoogleCallback: {Message}", ex.Message);
+            return Redirect(BuildFrontendCallbackUrl(error: "google_server_error"));
+        }
     }
 
     // ── POST /api/auth/refresh ──────────────────────────────

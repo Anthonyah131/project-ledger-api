@@ -205,6 +205,8 @@ public class AuthService : IAuthService
         }
 
         // Step 2 + 3: vincular por email existente o crear usuario nuevo.
+        var isNewUser = false;
+
         if (user == null)
         {
             user = await _userRepo.GetByEmailAsync(normalizedEmail, ct);
@@ -253,17 +255,25 @@ public class AuthService : IAuthService
                 };
 
                 await _externalAuthProviderRepo.AddAsync(newProviderLink, ct);
+                isNewUser = true;
             }
         }
 
-        user.UsrLastLoginAt = DateTime.UtcNow;
-        user.UsrUpdatedAt = DateTime.UtcNow;
+        if (!isNewUser)
+        {
+            // Existing user: update last-login and avatar in the database.
+            user.UsrLastLoginAt = DateTime.UtcNow;
+            user.UsrUpdatedAt   = DateTime.UtcNow;
 
-        var normalizedAvatar = NormalizeOptional(avatarUrl);
-        if (!string.IsNullOrWhiteSpace(normalizedAvatar))
-            user.UsrAvatarUrl = normalizedAvatar;
+            var normalizedAvatar = NormalizeOptional(avatarUrl);
+            if (!string.IsNullOrWhiteSpace(normalizedAvatar))
+                user.UsrAvatarUrl = normalizedAvatar;
 
-        _userRepo.Update(user);
+            _userRepo.Update(user);
+        }
+        // New user: all fields set during construction — calling Update would change
+        // EF Core state from Added to Modified and cause a DB error.
+
         await _userRepo.SaveChangesAsync(ct);
 
         _logger.LogInformation("Google login successful for user {UserId}", user.UsrId);

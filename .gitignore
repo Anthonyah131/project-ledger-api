@@ -9,6 +9,9 @@ appsettings.Production.json
 appsettings.Staging.json
 **/secrets.json
 
+# ── Data Protection Keys (claves privadas de cifrado OAuth) ──
+dataprotection-keys/
+
 # ── Build outputs ───────────────────────────────
 [Bb]in/
 [Oo]bj/
