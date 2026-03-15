@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.OpenApi;
 using Microsoft.Extensions.Options;
 using ProjectLedger.API.Extensions;
@@ -27,6 +28,17 @@ if (File.Exists(envFile))
 }
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ── Data Protection (persistent keys for OAuth state cookie) ─
+// En Azure App Service el sistema de archivos bajo /home es persistente.
+// Esto evita el error 500 en /signin-google al reiniciar la app.
+var keysPath = Environment.GetEnvironmentVariable("HOME") is { } home
+    ? Path.Combine(home, "site", "dataprotection-keys")
+    : Path.Combine(builder.Environment.ContentRootPath, "dataprotection-keys");
+
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(keysPath))
+    .SetApplicationName("ProjectLedger");
 
 // ── Service Registration ────────────────────────────────────
 builder.Services.AddControllers(options =>
