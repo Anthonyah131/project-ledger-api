@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace ProjectLedger.API.DTOs.Project;
 
@@ -17,6 +18,14 @@ public class CreateProjectRequest
     public string CurrencyCode { get; set; } = null!;
 
     public string? Description { get; set; }
+
+    /// <summary>
+    /// Workspace al que pertenece el proyecto. Opcional — si no se provee se asigna
+    /// automáticamente al workspace "General" del usuario.
+    /// Acepta tanto "workspace_id" (snake_case) como "workspaceId" (camelCase).
+    /// </summary>
+    [JsonPropertyName("workspace_id")]
+    public Guid? WorkspaceId { get; set; }
 }
 
 /// <summary>Request para actualizar un proyecto. NO incluye ProjectId (viene de la ruta).</summary>
@@ -40,6 +49,9 @@ public class ProjectResponse
     public string? Description { get; set; }
     public Guid OwnerUserId { get; set; }
     public string UserRole { get; set; } = null!;               // Rol del usuario autenticado
+    public Guid? WorkspaceId { get; set; }
+    public string? WorkspaceName { get; set; }
+    public bool PartnersEnabled { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

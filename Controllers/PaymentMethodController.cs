@@ -98,6 +98,7 @@ public class PaymentMethodController : ControllerBase
             return BadRequest(ModelState);
 
         var userId = User.GetRequiredUserId();
+
         var pm = request.ToEntity(userId);
         await _paymentMethodService.CreateAsync(pm, ct);
 
@@ -136,6 +137,75 @@ public class PaymentMethodController : ControllerBase
         await _paymentMethodService.UpdateAsync(pm, ct);
 
         return Ok(pm.ToResponse());
+    }
+
+    // ── POST /api/payment-methods/{id}/partner ──────────────
+
+    /// <summary>
+    /// Enlaza un partner a un método de pago. Solo el dueño puede hacerlo.
+    /// </summary>
+    /// <response code="200">Partner enlazado.</response>
+    /// <response code="404">Método de pago o partner no encontrado.</response>
+    /// <response code="409">El método de pago ya tiene este partner enlazado.</response>
+    [HttpPost("{id:guid}/partner")]
+    [ProducesResponseType(typeof(PaymentMethodResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> LinkPartner(
+        Guid id,
+        [FromBody] LinkPartnerToPaymentMethodRequest request,
+        CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var userId = User.GetRequiredUserId();
+
+        try
+        {
+            var pm = await _paymentMethodService.LinkPartnerAsync(id, request.PartnerId, userId, ct);
+            return Ok(pm.ToResponse());
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
+    // ── DELETE /api/payment-methods/{id}/partner ─────────────
+
+    /// <summary>
+    /// Desenlaza el partner de un método de pago. Solo el dueño puede hacerlo.
+    /// </summary>
+    /// <response code="200">Partner desenlazado.</response>
+    /// <response code="404">Método de pago no encontrado.</response>
+    /// <response code="409">El método de pago no tiene un partner enlazado.</response>
+    [HttpDelete("{id:guid}/partner")]
+    [ProducesResponseType(typeof(PaymentMethodResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UnlinkPartner(Guid id, CancellationToken ct)
+    {
+        var userId = User.GetRequiredUserId();
+
+        try
+        {
+            var pm = await _paymentMethodService.UnlinkPartnerAsync(id, userId, ct);
+            return Ok(pm.ToResponse());
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
     }
 
     // ── DELETE /api/payment-methods/{id} ────────────────────
@@ -307,15 +377,57 @@ public class PaymentMethodController : ControllerBase
         var incomes = await _incomeService.GetByPaymentMethodIdAsync(id, ct);
         var links = await _projectPaymentMethodService.GetByPaymentMethodIdAsync(id, ct);
 
+        var pmCurrency = pm.PmtCurrency;
+
         var summary = new PaymentMethodSummaryResponse
         {
             RelatedExpensesCount = expenses.Count(),
             RelatedIncomesCount = incomes.Count(),
             RelatedProjectsCount = links.Count(),
-            TotalExpenseAmount = expenses.Sum(e => e.ExpConvertedAmount),
-            TotalIncomeAmount = incomes.Sum(i => i.IncConvertedAmount)
+            TotalExpenseAmount = expenses.Sum(e =>
+                e.ExpAccountAmount ??
+                (e.ExpOriginalCurrency == pmCurrency ? e.ExpOriginalAmount : e.ExpConvertedAmount)),
+            TotalIncomeAmount = incomes.Sum(i =>
+                i.IncAccountAmount ??
+                (i.IncOriginalCurrency == pmCurrency ? i.IncOriginalAmount : i.IncConvertedAmount)),
+            Currency = pmCurrency
         };
 
         return Ok(summary);
+    }
+
+    // ── GET /api/payment-methods/{id}/balance ──────────────
+
+    /// <summary>
+    /// Devuelve el balance de la cuenta en un proyecto específico (en moneda de la cuenta).
+    /// Solo gastos e ingresos activos (no recordatorios) cuentan en el balance.
+    /// </summary>
+    /// <response code="200">Balance de la cuenta en el proyecto.</response>
+    /// <response code="400">project_id es requerido.</response>
+    /// <response code="404">Cuenta no encontrada o no vinculada al proyecto.</response>
+    [HttpGet("{id:guid}/balance")]
+    [ProducesResponseType(typeof(PaymentMethodBalanceResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetProjectBalance(
+        Guid id,
+        [FromQuery] Guid? projectId,
+        CancellationToken ct)
+    {
+        if (!projectId.HasValue)
+            return BadRequest(new { error = new { code = "PROJECT_ID_REQUIRED", message = "project_id query parameter is required." } });
+
+        var userId = User.GetRequiredUserId();
+        var pm = await _paymentMethodService.GetByIdAsync(id, ct);
+
+        if (pm is null || pm.PmtOwnerUserId != userId)
+            return NotFound(new { message = "Payment method not found." });
+
+        var isLinked = await _projectPaymentMethodService.IsLinkedAsync(projectId.Value, id, ct);
+        if (!isLinked)
+            return NotFound(new { message = "Payment method is not linked to the specified project." });
+
+        var balance = await _paymentMethodService.GetProjectBalanceAsync(id, projectId.Value, ct);
+        return Ok(balance);
     }
 }

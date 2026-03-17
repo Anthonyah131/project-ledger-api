@@ -30,6 +30,11 @@ public class CreatePaymentMethodRequest
     public string? AccountNumber { get; set; }
 
     public string? Description { get; set; }
+
+    /// <summary>
+    /// Partner dueño de esta cuenta. Opcional — si se provee debe pertenecer al usuario autenticado.
+    /// </summary>
+    public Guid? PartnerId { get; set; }
 }
 
 /// <summary>Request para actualizar un método de pago.</summary>
@@ -52,7 +57,23 @@ public class UpdatePaymentMethodRequest
     public string? Description { get; set; }
 }
 
+/// <summary>Request para enlazar un partner a un método de pago.</summary>
+public class LinkPartnerToPaymentMethodRequest
+{
+    [Required]
+    public Guid PartnerId { get; set; }
+}
+
 // ── Responses ───────────────────────────────────────────────
+
+/// <summary>Partner dueño de un método de pago (embebido en PaymentMethodResponse).</summary>
+public class PaymentMethodPartnerResponse
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = null!;
+    public string? Email { get; set; }
+    public string? Phone { get; set; }
+}
 
 /// <summary>Respuesta con los datos de un método de pago.</summary>
 public class PaymentMethodResponse
@@ -64,6 +85,9 @@ public class PaymentMethodResponse
     public string? BankName { get; set; }
     public string? AccountNumber { get; set; }
     public string? Description { get; set; }
+    public Guid? PartnerId { get; set; }
+    /// <summary>Info del partner dueño. Null si el método de pago no tiene partner asignado.</summary>
+    public PaymentMethodPartnerResponse? Partner { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
@@ -95,4 +119,17 @@ public class PaymentMethodSummaryResponse
     public int RelatedProjectsCount { get; set; }
     public decimal TotalExpenseAmount { get; set; }
     public decimal TotalIncomeAmount { get; set; }
+    public string Currency { get; set; } = null!;
+}
+
+/// <summary>Balance de una cuenta en un proyecto específico (en moneda de la cuenta).</summary>
+public class PaymentMethodBalanceResponse
+{
+    public Guid PaymentMethodId { get; set; }
+    public string PaymentMethodName { get; set; } = null!;
+    public string Currency { get; set; } = null!;
+    public Guid ProjectId { get; set; }
+    public decimal TotalIncome { get; set; }
+    public decimal TotalExpenses { get; set; }
+    public decimal Balance { get; set; }
 }

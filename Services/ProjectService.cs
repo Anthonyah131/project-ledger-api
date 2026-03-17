@@ -39,6 +39,14 @@ public class ProjectService : IProjectService
     public async Task<IEnumerable<Project>> GetByMemberUserIdAsync(Guid userId, CancellationToken ct = default)
         => await _projectRepo.GetByMemberUserIdAsync(userId, ct);
 
+    public async Task<(IEnumerable<Project> Items, int TotalCount)> GetByUserIdPagedAsync(
+        Guid userId, int skip, int take, string? sortBy = null, bool isDescending = true, CancellationToken ct = default)
+        => await _projectRepo.GetByUserIdPagedAsync(userId, skip, take, sortBy, isDescending, ct);
+
+    public async Task<(IEnumerable<Project> Items, int TotalCount)> GetByWorkspaceIdPagedAsync(
+        Guid workspaceId, Guid userId, int skip, int take, string? sortBy = null, bool isDescending = true, CancellationToken ct = default)
+        => await _projectRepo.GetByWorkspaceIdPagedAsync(workspaceId, userId, skip, take, sortBy, isDescending, ct);
+
     public async Task<Project> CreateAsync(Project project, CancellationToken ct = default)
     {
         // Validar permiso del plan
@@ -102,6 +110,18 @@ public class ProjectService : IProjectService
 
         await _auditLog.LogAsync("Project", project.PrjId, "update", project.PrjOwnerUserId,
             newValues: new { project.PrjName, project.PrjDescription }, ct: ct);
+    }
+
+    public async Task SetWorkspaceAsync(Guid projectId, Guid? workspaceId, CancellationToken ct = default)
+    {
+        var project = await _projectRepo.GetByIdAsync(projectId, ct)
+            ?? throw new KeyNotFoundException($"Project '{projectId}' not found.");
+
+        project.PrjWorkspaceId = workspaceId;
+        project.PrjUpdatedAt = DateTime.UtcNow;
+
+        _projectRepo.Update(project);
+        await _projectRepo.SaveChangesAsync(ct);
     }
 
     public async Task SoftDeleteAsync(Guid id, Guid deletedByUserId, CancellationToken ct = default)

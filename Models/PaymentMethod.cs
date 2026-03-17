@@ -8,6 +8,7 @@ public class PaymentMethod
 {
     public Guid PmtId { get; set; }
     public Guid PmtOwnerUserId { get; set; }
+    public Guid? PmtOwnerPartnerId { get; set; }
     public string PmtName { get; set; } = null!;
     public string PmtType { get; set; } = null!;               // 'bank', 'cash', 'card'
     public string PmtCurrency { get; set; } = null!;           // ISO 4217
@@ -24,6 +25,7 @@ public class PaymentMethod
 
     // ── Navigation properties ───────────────────────────────
     public User OwnerUser { get; set; } = null!;
+    public Partner? OwnerPartner { get; set; }
     public User? DeletedByUser { get; set; }
     public Currency Currency { get; set; } = null!;
 

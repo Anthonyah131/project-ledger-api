@@ -4,7 +4,7 @@
     "api-design-principles": {
       "source": "wshobson/agents",
       "sourceType": "github",
-      "computedHash": "1ee396a9c4714df95f1a9f8d156395848e8bd0fac1d70920a0487e8526ec0e55"
+      "computedHash": "b242f962d5f78bf8bc147e92f2aa0341459b9f5f2f955e9867a8c41b85f22648"
     },
     "pdf": {
       "source": "anthropics/skills",

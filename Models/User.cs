@@ -39,4 +39,5 @@ public class User
     public ICollection<Obligation> CreatedObligations { get; set; } = [];
     public ICollection<Income> CreatedIncomes { get; set; } = [];
     public ICollection<AuditLog> AuditLogs { get; set; } = [];
+    public ICollection<Partner> Partners { get; set; } = [];
 }

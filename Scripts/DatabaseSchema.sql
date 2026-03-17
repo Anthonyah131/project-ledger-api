@@ -1,5 +1,6 @@
 -- DROP SCHEMA public;
 
+CREATE SCHEMA public AUTHORIZATION root;
 -- public.currencies definition
 
 -- Drop table
@@ -113,6 +114,32 @@ CREATE TABLE public.users (
 );
 
 
+-- public.workspaces definition
+
+-- Drop table
+
+-- DROP TABLE workspaces;
+
+CREATE TABLE public.workspaces (
+	wks_id UUID NOT NULL DEFAULT gen_random_uuid(),
+	wks_name VARCHAR(255) NOT NULL,
+	wks_owner_user_id UUID NOT NULL,
+	wks_description STRING NULL,
+	wks_color VARCHAR(7) NULL,
+	wks_icon VARCHAR(50) NULL,
+	wks_created_at TIMESTAMPTZ NOT NULL DEFAULT now():::TIMESTAMPTZ,
+	wks_updated_at TIMESTAMPTZ NOT NULL DEFAULT now():::TIMESTAMPTZ,
+	wks_is_deleted BOOL NOT NULL DEFAULT false,
+	wks_deleted_at TIMESTAMPTZ NULL,
+	wks_deleted_by_user_id UUID NULL,
+	CONSTRAINT workspaces_pkey PRIMARY KEY (wks_id ASC),
+	CONSTRAINT wks_owner_fkey FOREIGN KEY (wks_owner_user_id) REFERENCES public.users(usr_id),
+	CONSTRAINT wks_deleted_by_fkey FOREIGN KEY (wks_deleted_by_user_id) REFERENCES public.users(usr_id),
+	INDEX idx_wks_owner_user_id (wks_owner_user_id ASC),
+	INDEX idx_wks_is_deleted (wks_is_deleted ASC)
+);
+
+
 -- public.audit_logs definition
 
 -- Drop table
@@ -168,6 +195,34 @@ CREATE TABLE public.external_auth_providers (
 );
 
 
+-- public.partners definition
+
+-- Drop table
+
+-- DROP TABLE partners;
+
+CREATE TABLE public.partners (
+	ptr_id UUID NOT NULL DEFAULT gen_random_uuid(),
+	ptr_owner_user_id UUID NOT NULL,
+	ptr_name VARCHAR(255) NOT NULL,
+	ptr_email VARCHAR(255) NULL,
+	ptr_phone VARCHAR(50) NULL,
+	ptr_notes STRING NULL,
+	ptr_created_at TIMESTAMPTZ NOT NULL DEFAULT now():::TIMESTAMPTZ,
+	ptr_updated_at TIMESTAMPTZ NOT NULL DEFAULT now():::TIMESTAMPTZ,
+	ptr_is_deleted BOOL NOT NULL DEFAULT false,
+	ptr_deleted_at TIMESTAMPTZ NULL,
+	ptr_deleted_by_user_id UUID NULL,
+	CONSTRAINT partners_pkey PRIMARY KEY (ptr_id ASC),
+	CONSTRAINT ptr_owner_fkey FOREIGN KEY (ptr_owner_user_id) REFERENCES public.users(usr_id),
+	CONSTRAINT ptr_deleted_by_fkey FOREIGN KEY (ptr_deleted_by_user_id) REFERENCES public.users(usr_id),
+	INDEX idx_ptr_owner_user_id (ptr_owner_user_id ASC),
+	INDEX idx_ptr_is_deleted (ptr_is_deleted ASC)
+);
+COMMENT ON TABLE public.partners IS e'Contactos financieros del usuario. Due\u00F1os de m\u00E9todos de pago y asignados a proyectos.';
+COMMENT ON TABLE public.partners IS 'Contactos financieros del usuario. Dueños de métodos de pago y asignados a proyectos.';
+
+
 -- public.password_reset_tokens definition
 
 -- Drop table
@@ -208,12 +263,15 @@ CREATE TABLE public.payment_methods (
 	pmt_is_deleted BOOL NOT NULL DEFAULT false,
 	pmt_deleted_at TIMESTAMPTZ NULL,
 	pmt_deleted_by_user_id UUID NULL,
+	pmt_owner_partner_id UUID NULL,
 	CONSTRAINT payment_methods_pkey PRIMARY KEY (pmt_id ASC),
 	CONSTRAINT payment_methods_owner_user_id_fkey FOREIGN KEY (pmt_owner_user_id) REFERENCES public.users(usr_id),
 	CONSTRAINT payment_methods_deleted_by_user_id_fkey FOREIGN KEY (pmt_deleted_by_user_id) REFERENCES public.users(usr_id),
 	CONSTRAINT payment_methods_currency_fkey FOREIGN KEY (pmt_currency) REFERENCES public.currencies(cur_code),
+	CONSTRAINT payment_methods_pmt_owner_partner_id_fkey FOREIGN KEY (pmt_owner_partner_id) REFERENCES public.partners(ptr_id),
 	INDEX idx_pmt_owner_user_id (pmt_owner_user_id ASC),
 	INDEX idx_pmt_is_deleted (pmt_is_deleted ASC),
+	INDEX idx_pmt_owner_partner_id (pmt_owner_partner_id ASC) WHERE pmt_owner_partner_id IS NOT NULL,
 	CONSTRAINT payment_methods_type_check CHECK (pmt_type IN ('bank':::STRING, 'cash':::STRING, 'card':::STRING))
 );
 
@@ -235,12 +293,16 @@ CREATE TABLE public.projects (
 	prj_is_deleted BOOL NOT NULL DEFAULT false,
 	prj_deleted_at TIMESTAMPTZ NULL,
 	prj_deleted_by_user_id UUID NULL,
+	prj_workspace_id UUID NULL,
+	prj_partners_enabled BOOL NOT NULL DEFAULT false,
 	CONSTRAINT projects_pkey PRIMARY KEY (prj_id ASC),
 	CONSTRAINT projects_owner_user_id_fkey FOREIGN KEY (prj_owner_user_id) REFERENCES public.users(usr_id),
 	CONSTRAINT projects_deleted_by_user_id_fkey FOREIGN KEY (prj_deleted_by_user_id) REFERENCES public.users(usr_id),
 	CONSTRAINT projects_currency_fkey FOREIGN KEY (prj_currency_code) REFERENCES public.currencies(cur_code),
+	CONSTRAINT projects_prj_workspace_id_fkey FOREIGN KEY (prj_workspace_id) REFERENCES public.workspaces(wks_id),
 	INDEX idx_prj_owner_user_id (prj_owner_user_id ASC),
-	INDEX idx_prj_is_deleted (prj_is_deleted ASC)
+	INDEX idx_prj_is_deleted (prj_is_deleted ASC),
+	INDEX idx_prj_workspace_id (prj_workspace_id ASC)
 );
 
 
@@ -290,6 +352,35 @@ CREATE TABLE public.user_subscriptions (
 	UNIQUE INDEX user_subscriptions_stripe_subscription_id_uq (uss_stripe_subscription_id ASC),
 	INDEX user_subscriptions_user_id_idx (uss_user_id ASC),
 	INDEX user_subscriptions_customer_id_idx (uss_stripe_customer_id ASC)
+);
+
+
+-- public.workspace_members definition
+
+-- Drop table
+
+-- DROP TABLE workspace_members;
+
+CREATE TABLE public.workspace_members (
+	wkm_id UUID NOT NULL DEFAULT gen_random_uuid(),
+	wkm_workspace_id UUID NOT NULL,
+	wkm_user_id UUID NOT NULL,
+	wkm_role VARCHAR(20) NOT NULL DEFAULT 'member':::STRING,
+	wkm_joined_at TIMESTAMPTZ NOT NULL DEFAULT now():::TIMESTAMPTZ,
+	wkm_created_at TIMESTAMPTZ NOT NULL DEFAULT now():::TIMESTAMPTZ,
+	wkm_updated_at TIMESTAMPTZ NOT NULL DEFAULT now():::TIMESTAMPTZ,
+	wkm_is_deleted BOOL NOT NULL DEFAULT false,
+	wkm_deleted_at TIMESTAMPTZ NULL,
+	wkm_deleted_by_user_id UUID NULL,
+	CONSTRAINT workspace_members_pkey PRIMARY KEY (wkm_id ASC),
+	CONSTRAINT wkm_workspace_fkey FOREIGN KEY (wkm_workspace_id) REFERENCES public.workspaces(wks_id),
+	CONSTRAINT wkm_user_fkey FOREIGN KEY (wkm_user_id) REFERENCES public.users(usr_id),
+	CONSTRAINT wkm_deleted_by_fkey FOREIGN KEY (wkm_deleted_by_user_id) REFERENCES public.users(usr_id),
+	UNIQUE INDEX uq_wkm_workspace_user_active (wkm_workspace_id ASC, wkm_user_id ASC) WHERE wkm_is_deleted = false,
+	INDEX idx_wkm_workspace_id (wkm_workspace_id ASC),
+	INDEX idx_wkm_user_id (wkm_user_id ASC),
+	INDEX idx_wkm_is_deleted (wkm_is_deleted ASC),
+	CONSTRAINT wkm_role_check CHECK (wkm_role IN ('owner':::STRING, 'member':::STRING))
 );
 
 
@@ -349,6 +440,7 @@ CREATE TABLE public.incomes (
 	inc_deleted_by_user_id UUID NULL,
 	inc_account_amount DECIMAL(14,2) NULL,
 	inc_account_currency VARCHAR(3) NULL,
+	inc_is_active BOOL NOT NULL DEFAULT true,
 	CONSTRAINT incomes_pkey PRIMARY KEY (inc_id ASC),
 	CONSTRAINT incomes_inc_project_id_fkey FOREIGN KEY (inc_project_id) REFERENCES public.projects(prj_id),
 	CONSTRAINT incomes_inc_category_id_fkey FOREIGN KEY (inc_category_id) REFERENCES public.categories(cat_id),
@@ -361,8 +453,10 @@ CREATE TABLE public.incomes (
 	INDEX idx_inc_payment_method_id (inc_payment_method_id ASC),
 	INDEX idx_inc_created_by_user_id (inc_created_by_user_id ASC),
 	INDEX idx_inc_income_date (inc_income_date ASC),
-	INDEX idx_inc_is_deleted (inc_is_deleted ASC)
+	INDEX idx_inc_is_deleted (inc_is_deleted ASC),
+	INDEX idx_incomes_inc_is_active (inc_is_active ASC)
 );
+COMMENT ON TABLE public.incomes IS 'Ingresos financieros registrados por proyecto.';
 COMMENT ON TABLE public.incomes IS 'Ingresos financieros registrados por proyecto.';
 
 
@@ -415,6 +509,7 @@ CREATE TABLE public.project_alternative_currencies (
 	UNIQUE INDEX uq_pac_project_currency (pac_project_id ASC, pac_currency_code ASC),
 	INDEX idx_pac_project_id (pac_project_id ASC)
 );
+COMMENT ON TABLE public.project_alternative_currencies IS e'Monedas alternativas habilitadas por proyecto para visualizaci\u00F3n multi-divisa.';
 COMMENT ON TABLE public.project_alternative_currencies IS 'Monedas alternativas habilitadas por proyecto para visualización multi-divisa.';
 
 
@@ -474,6 +569,36 @@ CREATE TABLE public.project_members (
 );
 
 
+-- public.project_partners definition
+
+-- Drop table
+
+-- DROP TABLE project_partners;
+
+CREATE TABLE public.project_partners (
+	ptp_id UUID NOT NULL DEFAULT gen_random_uuid(),
+	ptp_project_id UUID NOT NULL,
+	ptp_partner_id UUID NOT NULL,
+	ptp_added_by_user_id UUID NOT NULL,
+	ptp_created_at TIMESTAMPTZ NOT NULL DEFAULT now():::TIMESTAMPTZ,
+	ptp_updated_at TIMESTAMPTZ NOT NULL DEFAULT now():::TIMESTAMPTZ,
+	ptp_is_deleted BOOL NOT NULL DEFAULT false,
+	ptp_deleted_at TIMESTAMPTZ NULL,
+	ptp_deleted_by_user_id UUID NULL,
+	CONSTRAINT project_partners_pkey PRIMARY KEY (ptp_id ASC),
+	CONSTRAINT ptp_project_fkey FOREIGN KEY (ptp_project_id) REFERENCES public.projects(prj_id),
+	CONSTRAINT ptp_partner_fkey FOREIGN KEY (ptp_partner_id) REFERENCES public.partners(ptr_id),
+	CONSTRAINT ptp_added_by_fkey FOREIGN KEY (ptp_added_by_user_id) REFERENCES public.users(usr_id),
+	CONSTRAINT ptp_deleted_by_fkey FOREIGN KEY (ptp_deleted_by_user_id) REFERENCES public.users(usr_id),
+	UNIQUE INDEX uq_ptp_project_partner_active (ptp_project_id ASC, ptp_partner_id ASC) WHERE ptp_is_deleted = false,
+	INDEX idx_ptp_project_id (ptp_project_id ASC),
+	INDEX idx_ptp_partner_id (ptp_partner_id ASC),
+	INDEX idx_ptp_is_deleted (ptp_is_deleted ASC)
+);
+COMMENT ON TABLE public.project_partners IS e'Partners asignados a un proyecto. Los m\u00E9todos de pago disponibles se derivan de estos partners.';
+COMMENT ON TABLE public.project_partners IS 'Partners asignados a un proyecto. Los métodos de pago disponibles se derivan de estos partners.';
+
+
 -- public.project_payment_methods definition
 
 -- Drop table
@@ -525,6 +650,9 @@ CREATE TABLE public.expenses (
 	exp_deleted_at TIMESTAMPTZ NULL,
 	exp_deleted_by_user_id UUID NULL,
 	exp_obligation_equivalent_amount DECIMAL(14,2) NULL,
+	exp_is_active BOOL NOT NULL DEFAULT true,
+	exp_account_amount DECIMAL(14,2) NULL,
+	exp_account_currency VARCHAR(3) NULL,
 	CONSTRAINT expenses_pkey PRIMARY KEY (exp_id ASC),
 	CONSTRAINT expenses_project_id_fkey FOREIGN KEY (exp_project_id) REFERENCES public.projects(prj_id),
 	CONSTRAINT expenses_category_id_fkey FOREIGN KEY (exp_category_id) REFERENCES public.categories(cat_id),
@@ -541,10 +669,15 @@ CREATE TABLE public.expenses (
 	INDEX idx_exp_obligation_id (exp_obligation_id ASC),
 	INDEX idx_exp_is_deleted (exp_is_deleted ASC),
 	INDEX idx_exp_is_template (exp_is_template ASC),
+	INDEX idx_expenses_exp_is_active (exp_is_active ASC),
 	CONSTRAINT expenses_original_amount_positive CHECK (exp_original_amount > 0:::DECIMAL),
 	CONSTRAINT expenses_converted_amount_positive CHECK (exp_converted_amount > 0:::DECIMAL),
 	CONSTRAINT expenses_exchange_rate_positive CHECK (exp_exchange_rate > 0:::DECIMAL)
 );
+COMMENT ON COLUMN public.expenses.exp_obligation_equivalent_amount IS 'Amount paid expressed in obligation currency for cross-currency obligation payments.';
+
+-- Column comments
+
 COMMENT ON COLUMN public.expenses.exp_obligation_equivalent_amount IS 'Amount paid expressed in obligation currency for cross-currency obligation payments.';
 
 
@@ -572,4 +705,5 @@ CREATE TABLE public.transaction_currency_exchanges (
 	INDEX idx_tce_income_id (tce_income_id ASC) WHERE tce_income_id IS NOT NULL,
 	CONSTRAINT chk_tce_one_parent CHECK (((tce_expense_id IS NOT NULL)::INT8 + (tce_income_id IS NOT NULL)::INT8) = 1:::INT8)
 );
+COMMENT ON TABLE public.transaction_currency_exchanges IS 'Conversiones de gastos/ingresos a monedas alternativas del proyecto.';
 COMMENT ON TABLE public.transaction_currency_exchanges IS 'Conversiones de gastos/ingresos a monedas alternativas del proyecto.';

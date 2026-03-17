@@ -13,6 +13,7 @@ public class ExpenseService : IExpenseService
     private readonly IProjectRepository _projectRepo;
     private readonly IObligationRepository _obligationRepo;
     private readonly IProjectPaymentMethodRepository _ppmRepo;
+    private readonly IPaymentMethodRepository _paymentMethodRepo;
     private readonly IPlanAuthorizationService _planAuth;
     private readonly IAuditLogService _auditLog;
 
@@ -21,6 +22,7 @@ public class ExpenseService : IExpenseService
         IProjectRepository projectRepo,
         IObligationRepository obligationRepo,
         IProjectPaymentMethodRepository ppmRepo,
+        IPaymentMethodRepository paymentMethodRepo,
         IPlanAuthorizationService planAuth,
         IAuditLogService auditLog)
     {
@@ -28,6 +30,7 @@ public class ExpenseService : IExpenseService
         _projectRepo = projectRepo;
         _obligationRepo = obligationRepo;
         _ppmRepo = ppmRepo;
+        _paymentMethodRepo = paymentMethodRepo;
         _planAuth = planAuth;
         _auditLog = auditLog;
     }
@@ -87,6 +90,14 @@ public class ExpenseService : IExpenseService
             throw new InvalidOperationException(
                 "The payment method is not linked to this project. " +
                 "Link it first via /api/projects/{projectId}/payment-methods.");
+
+        // Resolver monto y moneda en la moneda del método de pago
+        var paymentMethod = await _paymentMethodRepo.GetByIdAsync(expense.ExpPaymentMethodId, ct)
+            ?? throw new KeyNotFoundException($"Payment method '{expense.ExpPaymentMethodId}' not found.");
+
+        expense.ExpAccountCurrency = paymentMethod.PmtCurrency;
+        expense.ExpAccountAmount = ResolveAccountAmount(
+            expense, paymentMethod.PmtCurrency, project.PrjCurrencyCode);
 
         // Validar que la obligación pertenece al mismo proyecto y no se sobre-paga
         // solo cuando el gasto está activo.
@@ -159,6 +170,16 @@ public class ExpenseService : IExpenseService
     {
         if (expense.ExpIsActive)
             ValidateAccountingReadinessForActivation(expense);
+
+        var project = await _projectRepo.GetByIdAsync(expense.ExpProjectId, ct)
+            ?? throw new KeyNotFoundException($"Project '{expense.ExpProjectId}' not found.");
+
+        var paymentMethod = await _paymentMethodRepo.GetByIdAsync(expense.ExpPaymentMethodId, ct)
+            ?? throw new KeyNotFoundException($"Payment method '{expense.ExpPaymentMethodId}' not found.");
+
+        expense.ExpAccountCurrency = paymentMethod.PmtCurrency;
+        expense.ExpAccountAmount = ResolveAccountAmount(
+            expense, paymentMethod.PmtCurrency, project.PrjCurrencyCode);
 
         // Validar sobre-pago solo para pagos activos vinculados a obligación.
         if (expense.ExpObligationId.HasValue && expense.ExpIsActive)
@@ -273,6 +294,24 @@ public class ExpenseService : IExpenseService
 
         // Compatibilidad con pagos históricos sin equivalente persistido.
         return convertedAmount;
+    }
+
+    private static decimal ResolveAccountAmount(
+        Expense expense,
+        string paymentMethodCurrency,
+        string projectCurrency)
+    {
+        if (expense.ExpAccountAmount is > 0)
+            return expense.ExpAccountAmount.Value;
+
+        if (string.Equals(paymentMethodCurrency, expense.ExpOriginalCurrency, StringComparison.OrdinalIgnoreCase))
+            return expense.ExpOriginalAmount;
+
+        if (string.Equals(paymentMethodCurrency, projectCurrency, StringComparison.OrdinalIgnoreCase))
+            return expense.ExpConvertedAmount;
+
+        throw new InvalidOperationException(
+            "AccountAmount is required when payment method currency differs from both original and project currencies.");
     }
 
     private static void ValidateAccountingReadinessForActivation(Expense expense)

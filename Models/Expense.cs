@@ -19,6 +19,8 @@ public class Expense
     public string ExpOriginalCurrency { get; set; } = null!;   // ISO 4217
     public decimal ExpExchangeRate { get; set; } = 1.000000m;
     public decimal ExpConvertedAmount { get; set; }
+    public decimal? ExpAccountAmount { get; set; }             // Monto en la moneda del método de pago
+    public string? ExpAccountCurrency { get; set; }            // Moneda del método de pago
     public decimal? ExpObligationEquivalentAmount { get; set; }
 
     // ── Datos descriptivos ──────────────────────────────────

@@ -51,6 +51,9 @@ public class CreateExpenseRequest
     [Range(0.01, 99999999999999.99, ErrorMessage = "ConvertedAmount must be greater than 0.")]
     public decimal ConvertedAmount { get; set; }
 
+    [Range(0.01, 99999999999999.99, ErrorMessage = "AccountAmount must be greater than 0.")]
+    public decimal? AccountAmount { get; set; }
+
     // ── Datos descriptivos ──────────────────────────────────
 
     [Required]
@@ -114,6 +117,9 @@ public class UpdateExpenseRequest
     [Required]
     [Range(0.01, 99999999999999.99, ErrorMessage = "ConvertedAmount must be greater than 0.")]
     public decimal ConvertedAmount { get; set; }
+
+    [Range(0.01, 99999999999999.99, ErrorMessage = "AccountAmount must be greater than 0.")]
+    public decimal? AccountAmount { get; set; }
 
     [Required]
     [StringLength(255, MinimumLength = 1, ErrorMessage = "Title must be between 1 and 255 characters.")]
@@ -207,6 +213,8 @@ public class ExpenseResponse
     public string OriginalCurrency { get; set; } = null!;
     public decimal ExchangeRate { get; set; }
     public decimal ConvertedAmount { get; set; }
+    public decimal? AccountAmount { get; set; }
+    public string? AccountCurrency { get; set; }
 
     public string Title { get; set; } = null!;
     public string? Description { get; set; }

@@ -4,6 +4,7 @@ using ProjectLedger.API.DTOs.Report;
 using ProjectLedger.API.Extensions.Mappings;
 using ProjectLedger.API.Repositories;
 using ProjectLedger.API.Services;
+using ProjectLedger.API.Services.Report;
 
 namespace ProjectLedger.API.Controllers;
 

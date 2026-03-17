@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ProjectLedger.API.DTOs.Common;
 using ProjectLedger.API.DTOs.Project;
+using ProjectLedger.API.DTOs.ProjectPartner;
 using ProjectLedger.API.Extensions.Mappings;
 using ProjectLedger.API.Models;
 using ProjectLedger.API.Services;
@@ -26,45 +28,48 @@ public class ProjectController : ControllerBase
     private readonly IProjectService _projectService;
     private readonly IProjectAccessService _accessService;
     private readonly IPlanAuthorizationService _planAuth;
+    private readonly IProjectPartnerService _projectPartnerService;
+    private readonly IWorkspaceService _workspaceService;
 
     public ProjectController(
         IProjectService projectService,
         IProjectAccessService accessService,
-        IPlanAuthorizationService planAuth)
+        IPlanAuthorizationService planAuth,
+        IProjectPartnerService projectPartnerService,
+        IWorkspaceService workspaceService)
     {
         _projectService = projectService;
         _accessService = accessService;
         _planAuth = planAuth;
+        _projectPartnerService = projectPartnerService;
+        _workspaceService = workspaceService;
     }
 
     // ── GET /api/projects ───────────────────────────────────
 
     /// <summary>
-    /// Lista todos los proyectos donde el usuario es owner o miembro.
+    /// Lista todos los proyectos donde el usuario es owner o miembro (paginado).
     /// </summary>
-    /// <response code="200">Lista de proyectos del usuario.</response>
+    /// <response code="200">Lista paginada de proyectos del usuario.</response>
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<ProjectResponse>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetMyProjects(CancellationToken ct)
+    [ProducesResponseType(typeof(PagedResponse<ProjectResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetMyProjects(
+        [FromQuery] PagedRequest pagination,
+        CancellationToken ct)
     {
         var userId = User.GetRequiredUserId();
 
-        var memberProjects = await _projectService.GetByMemberUserIdAsync(userId, ct);
-        var ownedProjects = await _projectService.GetByOwnerUserIdAsync(userId, ct);
-
-        // Unir sin duplicados
-        var allProjects = ownedProjects
-            .Union(memberProjects, new ProjectIdComparer())
-            .ToList();
+        var (projects, totalCount) = await _projectService.GetByUserIdPagedAsync(
+            userId, pagination.Skip, pagination.PageSize, pagination.SortBy, pagination.IsDescending, ct);
 
         var result = new List<ProjectResponse>();
-        foreach (var p in allProjects)
+        foreach (var p in projects)
         {
             var role = await _accessService.GetUserRoleAsync(userId, p.PrjId, ct);
             result.Add(p.ToResponse(role ?? ProjectRoles.Viewer));
         }
 
-        return Ok(result);
+        return Ok(PagedResponse<ProjectResponse>.Create(result, totalCount, pagination));
     }
 
     // ── GET /api/projects/{projectId} ───────────────────────
@@ -117,7 +122,25 @@ public class ProjectController : ControllerBase
         // ⚠️ UserId SIEMPRE del JWT — previene escalamiento de privilegios
         var userId = User.GetRequiredUserId();
 
+        // Resolve workspace_id: use provided one (validating membership) or fall back to "General"
+        Guid? resolvedWorkspaceId = null;
+
+        if (request.WorkspaceId.HasValue)
+        {
+            var role = await _workspaceService.GetMemberRoleAsync(request.WorkspaceId.Value, userId, ct);
+            if (role is null)
+                return Forbid();
+            resolvedWorkspaceId = request.WorkspaceId.Value;
+        }
+        else
+        {
+            var generalWorkspace = await _workspaceService.GetGeneralWorkspaceForUserAsync(userId, ct);
+            resolvedWorkspaceId = generalWorkspace?.WksId;
+        }
+
         var project = request.ToEntity(userId);
+        project.PrjWorkspaceId = resolvedWorkspaceId;
+
         await _projectService.CreateAsync(project, ct);
 
         return CreatedAtAction(
@@ -187,6 +210,175 @@ public class ProjectController : ControllerBase
         await _projectService.SoftDeleteAsync(projectId, userId, ct);
 
         return NoContent();
+    }
+
+    // ── GET /api/projects/{projectId}/partners ───────────────
+
+    /// <summary>
+    /// Lista los partners asignados al proyecto.
+    /// </summary>
+    [HttpGet("{projectId:guid}/partners")]
+    [ProducesResponseType(typeof(IEnumerable<ProjectPartnerResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetProjectPartners(Guid projectId, CancellationToken ct)
+    {
+        var userId = User.GetRequiredUserId();
+        await _accessService.ValidateAccessAsync(userId, projectId, ProjectRoles.Viewer, ct);
+
+        var partners = await _projectPartnerService.GetByProjectIdAsync(projectId, ct);
+
+        var result = partners.Select(p => new ProjectPartnerResponse
+        {
+            Id = p.PtpId,
+            PartnerId = p.PtpPartnerId,
+            PartnerName = p.Partner.PtrName,
+            PartnerEmail = p.Partner.PtrEmail,
+            AddedAt = p.PtpCreatedAt
+        });
+
+        return Ok(result);
+    }
+
+    // ── POST /api/projects/{projectId}/partners ──────────────
+
+    /// <summary>
+    /// Asigna un partner al proyecto. Solo partners del usuario autenticado.
+    /// </summary>
+    [HttpPost("{projectId:guid}/partners")]
+    [ProducesResponseType(typeof(ProjectPartnerResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> AddProjectPartner(
+        Guid projectId,
+        [FromBody] AddProjectPartnerRequest request,
+        CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var userId = User.GetRequiredUserId();
+        await _accessService.ValidateAccessAsync(userId, projectId, ProjectRoles.Editor, ct);
+
+        try
+        {
+            var assignment = await _projectPartnerService.AddAsync(projectId, request.PartnerId, userId, ct);
+
+            var response = new ProjectPartnerResponse
+            {
+                Id = assignment.PtpId,
+                PartnerId = assignment.PtpPartnerId,
+                PartnerName = assignment.Partner?.PtrName ?? string.Empty,
+                PartnerEmail = assignment.Partner?.PtrEmail,
+                AddedAt = assignment.PtpCreatedAt
+            };
+
+            return CreatedAtAction(
+                nameof(GetProjectPartners),
+                new { projectId },
+                response);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
+    // ── DELETE /api/projects/{projectId}/partners/{partnerId} ─
+
+    /// <summary>
+    /// Quita un partner del proyecto (soft-delete).
+    /// </summary>
+    [HttpDelete("{projectId:guid}/partners/{partnerId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> RemoveProjectPartner(
+        Guid projectId, Guid partnerId, CancellationToken ct)
+    {
+        var userId = User.GetRequiredUserId();
+        await _accessService.ValidateAccessAsync(userId, projectId, ProjectRoles.Editor, ct);
+
+        try
+        {
+            await _projectPartnerService.RemoveAsync(projectId, partnerId, userId, ct);
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
+    // ── GET /api/projects/{projectId}/available-payment-methods
+
+    /// <summary>
+    /// Lista los métodos de pago disponibles en el proyecto, agrupados por partner.
+    /// Reemplaza GET /projects/:id/payment-methods.
+    /// Los métodos se derivan automáticamente de los partners asignados al proyecto.
+    /// </summary>
+    [HttpGet("{projectId:guid}/available-payment-methods")]
+    [ProducesResponseType(typeof(AvailablePaymentMethodsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetAvailablePaymentMethods(Guid projectId, CancellationToken ct)
+    {
+        var userId = User.GetRequiredUserId();
+        await _accessService.ValidateAccessAsync(userId, projectId, ProjectRoles.Viewer, ct);
+
+        var paymentMethods = await _projectPartnerService.GetAvailablePaymentMethodsAsync(projectId, userId, ct);
+
+        var unpartnered = paymentMethods
+            .Where(pm => pm.OwnerPartner is null)
+            .Select(pm => new ProjectPaymentMethodItem
+            {
+                Id = pm.PmtId,
+                Name = pm.PmtName,
+                Type = pm.PmtType,
+                Currency = pm.PmtCurrency,
+                BankName = pm.PmtBankName
+            })
+            .ToList();
+
+        var grouped = paymentMethods
+            .Where(pm => pm.OwnerPartner is not null)
+            .GroupBy(pm => pm.OwnerPartner!)
+            .Select(g => new PartnerWithPaymentMethods
+            {
+                PartnerId = g.Key.PtrId,
+                PartnerName = g.Key.PtrName,
+                PaymentMethods = g.Select(pm => new ProjectPaymentMethodItem
+                {
+                    Id = pm.PmtId,
+                    Name = pm.PmtName,
+                    Type = pm.PmtType,
+                    Currency = pm.PmtCurrency,
+                    BankName = pm.PmtBankName
+                }).ToList()
+            })
+            .ToList();
+
+        return Ok(new AvailablePaymentMethodsResponse
+        {
+            ProjectId = projectId,
+            UnpartneredPaymentMethods = unpartnered,
+            Partners = grouped
+        });
     }
 
     // ── Private Helpers ─────────────────────────────────────

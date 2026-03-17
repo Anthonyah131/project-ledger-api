@@ -14,6 +14,7 @@ public class PaymentMethodConfiguration : IEntityTypeConfiguration<PaymentMethod
 
         builder.Property(pm => pm.PmtId).HasColumnName("pmt_id").HasDefaultValueSql("gen_random_uuid()");
         builder.Property(pm => pm.PmtOwnerUserId).HasColumnName("pmt_owner_user_id").IsRequired();
+        builder.Property(pm => pm.PmtOwnerPartnerId).HasColumnName("pmt_owner_partner_id");
         builder.Property(pm => pm.PmtName).HasColumnName("pmt_name").HasMaxLength(255).IsRequired();
         builder.Property(pm => pm.PmtType).HasColumnName("pmt_type").HasMaxLength(50).IsRequired();
         builder.Property(pm => pm.PmtCurrency).HasColumnName("pmt_currency").HasMaxLength(3).IsRequired();
@@ -27,6 +28,7 @@ public class PaymentMethodConfiguration : IEntityTypeConfiguration<PaymentMethod
         builder.Property(pm => pm.PmtDeletedByUserId).HasColumnName("pmt_deleted_by_user_id");
 
         builder.HasIndex(pm => pm.PmtOwnerUserId);
+        builder.HasIndex(pm => pm.PmtOwnerPartnerId);
         builder.HasIndex(pm => pm.PmtIsDeleted);
 
         builder.HasOne(pm => pm.OwnerUser)
@@ -37,6 +39,11 @@ public class PaymentMethodConfiguration : IEntityTypeConfiguration<PaymentMethod
         builder.HasOne(pm => pm.DeletedByUser)
             .WithMany()
             .HasForeignKey(pm => pm.PmtDeletedByUserId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        builder.HasOne(pm => pm.OwnerPartner)
+            .WithMany(p => p.PaymentMethods)
+            .HasForeignKey(pm => pm.PmtOwnerPartnerId)
             .OnDelete(DeleteBehavior.NoAction);
 
         builder.HasOne(pm => pm.Currency)

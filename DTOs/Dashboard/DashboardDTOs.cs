@@ -20,6 +20,7 @@ public class MonthlySummaryDashboardResponse
     public string Month { get; set; } = null!;
     public MonthlyNavigationResponse Navigation { get; set; } = new();
     public string CurrencyCode { get; set; } = null!;
+    public Guid? ProjectId { get; set; }
     public DateTime GeneratedAt { get; set; }
     public ExecutiveMonthlySummaryResponse Summary { get; set; } = new();
     public MonthlyComparisonResponse Comparison { get; set; } = new();
@@ -53,6 +54,7 @@ public class MonthlyPaymentMethodsResponse
 {
     public string Month { get; set; } = null!;
     public string CurrencyCode { get; set; } = null!;
+    public Guid? ProjectId { get; set; }
     public List<PaymentMethodSplitRowResponse> PaymentMethodSplit { get; set; } = [];
 }
 

@@ -30,8 +30,16 @@ public class AppDbContext : DbContext
     public DbSet<UserSubscription> UserSubscriptions => Set<UserSubscription>();
     public DbSet<StripeWebhookEvent> StripeWebhookEvents => Set<StripeWebhookEvent>();
     public DbSet<Income> Incomes => Set<Income>();
+    public DbSet<Partner> Partners => Set<Partner>();
     public DbSet<ProjectAlternativeCurrency> ProjectAlternativeCurrencies => Set<ProjectAlternativeCurrency>();
     public DbSet<TransactionCurrencyExchange> TransactionCurrencyExchanges => Set<TransactionCurrencyExchange>();
+
+    // ── Fase 2b: Workspaces ──────────────────────────────────
+    public DbSet<Workspace> Workspaces => Set<Workspace>();
+    public DbSet<WorkspaceMember> WorkspaceMembers => Set<WorkspaceMember>();
+
+    // ── Fase 2c: ProjectPartners ─────────────────────────────
+    public DbSet<ProjectPartner> ProjectPartners => Set<ProjectPartner>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

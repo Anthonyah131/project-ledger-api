@@ -23,6 +23,10 @@ public class ProjectConfiguration : IEntityTypeConfiguration<Project>
         builder.Property(p => p.PrjDeletedAt).HasColumnName("prj_deleted_at");
         builder.Property(p => p.PrjDeletedByUserId).HasColumnName("prj_deleted_by_user_id");
 
+        // ── Workspace (Fase 2b) ──────────────────────────────────
+        builder.Property(p => p.PrjWorkspaceId).HasColumnName("prj_workspace_id");
+        builder.Property(p => p.PrjPartnersEnabled).HasColumnName("prj_partners_enabled").HasDefaultValue(false);
+
         builder.HasIndex(p => p.PrjOwnerUserId);
         builder.HasIndex(p => p.PrjIsDeleted);
 
@@ -39,6 +43,11 @@ public class ProjectConfiguration : IEntityTypeConfiguration<Project>
         builder.HasOne(p => p.Currency)
             .WithMany(c => c.ProjectsWithCurrency)
             .HasForeignKey(p => p.PrjCurrencyCode)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        builder.HasOne(p => p.Workspace)
+            .WithMany(w => w.Projects)
+            .HasForeignKey(p => p.PrjWorkspaceId)
             .OnDelete(DeleteBehavior.NoAction);
     }
 }

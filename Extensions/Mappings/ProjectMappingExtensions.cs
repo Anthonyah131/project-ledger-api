@@ -15,6 +15,9 @@ public static class ProjectMappingExtensions
         Description = entity.PrjDescription,
         OwnerUserId = entity.PrjOwnerUserId,
         UserRole = userRole,
+        WorkspaceId = entity.PrjWorkspaceId,
+        WorkspaceName = entity.Workspace?.WksName,
+        PartnersEnabled = entity.PrjPartnersEnabled,
         CreatedAt = entity.PrjCreatedAt,
         UpdatedAt = entity.PrjUpdatedAt
     };
@@ -30,6 +33,7 @@ public static class ProjectMappingExtensions
         PrjOwnerUserId = ownerUserId,
         PrjCreatedAt = DateTime.UtcNow,
         PrjUpdatedAt = DateTime.UtcNow
+        // PrjWorkspaceId is resolved and set by the controller
     };
 
     // ── Apply update from DTO ──────────────────────────────

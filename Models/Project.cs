@@ -14,6 +14,10 @@ public class Project
     public DateTime PrjCreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime PrjUpdatedAt { get; set; } = DateTime.UtcNow;
 
+    // ── Workspace (Fase 2b) ──────────────────────────────────
+    public Guid? PrjWorkspaceId { get; set; }
+    public bool PrjPartnersEnabled { get; set; }
+
     // ── Soft delete ─────────────────────────────────────────
     public bool PrjIsDeleted { get; set; }
     public DateTime? PrjDeletedAt { get; set; }
@@ -23,6 +27,7 @@ public class Project
     public User OwnerUser { get; set; } = null!;
     public User? DeletedByUser { get; set; }
     public Currency Currency { get; set; } = null!;
+    public Workspace? Workspace { get; set; }
 
     public ICollection<ProjectMember> Members { get; set; } = [];
     public ICollection<Category> Categories { get; set; } = [];

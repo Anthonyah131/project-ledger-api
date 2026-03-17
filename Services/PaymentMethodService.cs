@@ -1,3 +1,4 @@
+using ProjectLedger.API.DTOs.PaymentMethod;
 using ProjectLedger.API.Models;
 using ProjectLedger.API.Repositories;
 
@@ -10,15 +11,18 @@ namespace ProjectLedger.API.Services;
 public class PaymentMethodService : IPaymentMethodService
 {
     private readonly IPaymentMethodRepository _paymentMethodRepo;
+    private readonly IPartnerRepository _partnerRepo;
     private readonly IPlanAuthorizationService _planAuth;
     private readonly ITransactionReferenceGuardService _transactionReferenceGuard;
 
     public PaymentMethodService(
         IPaymentMethodRepository paymentMethodRepo,
+        IPartnerRepository partnerRepo,
         IPlanAuthorizationService planAuth,
         ITransactionReferenceGuardService transactionReferenceGuard)
     {
         _paymentMethodRepo = paymentMethodRepo;
+        _partnerRepo = partnerRepo;
         _planAuth = planAuth;
         _transactionReferenceGuard = transactionReferenceGuard;
     }
@@ -73,5 +77,73 @@ public class PaymentMethodService : IPaymentMethodService
 
         _paymentMethodRepo.Update(pm);
         await _paymentMethodRepo.SaveChangesAsync(ct);
+    }
+
+    public async Task<PaymentMethodBalanceResponse> GetProjectBalanceAsync(
+        Guid pmtId, Guid projectId, CancellationToken ct = default)
+    {
+        var pm = await _paymentMethodRepo.GetByIdAsync(pmtId, ct)
+            ?? throw new KeyNotFoundException($"Payment method '{pmtId}' not found.");
+
+        var (totalIncome, totalExpenses) = await _paymentMethodRepo.GetProjectBalanceAsync(pmtId, projectId, ct);
+
+        return new PaymentMethodBalanceResponse
+        {
+            PaymentMethodId = pm.PmtId,
+            PaymentMethodName = pm.PmtName,
+            Currency = pm.PmtCurrency,
+            ProjectId = projectId,
+            TotalIncome = totalIncome,
+            TotalExpenses = totalExpenses,
+            Balance = totalIncome - totalExpenses
+        };
+    }
+
+    public async Task<PaymentMethod> LinkPartnerAsync(Guid pmtId, Guid partnerId, Guid userId, CancellationToken ct = default)
+    {
+        var pm = await _paymentMethodRepo.GetByIdAsync(pmtId, ct)
+            ?? throw new KeyNotFoundException($"Payment method '{pmtId}' not found.");
+
+        if (pm.PmtOwnerUserId != userId)
+            throw new KeyNotFoundException($"Payment method '{pmtId}' not found.");
+
+        var partner = await _partnerRepo.GetByIdAsync(partnerId, ct)
+            ?? throw new KeyNotFoundException($"Partner '{partnerId}' not found.");
+
+        if (partner.PtrOwnerUserId != userId)
+            throw new KeyNotFoundException($"Partner '{partnerId}' not found.");
+
+        if (pm.PmtOwnerPartnerId == partnerId)
+            throw new InvalidOperationException("Payment method is already linked to this partner.");
+
+        pm.PmtOwnerPartnerId = partnerId;
+        pm.OwnerPartner = partner;
+        pm.PmtUpdatedAt = DateTime.UtcNow;
+
+        _paymentMethodRepo.Update(pm);
+        await _paymentMethodRepo.SaveChangesAsync(ct);
+
+        return pm;
+    }
+
+    public async Task<PaymentMethod> UnlinkPartnerAsync(Guid pmtId, Guid userId, CancellationToken ct = default)
+    {
+        var pm = await _paymentMethodRepo.GetByIdAsync(pmtId, ct)
+            ?? throw new KeyNotFoundException($"Payment method '{pmtId}' not found.");
+
+        if (pm.PmtOwnerUserId != userId)
+            throw new KeyNotFoundException($"Payment method '{pmtId}' not found.");
+
+        if (pm.PmtOwnerPartnerId is null)
+            throw new InvalidOperationException("Payment method has no partner linked.");
+
+        pm.PmtOwnerPartnerId = null;
+        pm.OwnerPartner = null;
+        pm.PmtUpdatedAt = DateTime.UtcNow;
+
+        _paymentMethodRepo.Update(pm);
+        await _paymentMethodRepo.SaveChangesAsync(ct);
+
+        return pm;
     }
 }

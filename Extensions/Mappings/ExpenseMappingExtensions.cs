@@ -22,6 +22,8 @@ public static class ExpenseMappingExtensions
         OriginalCurrency = entity.ExpOriginalCurrency,
         ExchangeRate = entity.ExpExchangeRate,
         ConvertedAmount = entity.ExpConvertedAmount,
+        AccountAmount = entity.ExpAccountAmount,
+        AccountCurrency = entity.ExpAccountCurrency,
         Title = entity.ExpTitle,
         Description = entity.ExpDescription,
         ExpenseDate = entity.ExpExpenseDate,
@@ -52,6 +54,7 @@ public static class ExpenseMappingExtensions
         ExpOriginalCurrency = request.OriginalCurrency,
         ExpExchangeRate = request.ExchangeRate,
         ExpConvertedAmount = request.ConvertedAmount,
+        ExpAccountAmount = request.AccountAmount,
         ExpTitle = request.Title,
         ExpDescription = request.Description,
         ExpExpenseDate = request.ExpenseDate,
@@ -75,6 +78,7 @@ public static class ExpenseMappingExtensions
         entity.ExpOriginalCurrency = request.OriginalCurrency;
         entity.ExpExchangeRate = request.ExchangeRate;
         entity.ExpConvertedAmount = request.ConvertedAmount;
+        entity.ExpAccountAmount = request.AccountAmount;
         entity.ExpTitle = request.Title;
         entity.ExpDescription = request.Description;
         entity.ExpExpenseDate = request.ExpenseDate;

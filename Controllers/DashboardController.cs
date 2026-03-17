@@ -48,8 +48,10 @@ public class DashboardController : ControllerBase
     [HttpGet("monthly-summary")]
     [ProducesResponseType(typeof(MonthlySummaryDashboardResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetMonthlySummary(
         [FromQuery] string? month,
+        [FromQuery] Guid? projectId,
         CancellationToken ct = default)
     {
         if (!TryParseMonth(month, out var monthStart))
@@ -62,6 +64,7 @@ public class DashboardController : ControllerBase
                 Month = ToMonthKey(monthStart),
                 Navigation = BuildNavigation(monthStart, false, false),
                 CurrencyCode = "USD",
+                ProjectId = projectId,
                 GeneratedAt = DateTime.UtcNow,
                 Summary = new ExecutiveMonthlySummaryResponse(),
                 Comparison = new MonthlyComparisonResponse
@@ -72,6 +75,9 @@ public class DashboardController : ControllerBase
             });
         }
 
+        if (!projectId.HasValue)
+            return BadRequest(new { error = new { code = "PROJECT_ID_REQUIRED", message = "project_id is required." } });
+
         var monthEnd = monthStart.AddMonths(1).AddDays(-1);
         var previousMonthStart = monthStart.AddMonths(-1);
         var previousMonthEnd = previousMonthStart.AddMonths(1).AddDays(-1);
@@ -79,9 +85,16 @@ public class DashboardController : ControllerBase
         var nextMonthEnd = nextMonthStart.AddMonths(1).AddDays(-1);
         var scope = await GetVisibleProjectScopeAsync(ct);
 
-        var monthData = await LoadMonthDataAsync(scope.VisibleProjectIds, monthStart, monthEnd, ct);
-        var previousData = await LoadMonthDataAsync(scope.VisibleProjectIds, previousMonthStart, previousMonthEnd, ct);
-        var nextData = await LoadMonthDataAsync(scope.VisibleProjectIds, nextMonthStart, nextMonthEnd, ct);
+        if (!TryResolveProjectScope(scope.VisibleProjectIds, projectId, out var selectedProjectIds))
+            return Forbid();
+
+        var scopedProjects = scope.VisibleProjects
+            .Where(p => selectedProjectIds.Contains(p.PrjId))
+            .ToList();
+
+        var monthData = await LoadMonthDataAsync(selectedProjectIds, monthStart, monthEnd, ct);
+        var previousData = await LoadMonthDataAsync(selectedProjectIds, previousMonthStart, previousMonthEnd, ct);
+        var nextData = await LoadMonthDataAsync(selectedProjectIds, nextMonthStart, nextMonthEnd, ct);
 
         var monthExpenses = monthData.Expenses;
         var monthIncomes = monthData.Incomes;
@@ -96,9 +109,9 @@ public class DashboardController : ControllerBase
         var previousIncome = previousIncomes.Sum(i => i.IncConvertedAmount);
         var previousNet = previousIncome - previousSpent;
 
-        var budgetByProject = await LoadBudgetsByProjectAsync(scope.VisibleProjects, ct);
-        var projectHealth = BuildProjectHealthRows(scope.VisibleProjects, monthExpenses, monthIncomes, budgetByProject);
-        var obligationSummary = await ComputePendingObligationsAsync(scope.VisibleProjects, monthEnd, ct);
+        var budgetByProject = await LoadBudgetsByProjectAsync(scopedProjects, ct);
+        var projectHealth = BuildProjectHealthRows(scopedProjects, monthExpenses, monthIncomes, budgetByProject);
+        var obligationSummary = await ComputePendingObligationsAsync(scopedProjects, monthEnd, ct);
 
         var response = new MonthlySummaryDashboardResponse
         {
@@ -108,7 +121,8 @@ public class DashboardController : ControllerBase
                 previousExpenses.Count > 0 || previousIncomes.Count > 0,
                 nextMonthStart <= CurrentMonthStart()
                     && (nextData.Expenses.Count > 0 || nextData.Incomes.Count > 0)),
-            CurrencyCode = ResolveCurrencyCode(scope.VisibleProjects),
+            CurrencyCode = ResolveCurrencyCode(scopedProjects),
+            ProjectId = projectId,
             GeneratedAt = DateTime.UtcNow,
             Summary = new ExecutiveMonthlySummaryResponse
             {
@@ -157,6 +171,9 @@ public class DashboardController : ControllerBase
             });
         }
 
+        if (!projectId.HasValue)
+            return BadRequest(new { error = new { code = "PROJECT_ID_REQUIRED", message = "project_id is required." } });
+
         var scope = await GetVisibleProjectScopeAsync(ct);
         if (!TryResolveProjectScope(scope.VisibleProjectIds, projectId, out var selectedProjectIds))
             return Forbid();
@@ -201,6 +218,9 @@ public class DashboardController : ControllerBase
             });
         }
 
+        if (!projectId.HasValue)
+            return BadRequest(new { error = new { code = "PROJECT_ID_REQUIRED", message = "project_id is required." } });
+
         var scope = await GetVisibleProjectScopeAsync(ct);
         if (!TryResolveProjectScope(scope.VisibleProjectIds, projectId, out var selectedProjectIds))
             return Forbid();
@@ -225,8 +245,10 @@ public class DashboardController : ControllerBase
     [HttpGet("monthly-payment-methods")]
     [ProducesResponseType(typeof(MonthlyPaymentMethodsResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetMonthlyPaymentMethods(
         [FromQuery] string? month,
+        [FromQuery] Guid? projectId,
         CancellationToken ct = default)
     {
         if (!TryParseMonth(month, out var monthStart))
@@ -238,19 +260,31 @@ public class DashboardController : ControllerBase
             {
                 Month = ToMonthKey(monthStart),
                 CurrencyCode = "USD",
+                ProjectId = projectId,
                 PaymentMethodSplit = []
             });
         }
 
+        if (!projectId.HasValue)
+            return BadRequest(new { error = new { code = "PROJECT_ID_REQUIRED", message = "project_id is required." } });
+
         var scope = await GetVisibleProjectScopeAsync(ct);
+
+        if (!TryResolveProjectScope(scope.VisibleProjectIds, projectId, out var selectedProjectIds))
+            return Forbid();
+
         var monthEnd = monthStart.AddMonths(1).AddDays(-1);
-        var monthData = await LoadMonthDataAsync(scope.VisibleProjectIds, monthStart, monthEnd, ct);
+        var monthData = await LoadMonthDataAsync(selectedProjectIds, monthStart, monthEnd, ct);
         var totalSpent = monthData.Expenses.Sum(e => e.ExpConvertedAmount);
+        var scopedProjects = scope.VisibleProjects
+            .Where(p => selectedProjectIds.Contains(p.PrjId))
+            .ToList();
 
         return Ok(new MonthlyPaymentMethodsResponse
         {
             Month = ToMonthKey(monthStart),
-            CurrencyCode = ResolveCurrencyCode(scope.VisibleProjects),
+            CurrencyCode = ResolveCurrencyCode(scopedProjects),
+            ProjectId = projectId,
             PaymentMethodSplit = BuildPaymentMethodSplit(monthData.Expenses, totalSpent)
         });
     }

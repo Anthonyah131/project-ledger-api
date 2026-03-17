@@ -16,6 +16,16 @@ public static class PaymentMethodMappingExtensions
         BankName = entity.PmtBankName,
         AccountNumber = entity.PmtAccountNumber,
         Description = entity.PmtDescription,
+        PartnerId = entity.PmtOwnerPartnerId,
+        Partner = entity.OwnerPartner is { PtrIsDeleted: false }
+            ? new PaymentMethodPartnerResponse
+            {
+                Id = entity.OwnerPartner.PtrId,
+                Name = entity.OwnerPartner.PtrName,
+                Email = entity.OwnerPartner.PtrEmail,
+                Phone = entity.OwnerPartner.PtrPhone
+            }
+            : null,
         CreatedAt = entity.PmtCreatedAt,
         UpdatedAt = entity.PmtUpdatedAt
     };
@@ -26,6 +36,7 @@ public static class PaymentMethodMappingExtensions
     {
         PmtId = Guid.NewGuid(),
         PmtOwnerUserId = ownerUserId,
+        PmtOwnerPartnerId = request.PartnerId,
         PmtName = request.Name,
         PmtType = request.Type,
         PmtCurrency = request.Currency,

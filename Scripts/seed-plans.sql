@@ -21,6 +21,7 @@ TRUNCATE TABLE
     public.project_alternative_currencies,
     public.project_budgets,
     public.project_payment_methods,
+    public.project_partners,
     public.categories,
     public.project_members,
     public.payment_methods,
@@ -30,6 +31,9 @@ TRUNCATE TABLE
     public.refresh_tokens,
     public.stripe_webhook_events,
     public.user_subscriptions,
+    public.workspace_members,
+    public.workspaces,
+    public.partners,
     public.users,
     public.plans,
     public.currencies

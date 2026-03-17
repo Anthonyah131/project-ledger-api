@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using ProjectLedger.API.Data;
 using ProjectLedger.API.Repositories;
 using ProjectLedger.API.Services;
+using ProjectLedger.API.Services.Report;
 
 namespace ProjectLedger.API.Extensions;
 
@@ -65,6 +66,15 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProjectAlternativeCurrencyRepository, ProjectAlternativeCurrencyRepository>();
         services.AddScoped<ITransactionCurrencyExchangeRepository, TransactionCurrencyExchangeRepository>();
 
+        // Partners
+        services.AddScoped<IPartnerRepository, PartnerRepository>();
+
+        // Workspaces (Fase 2b)
+        services.AddScoped<IWorkspaceRepository, WorkspaceRepository>();
+
+        // ProjectPartners (Fase 2c)
+        services.AddScoped<IProjectPartnerRepository, ProjectPartnerRepository>();
+
         return services;
     }
 
@@ -111,6 +121,15 @@ public static class ServiceCollectionExtensions
 
         // MCP assistant read model
         services.AddScoped<IMcpService, McpService>();
+
+        // Partners
+        services.AddScoped<IPartnerService, PartnerService>();
+
+        // Workspaces (Fase 2b)
+        services.AddScoped<IWorkspaceService, WorkspaceService>();
+
+        // ProjectPartners (Fase 2c)
+        services.AddScoped<IProjectPartnerService, ProjectPartnerService>();
 
         return services;
     }

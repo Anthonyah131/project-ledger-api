@@ -8,9 +8,35 @@ public class PaymentMethodRepository : Repository<PaymentMethod>, IPaymentMethod
 {
     public PaymentMethodRepository(AppDbContext context) : base(context) { }
 
+    public override async Task<PaymentMethod?> GetByIdAsync(Guid id, CancellationToken ct = default)
+        => await DbSet
+            .Include(pm => pm.OwnerPartner)
+            .FirstOrDefaultAsync(pm => pm.PmtId == id, ct);
+
     public async Task<IEnumerable<PaymentMethod>> GetByOwnerUserIdAsync(Guid userId, CancellationToken ct = default)
         => await DbSet
+            .Include(pm => pm.OwnerPartner)
             .Where(pm => pm.PmtOwnerUserId == userId && !pm.PmtIsDeleted)
             .OrderBy(pm => pm.PmtName)
             .ToListAsync(ct);
+
+    public async Task<(decimal TotalIncome, decimal TotalExpenses)> GetProjectBalanceAsync(
+        Guid pmtId, Guid projectId, CancellationToken ct = default)
+    {
+        var totalIncome = await Context.Set<Income>()
+            .Where(i => i.IncPaymentMethodId == pmtId
+                     && i.IncProjectId == projectId
+                     && !i.IncIsDeleted
+                     && i.IncIsActive)
+            .SumAsync(i => (decimal?)i.IncOriginalAmount, ct) ?? 0m;
+
+        var totalExpenses = await Context.Set<Expense>()
+            .Where(e => e.ExpPaymentMethodId == pmtId
+                     && e.ExpProjectId == projectId
+                     && !e.ExpIsDeleted
+                     && e.ExpIsActive)
+            .SumAsync(e => (decimal?)e.ExpOriginalAmount, ct) ?? 0m;
+
+        return (totalIncome, totalExpenses);
+    }
 }
