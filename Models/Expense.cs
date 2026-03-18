@@ -53,6 +53,9 @@ public class Expense
     public Obligation? Obligation { get; set; }
     public Currency OriginalCurrencyNavigation { get; set; } = null!;
 
+    // ── Splits entre partners ────────────────────────────────
+    public ICollection<ExpenseSplit> Splits { get; set; } = [];
+
     // ── Conversiones a monedas alternativas ─────────────────
     public ICollection<TransactionCurrencyExchange> CurrencyExchanges { get; set; } = [];
 }

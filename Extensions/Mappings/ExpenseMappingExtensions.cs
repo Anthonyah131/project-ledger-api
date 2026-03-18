@@ -1,6 +1,7 @@
 using ProjectLedger.API.Models;
 using ProjectLedger.API.DTOs.Expense;
 using ProjectLedger.API.DTOs.Common;
+using ProjectLedger.API.DTOs.Split;
 
 namespace ProjectLedger.API.Extensions.Mappings;
 
@@ -36,7 +37,27 @@ public static class ExpenseMappingExtensions
         UpdatedAt = entity.ExpUpdatedAt,
         IsDeleted = entity.ExpIsDeleted,
         DeletedAt = entity.ExpDeletedAt,
-        DeletedByUserId = entity.ExpDeletedByUserId
+        DeletedByUserId = entity.ExpDeletedByUserId,
+        HasSplits = entity.Splits?.Count > 0,
+        Splits = entity.Splits?.Count > 0
+            ? entity.Splits.Select(s => new SplitResponseDto
+            {
+                PartnerId = s.ExsPartnerId,
+                PartnerName = s.Partner?.PtrName ?? string.Empty,
+                SplitType = s.ExsSplitType,
+                SplitValue = s.ExsSplitValue,
+                ResolvedAmount = s.ExsResolvedAmount,
+                CurrencyExchanges = s.CurrencyExchanges?.Count > 0
+                    ? s.CurrencyExchanges.Select(e => new CurrencyExchangeResponse
+                    {
+                        Id = e.SceId,
+                        CurrencyCode = e.SceCurrencyCode,
+                        ExchangeRate = e.SceExchangeRate,
+                        ConvertedAmount = e.SceConvertedAmount
+                    }).ToList()
+                    : null
+            }).ToList()
+            : null
     };
 
     // ── Request → Entity ────────────────────────────────────

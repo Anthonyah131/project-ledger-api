@@ -13,6 +13,8 @@ public class IncomeRepository : Repository<Income>, IIncomeRepository
             .Include(e => e.Category)
             .Include(e => e.Project)
             .Include(e => e.CurrencyExchanges)
+            .Include(e => e.Splits).ThenInclude(s => s.Partner)
+            .Include(e => e.Splits).ThenInclude(s => s.CurrencyExchanges)
             .FirstOrDefaultAsync(e => e.IncId == id, ct);
 
     public async Task<IEnumerable<Income>> GetByProjectIdAsync(Guid projectId, CancellationToken ct = default)
@@ -34,6 +36,7 @@ public class IncomeRepository : Repository<Income>, IIncomeRepository
             .Include(e => e.Category)
             .Include(e => e.Project)
             .Include(e => e.CurrencyExchanges)
+            .Include(e => e.Splits)
             .Where(e => e.IncProjectId == projectId && (includeDeleted || !e.IncIsDeleted));
 
         if (isActive.HasValue)

@@ -14,6 +14,8 @@ public class ExpenseService : IExpenseService
     private readonly IObligationRepository _obligationRepo;
     private readonly IProjectPaymentMethodRepository _ppmRepo;
     private readonly IPaymentMethodRepository _paymentMethodRepo;
+    private readonly IExpenseSplitRepository _expenseSplitRepo;
+    private readonly IProjectPartnerRepository _projectPartnerRepo;
     private readonly IPlanAuthorizationService _planAuth;
     private readonly IAuditLogService _auditLog;
 
@@ -23,6 +25,8 @@ public class ExpenseService : IExpenseService
         IObligationRepository obligationRepo,
         IProjectPaymentMethodRepository ppmRepo,
         IPaymentMethodRepository paymentMethodRepo,
+        IExpenseSplitRepository expenseSplitRepo,
+        IProjectPartnerRepository projectPartnerRepo,
         IPlanAuthorizationService planAuth,
         IAuditLogService auditLog)
     {
@@ -31,6 +35,8 @@ public class ExpenseService : IExpenseService
         _obligationRepo = obligationRepo;
         _ppmRepo = ppmRepo;
         _paymentMethodRepo = paymentMethodRepo;
+        _expenseSplitRepo = expenseSplitRepo;
+        _projectPartnerRepo = projectPartnerRepo;
         _planAuth = planAuth;
         _auditLog = auditLog;
     }
@@ -60,7 +66,7 @@ public class ExpenseService : IExpenseService
     public async Task<IEnumerable<Expense>> GetTemplatesByProjectIdAsync(Guid projectId, CancellationToken ct = default)
         => await _expenseRepo.GetTemplatesByProjectIdAsync(projectId, ct);
 
-    public async Task<Expense> CreateAsync(Expense expense, CancellationToken ct = default)
+    public async Task<Expense> CreateAsync(Expense expense, IReadOnlyList<SplitInput>? splits = null, CancellationToken ct = default)
     {
         if (expense.ExpIsActive)
             ValidateAccountingReadinessForActivation(expense);
@@ -151,6 +157,29 @@ public class ExpenseService : IExpenseService
         await _expenseRepo.AddAsync(expense, ct);
         await _expenseRepo.SaveChangesAsync(ct);
 
+        // Crear splits: explícitos (si partners_enabled y se proveyeron) o auto-split
+        if (splits is { Count: > 0 } && project.PrjPartnersEnabled)
+        {
+            var splitEntities = await BuildExpenseSplitsAsync(expense.ExpId, expense.ExpOriginalAmount, expense.ExpProjectId, splits, ct);
+            foreach (var s in splitEntities)
+                await _expenseSplitRepo.AddAsync(s, ct);
+            await _expenseSplitRepo.SaveChangesAsync(ct);
+        }
+        else if (paymentMethod.PmtOwnerPartnerId.HasValue)
+        {
+            var autoSplit = new ExpenseSplit
+            {
+                ExsId = Guid.NewGuid(),
+                ExsExpenseId = expense.ExpId,
+                ExsPartnerId = paymentMethod.PmtOwnerPartnerId.Value,
+                ExsSplitType = "percentage",
+                ExsSplitValue = 100m,
+                ExsResolvedAmount = expense.ExpOriginalAmount
+            };
+            await _expenseSplitRepo.AddAsync(autoSplit, ct);
+            await _expenseSplitRepo.SaveChangesAsync(ct);
+        }
+
         // Auditar creación del gasto
         await _auditLog.LogAsync("Expense", expense.ExpId, "create", expense.ExpCreatedByUserId,
             newValues: new { expense.ExpId, expense.ExpTitle, expense.ExpConvertedAmount, expense.ExpProjectId }, ct: ct);
@@ -166,7 +195,7 @@ public class ExpenseService : IExpenseService
         return expense;
     }
 
-    public async Task UpdateAsync(Expense expense, CancellationToken ct = default)
+    public async Task UpdateAsync(Expense expense, IReadOnlyList<SplitInput>? splits = null, CancellationToken ct = default)
     {
         if (expense.ExpIsActive)
             ValidateAccountingReadinessForActivation(expense);
@@ -217,6 +246,20 @@ public class ExpenseService : IExpenseService
         expense.ExpUpdatedAt = DateTime.UtcNow;
         _expenseRepo.Update(expense);
         await _expenseRepo.SaveChangesAsync(ct);
+
+        // Actualizar splits solo si se proveyeron explícitamente
+        // null → no modificar; lista vacía → eliminar todos; lista con items → reemplazar
+        if (splits is not null)
+        {
+            await _expenseSplitRepo.DeleteByExpenseIdAsync(expense.ExpId, ct);
+            if (splits.Count > 0 && project.PrjPartnersEnabled)
+            {
+                var splitEntities = await BuildExpenseSplitsAsync(expense.ExpId, expense.ExpOriginalAmount, expense.ExpProjectId, splits, ct);
+                foreach (var s in splitEntities)
+                    await _expenseSplitRepo.AddAsync(s, ct);
+            }
+            await _expenseSplitRepo.SaveChangesAsync(ct);
+        }
     }
 
     public async Task SoftDeleteAsync(Guid id, Guid deletedByUserId, CancellationToken ct = default)
@@ -333,5 +376,68 @@ public class ExpenseService : IExpenseService
 
         if (expense.ExpExpenseDate == default)
             throw new InvalidOperationException("Cannot activate expense: ExpenseDate is required.");
+    }
+
+    private async Task<IReadOnlyList<ExpenseSplit>> BuildExpenseSplitsAsync(
+        Guid expenseId,
+        decimal originalAmount,
+        Guid projectId,
+        IReadOnlyList<SplitInput> splits,
+        CancellationToken ct)
+    {
+        // No duplicate partners
+        var partnerIds = splits.Select(s => s.PartnerId).ToList();
+        if (partnerIds.Distinct().Count() != partnerIds.Count)
+            throw new InvalidOperationException("Duplicate partner found in splits.");
+
+        // All partners must be active in project
+        var projectPartners = await _projectPartnerRepo.GetByProjectIdAsync(projectId, ct);
+        var validPartnerIds = projectPartners.Select(pp => pp.PtpPartnerId).ToHashSet();
+        var invalid = partnerIds.FirstOrDefault(id => !validPartnerIds.Contains(id));
+        if (invalid != default)
+            throw new InvalidOperationException($"Partner '{invalid}' is not assigned to this project.");
+
+        // No mixed types
+        var types = splits.Select(s => s.SplitType).Distinct().ToList();
+        if (types.Count > 1)
+            throw new InvalidOperationException("Cannot mix 'percentage' and 'fixed' split types in the same expense.");
+
+        var splitType = types[0];
+
+        if (splitType == "percentage")
+        {
+            var sum = splits.Sum(s => s.SplitValue);
+            if (Math.Abs(sum - 100m) > 0.01m)
+                throw new InvalidOperationException($"Percentage splits must sum to 100. Got: {sum}.");
+        }
+        else if (splitType == "fixed")
+        {
+            var sum = splits.Sum(s => s.SplitValue);
+            if (Math.Abs(sum - originalAmount) > 0.01m)
+                throw new InvalidOperationException($"Fixed splits must sum to {originalAmount}. Got: {sum}.");
+        }
+
+        return splits.Select(s =>
+        {
+            var splitId = Guid.NewGuid();
+            return new ExpenseSplit
+            {
+                ExsId = splitId,
+                ExsExpenseId = expenseId,
+                ExsPartnerId = s.PartnerId,
+                ExsSplitType = s.SplitType,
+                ExsSplitValue = s.SplitValue,
+                ExsResolvedAmount = s.ResolvedAmount,
+                CurrencyExchanges = s.CurrencyExchanges?.Select(ce => new SplitCurrencyExchange
+                {
+                    SceId = Guid.NewGuid(),
+                    SceExpenseSplitId = splitId,
+                    SceCurrencyCode = ce.CurrencyCode,
+                    SceExchangeRate = ce.ExchangeRate,
+                    SceConvertedAmount = ce.ConvertedAmount,
+                    SceCreatedAt = DateTime.UtcNow
+                }).ToList() ?? []
+            };
+        }).ToList();
     }
 }

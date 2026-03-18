@@ -78,4 +78,26 @@ public class ProjectPartnerService : IProjectPartnerService
 
     public async Task<IEnumerable<PaymentMethod>> GetAvailablePaymentMethodsAsync(Guid projectId, Guid userId, CancellationToken ct = default)
         => await _repo.GetAvailablePaymentMethodsAsync(projectId, userId, ct);
+
+    public async Task<IEnumerable<PaymentMethod>> GetLinkablePaymentMethodsAsync(Guid projectId, Guid userId, CancellationToken ct = default)
+        => await _repo.GetLinkablePaymentMethodsAsync(projectId, userId, ct);
+
+    public async Task<IReadOnlyList<(Guid PartnerId, string Name, decimal DefaultPercentage)>> GetSplitDefaultsAsync(
+        Guid projectId, CancellationToken ct = default)
+    {
+        var partners = (await _repo.GetByProjectIdAsync(projectId, ct)).ToList();
+        if (partners.Count == 0)
+            return [];
+
+        var count = partners.Count;
+        var basePercentage = Math.Round(100m / count, 2, MidpointRounding.ToZero);
+        var lastPercentage = 100m - basePercentage * (count - 1);
+
+        return partners
+            .Select((p, i) => (
+                PartnerId: p.PtpPartnerId,
+                Name: p.Partner?.PtrName ?? string.Empty,
+                DefaultPercentage: i == count - 1 ? lastPercentage : basePercentage))
+            .ToList();
+    }
 }

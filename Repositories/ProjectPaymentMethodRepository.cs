@@ -12,6 +12,8 @@ public class ProjectPaymentMethodRepository : Repository<ProjectPaymentMethod>, 
         => await DbSet
             .Include(ppm => ppm.PaymentMethod)
                 .ThenInclude(pm => pm.OwnerUser)
+            .Include(ppm => ppm.PaymentMethod)
+                .ThenInclude(pm => pm.OwnerPartner)
             .Where(ppm => ppm.PpmProjectId == projectId
                        && !ppm.PaymentMethod.PmtIsDeleted)
             .ToListAsync(ct);

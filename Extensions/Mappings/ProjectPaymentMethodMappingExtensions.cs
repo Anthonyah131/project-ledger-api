@@ -15,6 +15,7 @@ public static class ProjectPaymentMethodMappingExtensions
         BankName = entity.PaymentMethod?.PmtBankName,
         AccountNumber = entity.PaymentMethod?.PmtAccountNumber,
         OwnerUserName = entity.PaymentMethod?.OwnerUser?.UsrFullName ?? string.Empty,
+        PartnerName = entity.PaymentMethod?.OwnerPartner?.PtrName,
         LinkedAt = entity.PpmCreatedAt
     };
 

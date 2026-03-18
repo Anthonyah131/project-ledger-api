@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Http;
 using ProjectLedger.API.DTOs.Common;
+using ProjectLedger.API.DTOs.Split;
 
 namespace ProjectLedger.API.DTOs.Income;
 
@@ -59,6 +60,12 @@ public class CreateIncomeRequest
     // ── Monedas alternativas (opcional) ─────────────────────
 
     public List<CurrencyExchangeRequest>? CurrencyExchanges { get; set; }
+
+    /// <summary>
+    /// Splits entre partners. Opcional.
+    /// Si no se envía o el módulo de partners está desactivado → auto-split 100%.
+    /// </summary>
+    public List<SplitInputDto>? Splits { get; set; }
 }
 
 /// <summary>Request para actualizar un ingreso.</summary>
@@ -105,6 +112,14 @@ public class UpdateIncomeRequest
     public bool? IsActive { get; set; }
 
     public List<CurrencyExchangeRequest>? CurrencyExchanges { get; set; }
+
+    /// <summary>
+    /// Splits entre partners. Opcional.
+    /// null → no modificar splits existentes.
+    /// [] → eliminar todos los splits.
+    /// [...] → reemplazar con los splits provistos.
+    /// </summary>
+    public List<SplitInputDto>? Splits { get; set; }
 }
 
 /// <summary>
@@ -163,6 +178,12 @@ public class IncomeResponse
     public Guid? DeletedByUserId { get; set; }
 
     public List<CurrencyExchangeResponse>? CurrencyExchanges { get; set; }
+
+    /// <summary>Indica si el movimiento tiene splits registrados. Útil para mostrar un indicador en la lista.</summary>
+    public bool HasSplits { get; set; }
+
+    /// <summary>Splits entre partners. Presente solo cuando el proyecto tiene partners_enabled = true.</summary>
+    public List<SplitResponseDto>? Splits { get; set; }
 }
 
 /// <summary>

@@ -21,4 +21,5 @@ public class Currency
     public ICollection<Income> IncomesOriginalCurrency { get; set; } = [];
     public ICollection<ProjectAlternativeCurrency> ProjectAlternativeCurrencies { get; set; } = [];
     public ICollection<TransactionCurrencyExchange> TransactionCurrencyExchanges { get; set; } = [];
+    public ICollection<SplitCurrencyExchange> SplitCurrencyExchanges { get; set; } = [];
 }

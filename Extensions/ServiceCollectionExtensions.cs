@@ -75,6 +75,12 @@ public static class ServiceCollectionExtensions
         // ProjectPartners (Fase 2c)
         services.AddScoped<IProjectPartnerRepository, ProjectPartnerRepository>();
 
+        // Splits (Fase 3a)
+        services.AddScoped<IExpenseSplitRepository, ExpenseSplitRepository>();
+        services.AddScoped<IIncomeSplitRepository, IncomeSplitRepository>();
+        services.AddScoped<ISplitCurrencyExchangeRepository, SplitCurrencyExchangeRepository>();
+        services.AddScoped<ISplitCurrencyExchangeService, SplitCurrencyExchangeService>();
+
         return services;
     }
 

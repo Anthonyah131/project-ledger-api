@@ -11,8 +11,8 @@ public interface IExpenseService
     Task<IEnumerable<Expense>> GetByCategoryIdAsync(Guid categoryId, CancellationToken ct = default);
     Task<IEnumerable<Expense>> GetByObligationIdAsync(Guid obligationId, CancellationToken ct = default);
     Task<IEnumerable<Expense>> GetTemplatesByProjectIdAsync(Guid projectId, CancellationToken ct = default);
-    Task<Expense> CreateAsync(Expense expense, CancellationToken ct = default);
-    Task UpdateAsync(Expense expense, CancellationToken ct = default);
+    Task<Expense> CreateAsync(Expense expense, IReadOnlyList<SplitInput>? splits = null, CancellationToken ct = default);
+    Task UpdateAsync(Expense expense, IReadOnlyList<SplitInput>? splits = null, CancellationToken ct = default);
     Task SoftDeleteAsync(Guid id, Guid deletedByUserId, CancellationToken ct = default);
     Task<IEnumerable<Expense>> GetByPaymentMethodIdAsync(Guid paymentMethodId, CancellationToken ct = default);
     Task<(IReadOnlyList<Expense> Items, int TotalCount)> GetByPaymentMethodIdPagedAsync(Guid paymentMethodId, bool? isActive, int skip, int take, string? sortBy, bool descending, DateOnly? from, DateOnly? to, Guid? projectId, CancellationToken ct = default);

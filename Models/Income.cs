@@ -47,6 +47,9 @@ public class Income
     public User? DeletedByUser { get; set; }
     public Currency OriginalCurrencyNavigation { get; set; } = null!;
 
+    // ── Splits entre partners ────────────────────────────────
+    public ICollection<IncomeSplit> Splits { get; set; } = [];
+
     // ── Exchange values para monedas alternativas ───────────
     public ICollection<TransactionCurrencyExchange> CurrencyExchanges { get; set; } = [];
 }

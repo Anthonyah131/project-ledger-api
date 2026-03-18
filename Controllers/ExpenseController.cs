@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.Common;
 using ProjectLedger.API.DTOs.Expense;
 using ProjectLedger.API.Extensions.Mappings;
+using ProjectLedger.API.Models;
 using ProjectLedger.API.Services;
 
 namespace ProjectLedger.API.Controllers;
@@ -141,7 +142,7 @@ public class ExpenseController : ControllerBase
 
         await _planAuth.ValidateProjectWriteAccessAsync(projectId, userId, ct);
 
-        await _expenseService.CreateAsync(expense, ct);
+        await _expenseService.CreateAsync(expense, ct: ct);
 
         // Copiar los exchanges de la plantilla al nuevo gasto
         if (template.CurrencyExchanges.Count > 0)
@@ -304,7 +305,11 @@ public class ExpenseController : ControllerBase
         await _accessService.ValidateAccessAsync(userId, projectId, ProjectRoles.Editor, ct);
 
         var expense = request.ToEntity(projectId, userId);
-        await _expenseService.CreateAsync(expense, ct);
+        var splits = request.Splits?.Select(s => new SplitInput(
+            s.PartnerId, s.SplitType, s.SplitValue, s.ResolvedAmount,
+            s.CurrencyExchanges?.Select(ce => new SplitCurrencyExchangeInput(ce.CurrencyCode, ce.ExchangeRate, ce.ConvertedAmount)).ToList()
+        )).ToList();
+        await _expenseService.CreateAsync(expense, splits, ct);
 
         // Guardar conversiones a monedas alternativas
         if (request.CurrencyExchanges?.Count > 0)
@@ -354,13 +359,15 @@ public class ExpenseController : ControllerBase
             return NotFound(new { message = "Expense not found in this project." });
 
         expense.ApplyUpdate(request);
-        await _expenseService.UpdateAsync(expense, ct);
+        var updateSplits = request.Splits?.Select(s => new SplitInput(
+            s.PartnerId, s.SplitType, s.SplitValue, s.ResolvedAmount,
+            s.CurrencyExchanges?.Select(ce => new SplitCurrencyExchangeInput(ce.CurrencyCode, ce.ExchangeRate, ce.ConvertedAmount)).ToList()
+        )).ToList();
+        await _expenseService.UpdateAsync(expense, updateSplits, ct);
 
         // Actualizar conversiones a monedas alternativas
         if (request.CurrencyExchanges is not null)
-        {
             await _exchangeService.ReplaceExchangesAsync("expense", expense.ExpId, request.CurrencyExchanges, ct);
-        }
 
         expense = (await _expenseService.GetByIdAsync(expense.ExpId, ct))!;
         return Ok(expense.ToResponse());
@@ -393,7 +400,7 @@ public class ExpenseController : ControllerBase
             return NotFound(new { message = "Expense not found in this project." });
 
         expense.ExpIsActive = request.IsActive;
-        await _expenseService.UpdateAsync(expense, ct);
+        await _expenseService.UpdateAsync(expense, ct: ct);
 
         expense = (await _expenseService.GetByIdAsync(expense.ExpId, ct))!;
         return Ok(expense.ToResponse());

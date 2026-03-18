@@ -13,6 +13,8 @@ public class IncomeService : IIncomeService
     private readonly IProjectRepository _projectRepo;
     private readonly IProjectPaymentMethodRepository _ppmRepo;
     private readonly IPaymentMethodRepository _paymentMethodRepo;
+    private readonly IIncomeSplitRepository _incomeSplitRepo;
+    private readonly IProjectPartnerRepository _projectPartnerRepo;
     private readonly IPlanAuthorizationService _planAuth;
     private readonly IAuditLogService _auditLog;
 
@@ -21,6 +23,8 @@ public class IncomeService : IIncomeService
         IProjectRepository projectRepo,
         IProjectPaymentMethodRepository ppmRepo,
         IPaymentMethodRepository paymentMethodRepo,
+        IIncomeSplitRepository incomeSplitRepo,
+        IProjectPartnerRepository projectPartnerRepo,
         IPlanAuthorizationService planAuth,
         IAuditLogService auditLog)
     {
@@ -28,6 +32,8 @@ public class IncomeService : IIncomeService
         _projectRepo = projectRepo;
         _ppmRepo = ppmRepo;
         _paymentMethodRepo = paymentMethodRepo;
+        _incomeSplitRepo = incomeSplitRepo;
+        _projectPartnerRepo = projectPartnerRepo;
         _planAuth = planAuth;
         _auditLog = auditLog;
     }
@@ -75,7 +81,7 @@ public class IncomeService : IIncomeService
             projectId,
             ct);
 
-    public async Task<Income> CreateAsync(Income income, CancellationToken ct = default)
+    public async Task<Income> CreateAsync(Income income, IReadOnlyList<SplitInput>? splits = null, CancellationToken ct = default)
     {
         if (income.IncIsActive)
             ValidateAccountingReadinessForActivation(income);
@@ -108,6 +114,29 @@ public class IncomeService : IIncomeService
         await _incomeRepo.AddAsync(income, ct);
         await _incomeRepo.SaveChangesAsync(ct);
 
+        // Crear splits: explícitos (si partners_enabled y se proveyeron) o auto-split
+        if (splits is { Count: > 0 } && project.PrjPartnersEnabled)
+        {
+            var splitEntities = await BuildIncomeSplitsAsync(income.IncId, income.IncOriginalAmount, income.IncProjectId, splits, ct);
+            foreach (var s in splitEntities)
+                await _incomeSplitRepo.AddAsync(s, ct);
+            await _incomeSplitRepo.SaveChangesAsync(ct);
+        }
+        else if (paymentMethod.PmtOwnerPartnerId.HasValue)
+        {
+            var autoSplit = new IncomeSplit
+            {
+                InsId = Guid.NewGuid(),
+                InsIncomeId = income.IncId,
+                InsPartnerId = paymentMethod.PmtOwnerPartnerId.Value,
+                InsSplitType = "percentage",
+                InsSplitValue = 100m,
+                InsResolvedAmount = income.IncOriginalAmount
+            };
+            await _incomeSplitRepo.AddAsync(autoSplit, ct);
+            await _incomeSplitRepo.SaveChangesAsync(ct);
+        }
+
         await _auditLog.LogAsync("Income", income.IncId, "create", income.IncCreatedByUserId,
             newValues: new
             {
@@ -123,7 +152,7 @@ public class IncomeService : IIncomeService
         return income;
     }
 
-    public async Task UpdateAsync(Income income, CancellationToken ct = default)
+    public async Task UpdateAsync(Income income, IReadOnlyList<SplitInput>? splits = null, CancellationToken ct = default)
     {
         if (income.IncIsActive)
             ValidateAccountingReadinessForActivation(income);
@@ -143,6 +172,20 @@ public class IncomeService : IIncomeService
         income.IncUpdatedAt = DateTime.UtcNow;
         _incomeRepo.Update(income);
         await _incomeRepo.SaveChangesAsync(ct);
+
+        // Actualizar splits solo si se proveyeron explícitamente
+        // null → no modificar; lista vacía → eliminar todos; lista con items → reemplazar
+        if (splits is not null)
+        {
+            await _incomeSplitRepo.DeleteByIncomeIdAsync(income.IncId, ct);
+            if (splits.Count > 0 && project.PrjPartnersEnabled)
+            {
+                var splitEntities = await BuildIncomeSplitsAsync(income.IncId, income.IncOriginalAmount, income.IncProjectId, splits, ct);
+                foreach (var s in splitEntities)
+                    await _incomeSplitRepo.AddAsync(s, ct);
+            }
+            await _incomeSplitRepo.SaveChangesAsync(ct);
+        }
     }
 
     public async Task SoftDeleteAsync(Guid id, Guid deletedByUserId, CancellationToken ct = default)
@@ -222,5 +265,68 @@ public class IncomeService : IIncomeService
 
         if (income.IncIncomeDate == default)
             throw new InvalidOperationException("Cannot activate income: IncomeDate is required.");
+    }
+
+    private async Task<IReadOnlyList<IncomeSplit>> BuildIncomeSplitsAsync(
+        Guid incomeId,
+        decimal originalAmount,
+        Guid projectId,
+        IReadOnlyList<SplitInput> splits,
+        CancellationToken ct)
+    {
+        // No duplicate partners
+        var partnerIds = splits.Select(s => s.PartnerId).ToList();
+        if (partnerIds.Distinct().Count() != partnerIds.Count)
+            throw new InvalidOperationException("Duplicate partner found in splits.");
+
+        // All partners must be active in project
+        var projectPartners = await _projectPartnerRepo.GetByProjectIdAsync(projectId, ct);
+        var validPartnerIds = projectPartners.Select(pp => pp.PtpPartnerId).ToHashSet();
+        var invalid = partnerIds.FirstOrDefault(id => !validPartnerIds.Contains(id));
+        if (invalid != default)
+            throw new InvalidOperationException($"Partner '{invalid}' is not assigned to this project.");
+
+        // No mixed types
+        var types = splits.Select(s => s.SplitType).Distinct().ToList();
+        if (types.Count > 1)
+            throw new InvalidOperationException("Cannot mix 'percentage' and 'fixed' split types in the same income.");
+
+        var splitType = types[0];
+
+        if (splitType == "percentage")
+        {
+            var sum = splits.Sum(s => s.SplitValue);
+            if (Math.Abs(sum - 100m) > 0.01m)
+                throw new InvalidOperationException($"Percentage splits must sum to 100. Got: {sum}.");
+        }
+        else if (splitType == "fixed")
+        {
+            var sum = splits.Sum(s => s.SplitValue);
+            if (Math.Abs(sum - originalAmount) > 0.01m)
+                throw new InvalidOperationException($"Fixed splits must sum to {originalAmount}. Got: {sum}.");
+        }
+
+        return splits.Select(s =>
+        {
+            var splitId = Guid.NewGuid();
+            return new IncomeSplit
+            {
+                InsId = splitId,
+                InsIncomeId = incomeId,
+                InsPartnerId = s.PartnerId,
+                InsSplitType = s.SplitType,
+                InsSplitValue = s.SplitValue,
+                InsResolvedAmount = s.ResolvedAmount,
+                CurrencyExchanges = s.CurrencyExchanges?.Select(ce => new SplitCurrencyExchange
+                {
+                    SceId = Guid.NewGuid(),
+                    SceIncomeSplitId = splitId,
+                    SceCurrencyCode = ce.CurrencyCode,
+                    SceExchangeRate = ce.ExchangeRate,
+                    SceConvertedAmount = ce.ConvertedAmount,
+                    SceCreatedAt = DateTime.UtcNow
+                }).ToList() ?? []
+            };
+        }).ToList();
     }
 }

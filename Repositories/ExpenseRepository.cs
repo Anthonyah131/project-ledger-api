@@ -12,6 +12,8 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
         => await DbSet
             .Include(e => e.Category)
             .Include(e => e.CurrencyExchanges)
+            .Include(e => e.Splits).ThenInclude(s => s.Partner)
+            .Include(e => e.Splits).ThenInclude(s => s.CurrencyExchanges)
             .FirstOrDefaultAsync(e => e.ExpId == id, ct);
 
     public async Task<IEnumerable<Expense>> GetByProjectIdAsync(Guid projectId, CancellationToken ct = default)
@@ -74,6 +76,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
             .Include(e => e.PaymentMethod)
             .Include(e => e.Obligation)
             .Include(e => e.CurrencyExchanges)
+            .Include(e => e.Splits).ThenInclude(s => s.Partner)
             .Where(e => e.ExpProjectId == projectId && !e.ExpIsDeleted && !e.ExpIsTemplate && e.ExpIsActive);
 
         if (from.HasValue)
@@ -116,6 +119,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
         var query = DbSet
             .Include(e => e.Category)
             .Include(e => e.CurrencyExchanges)
+            .Include(e => e.Splits)
             .Where(e => e.ExpProjectId == projectId && (includeDeleted || !e.ExpIsDeleted));
 
         if (isActive.HasValue)

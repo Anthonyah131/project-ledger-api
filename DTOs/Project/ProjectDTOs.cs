@@ -88,6 +88,30 @@ public class UpdateMemberRoleRequest
     public string Role { get; set; } = null!;
 }
 
+// ── Project Settings ─────────────────────────────────────────
+
+/// <summary>Request para actualizar configuraciones del proyecto.</summary>
+public class UpdateProjectSettingsRequest
+{
+    public bool? PartnersEnabled { get; set; }
+}
+
+// ── Split Defaults ────────────────────────────────────────────
+
+/// <summary>Distribución equitativa de splits por partner para pre-llenar el formulario.</summary>
+public class SplitDefaultsResponse
+{
+    public IReadOnlyList<PartnerSplitDefault> Partners { get; set; } = [];
+}
+
+/// <summary>Partner con su porcentaje por defecto en una distribución equitativa.</summary>
+public class PartnerSplitDefault
+{
+    public Guid PartnerId { get; set; }
+    public string Name { get; set; } = null!;
+    public decimal DefaultPercentage { get; set; }
+}
+
 // ── Project Payment Methods ─────────────────────────────────
 
 /// <summary>Request para vincular un método de pago a un proyecto.</summary>
@@ -108,5 +132,6 @@ public class ProjectPaymentMethodResponse
     public string? BankName { get; set; }
     public string? AccountNumber { get; set; }
     public string OwnerUserName { get; set; } = null!;
+    public string? PartnerName { get; set; }
     public DateTime LinkedAt { get; set; }
 }

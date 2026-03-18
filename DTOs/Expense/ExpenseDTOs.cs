@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Http;
 using ProjectLedger.API.DTOs.Common;
+using ProjectLedger.API.DTOs.Split;
 
 namespace ProjectLedger.API.DTOs.Expense;
 
@@ -77,6 +78,13 @@ public class CreateExpenseRequest
     /// El front calcula y envía el monto convertido para cada moneda.
     /// </summary>
     public List<CurrencyExchangeRequest>? CurrencyExchanges { get; set; }
+
+    /// <summary>
+    /// Splits entre partners. Opcional.
+    /// Si no se envía o el módulo de partners está desactivado → auto-split 100% al dueño de la cuenta.
+    /// Si se envía: todos deben ser percentage sumando 100, o todos fixed sumando original_amount.
+    /// </summary>
+    public List<SplitInputDto>? Splits { get; set; }
 }
 
 /// <summary>Request para actualizar un gasto.</summary>
@@ -153,6 +161,14 @@ public class UpdateExpenseRequest
     /// Si es lista vacía, se eliminan todos los exchanges.
     /// </summary>
     public List<CurrencyExchangeRequest>? CurrencyExchanges { get; set; }
+
+    /// <summary>
+    /// Splits entre partners. Opcional.
+    /// null → no modificar splits existentes.
+    /// [] → eliminar todos los splits.
+    /// [...] → reemplazar con los splits provistos.
+    /// </summary>
+    public List<SplitInputDto>? Splits { get; set; }
 }
 
 /// <summary>
@@ -225,6 +241,12 @@ public class ExpenseResponse
     public bool IsActive { get; set; }
 
     public List<CurrencyExchangeResponse>? CurrencyExchanges { get; set; }
+
+    /// <summary>Indica si el movimiento tiene splits registrados. Útil para mostrar un indicador en la lista.</summary>
+    public bool HasSplits { get; set; }
+
+    /// <summary>Splits entre partners. Presente solo cuando el proyecto tiene partners_enabled = true.</summary>
+    public List<SplitResponseDto>? Splits { get; set; }
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

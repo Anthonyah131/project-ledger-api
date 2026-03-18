@@ -16,4 +16,6 @@ public interface IProjectService
     Task SoftDeleteAsync(Guid id, Guid deletedByUserId, CancellationToken ct = default);
     /// <summary>Asigna o desvincula un proyecto de un workspace sin modificar otros campos.</summary>
     Task SetWorkspaceAsync(Guid projectId, Guid? workspaceId, CancellationToken ct = default);
+    /// <summary>Actualiza configuraciones del proyecto (ej. partners_enabled).</summary>
+    Task UpdateSettingsAsync(Guid projectId, bool? partnersEnabled, CancellationToken ct = default);
 }

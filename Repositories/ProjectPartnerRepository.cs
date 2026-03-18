@@ -34,6 +34,25 @@ public class ProjectPartnerRepository : Repository<ProjectPartner>, IProjectPart
                 && ppm.PaymentMethod.PmtOwnerPartnerId == partnerId
                 && !ppm.PaymentMethod.PmtIsDeleted, ct);
 
+    public async Task<IEnumerable<PaymentMethod>> GetLinkablePaymentMethodsAsync(Guid projectId, Guid userId, CancellationToken ct = default)
+        => await Context.Set<PaymentMethod>()
+            .Where(pm => !pm.PmtIsDeleted
+                && pm.PmtOwnerUserId == userId
+                // Must have a partner assigned to this project
+                && pm.PmtOwnerPartnerId != null
+                && DbSet.Any(ptp =>
+                    ptp.PtpProjectId == projectId
+                    && ptp.PtpPartnerId == pm.PmtOwnerPartnerId
+                    && !ptp.PtpIsDeleted)
+                // Must NOT already be linked to this project
+                && !Context.Set<ProjectPaymentMethod>().Any(ppm =>
+                    ppm.PpmProjectId == projectId
+                    && ppm.PpmPaymentMethodId == pm.PmtId))
+            .Include(pm => pm.OwnerPartner)
+            .OrderBy(pm => pm.OwnerPartner!.PtrName)
+            .ThenBy(pm => pm.PmtName)
+            .ToListAsync(ct);
+
     public async Task<IEnumerable<PaymentMethod>> GetAvailablePaymentMethodsAsync(Guid projectId, Guid userId, CancellationToken ct = default)
         => await Context.Set<PaymentMethod>()
             .Where(pm => !pm.PmtIsDeleted

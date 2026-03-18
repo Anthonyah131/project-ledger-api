@@ -41,6 +41,11 @@ public class AppDbContext : DbContext
     // ── Fase 2c: ProjectPartners ─────────────────────────────
     public DbSet<ProjectPartner> ProjectPartners => Set<ProjectPartner>();
 
+    // ── Fase 3a: Splits ──────────────────────────────────────
+    public DbSet<ExpenseSplit> ExpenseSplits => Set<ExpenseSplit>();
+    public DbSet<IncomeSplit> IncomeSplits => Set<IncomeSplit>();
+    public DbSet<SplitCurrencyExchange> SplitCurrencyExchanges => Set<SplitCurrencyExchange>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

@@ -50,3 +50,19 @@ public class ProjectPaymentMethodItem
     public string Currency { get; set; } = null!;
     public string? BankName { get; set; }
 }
+
+/// <summary>
+/// Método de pago enlazable al proyecto: pertenece a un partner asignado al proyecto
+/// y aún no está vinculado al mismo.
+/// </summary>
+public class LinkablePaymentMethodResponse
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = null!;
+    public string Type { get; set; } = null!;
+    public string Currency { get; set; } = null!;
+    public string? BankName { get; set; }
+    public string? AccountNumber { get; set; }
+    public Guid PartnerId { get; set; }
+    public string PartnerName { get; set; } = null!;
+}

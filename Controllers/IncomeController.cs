@@ -4,6 +4,7 @@ using ProjectLedger.API.DTOs.Common;
 using ProjectLedger.API.DTOs.Expense;
 using ProjectLedger.API.DTOs.Income;
 using ProjectLedger.API.Extensions.Mappings;
+using ProjectLedger.API.Models;
 using ProjectLedger.API.Services;
 
 namespace ProjectLedger.API.Controllers;
@@ -126,7 +127,11 @@ public class IncomeController : ControllerBase
         await _accessService.ValidateAccessAsync(userId, projectId, ProjectRoles.Editor, ct);
 
         var income = request.ToEntity(projectId, userId);
-        await _incomeService.CreateAsync(income, ct);
+        var splits = request.Splits?.Select(s => new SplitInput(
+            s.PartnerId, s.SplitType, s.SplitValue, s.ResolvedAmount,
+            s.CurrencyExchanges?.Select(ce => new SplitCurrencyExchangeInput(ce.CurrencyCode, ce.ExchangeRate, ce.ConvertedAmount)).ToList()
+        )).ToList();
+        await _incomeService.CreateAsync(income, splits, ct);
 
         // Guardar exchange values para monedas alternativas
         if (request.CurrencyExchanges?.Count > 0)
@@ -322,13 +327,15 @@ public class IncomeController : ControllerBase
             return NotFound(new { message = "Income not found in this project." });
 
         income.ApplyUpdate(request);
-        await _incomeService.UpdateAsync(income, ct);
+        var updateSplits = request.Splits?.Select(s => new SplitInput(
+            s.PartnerId, s.SplitType, s.SplitValue, s.ResolvedAmount,
+            s.CurrencyExchanges?.Select(ce => new SplitCurrencyExchangeInput(ce.CurrencyCode, ce.ExchangeRate, ce.ConvertedAmount)).ToList()
+        )).ToList();
+        await _incomeService.UpdateAsync(income, updateSplits, ct);
 
         // Actualizar exchange values
         if (request.CurrencyExchanges is not null)
-        {
             await _exchangeService.ReplaceExchangesAsync("income", income.IncId, request.CurrencyExchanges, ct);
-        }
 
         income = (await _incomeService.GetByIdAsync(incomeId, ct))!;
         return Ok(income.ToResponse());
@@ -359,7 +366,7 @@ public class IncomeController : ControllerBase
             return NotFound(new { message = "Income not found in this project." });
 
         income.IncIsActive = request.IsActive;
-        await _incomeService.UpdateAsync(income, ct);
+        await _incomeService.UpdateAsync(income, ct: ct);
 
         income = (await _incomeService.GetByIdAsync(incomeId, ct))!;
         return Ok(income.ToResponse());

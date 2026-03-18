@@ -13,6 +13,9 @@ public class ProjectService : IProjectService
     private readonly IProjectRepository _projectRepo;
     private readonly IProjectMemberRepository _memberRepo;
     private readonly ICategoryRepository _categoryRepo;
+    private readonly IProjectPartnerRepository _projectPartnerRepo;
+    private readonly IExpenseSplitRepository _expenseSplitRepo;
+    private readonly IIncomeSplitRepository _incomeSplitRepo;
     private readonly IPlanAuthorizationService _planAuth;
     private readonly IAuditLogService _auditLog;
 
@@ -20,12 +23,18 @@ public class ProjectService : IProjectService
         IProjectRepository projectRepo,
         IProjectMemberRepository memberRepo,
         ICategoryRepository categoryRepo,
+        IProjectPartnerRepository projectPartnerRepo,
+        IExpenseSplitRepository expenseSplitRepo,
+        IIncomeSplitRepository incomeSplitRepo,
         IPlanAuthorizationService planAuth,
         IAuditLogService auditLog)
     {
         _projectRepo = projectRepo;
         _memberRepo = memberRepo;
         _categoryRepo = categoryRepo;
+        _projectPartnerRepo = projectPartnerRepo;
+        _expenseSplitRepo = expenseSplitRepo;
+        _incomeSplitRepo = incomeSplitRepo;
         _planAuth = planAuth;
         _auditLog = auditLog;
     }
@@ -105,7 +114,10 @@ public class ProjectService : IProjectService
             project.PrjOwnerUserId, PlanPermission.CanEditProjects, ct);
 
         project.PrjUpdatedAt = DateTime.UtcNow;
-        _projectRepo.Update(project);
+        // Do NOT call _projectRepo.Update(project) — that marks all properties as Modified
+        // and would overwrite concurrent setting changes (e.g. PrjPartnersEnabled).
+        // The entity is already tracked (loaded from GetByIdAsync in the same scope),
+        // so SaveChanges will only persist the actually-changed properties.
         await _projectRepo.SaveChangesAsync(ct);
 
         await _auditLog.LogAsync("Project", project.PrjId, "update", project.PrjOwnerUserId,
@@ -143,5 +155,38 @@ public class ProjectService : IProjectService
 
         await _auditLog.LogAsync("Project", id, "delete", deletedByUserId,
             oldValues: new { project.PrjName }, ct: ct);
+    }
+
+    public async Task UpdateSettingsAsync(Guid projectId, bool? partnersEnabled, CancellationToken ct = default)
+    {
+        var project = await _projectRepo.GetByIdAsync(projectId, ct)
+            ?? throw new KeyNotFoundException($"Project '{projectId}' not found.");
+
+        if (partnersEnabled.HasValue)
+        {
+            if (partnersEnabled.Value)
+            {
+                var partners = await _projectPartnerRepo.GetByProjectIdAsync(projectId, ct);
+                if (partners.Count() < 2)
+                    throw new InvalidOperationException(
+                        "Cannot enable partner splits: the project needs at least 2 active partners.");
+            }
+            else
+            {
+                // No se puede desactivar si ya hay movimientos con splits registrados
+                var hasExpenseSplits = await _expenseSplitRepo.ExistsForProjectAsync(projectId, ct);
+                var hasIncomeSplits = await _incomeSplitRepo.ExistsForProjectAsync(projectId, ct);
+                if (hasExpenseSplits || hasIncomeSplits)
+                    throw new InvalidOperationException(
+                        "Cannot disable partner splits: the project has transactions with splits. " +
+                        "Delete all split transactions first before disabling this feature.");
+            }
+
+            project.PrjPartnersEnabled = partnersEnabled.Value;
+        }
+
+        project.PrjUpdatedAt = DateTime.UtcNow;
+        _projectRepo.Update(project);
+        await _projectRepo.SaveChangesAsync(ct);
     }
 }

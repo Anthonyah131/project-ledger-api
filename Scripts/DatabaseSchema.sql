@@ -675,10 +675,43 @@ CREATE TABLE public.expenses (
 	CONSTRAINT expenses_exchange_rate_positive CHECK (exp_exchange_rate > 0:::DECIMAL)
 );
 COMMENT ON COLUMN public.expenses.exp_obligation_equivalent_amount IS 'Amount paid expressed in obligation currency for cross-currency obligation payments.';
+COMMENT ON COLUMN public.expenses.exp_account_amount IS e'Monto convertido a la moneda del m\u00E9todo de pago (account currency).';
+COMMENT ON COLUMN public.expenses.exp_account_currency IS e'Moneda del m\u00E9todo de pago al momento de registrar el gasto.';
 
 -- Column comments
 
 COMMENT ON COLUMN public.expenses.exp_obligation_equivalent_amount IS 'Amount paid expressed in obligation currency for cross-currency obligation payments.';
+COMMENT ON COLUMN public.expenses.exp_account_amount IS 'Monto convertido a la moneda del método de pago (account currency).';
+COMMENT ON COLUMN public.expenses.exp_account_currency IS 'Moneda del método de pago al momento de registrar el gasto.';
+
+
+-- public.income_splits definition
+
+-- Drop table
+
+-- DROP TABLE income_splits;
+
+CREATE TABLE public.income_splits (
+	ins_id UUID NOT NULL DEFAULT gen_random_uuid(),
+	ins_income_id UUID NOT NULL,
+	ins_partner_id UUID NOT NULL,
+	ins_split_type VARCHAR(10) NOT NULL,
+	ins_split_value DECIMAL(14,4) NOT NULL,
+	ins_resolved_amount DECIMAL(14,2) NOT NULL,
+	ins_created_at TIMESTAMPTZ NOT NULL DEFAULT now():::TIMESTAMPTZ,
+	ins_updated_at TIMESTAMPTZ NOT NULL DEFAULT now():::TIMESTAMPTZ,
+	CONSTRAINT income_splits_pkey PRIMARY KEY (ins_id ASC),
+	CONSTRAINT ins_income_fkey FOREIGN KEY (ins_income_id) REFERENCES public.incomes(inc_id) ON DELETE CASCADE,
+	CONSTRAINT ins_partner_fkey FOREIGN KEY (ins_partner_id) REFERENCES public.partners(ptr_id),
+	UNIQUE INDEX uq_ins_income_partner (ins_income_id ASC, ins_partner_id ASC),
+	INDEX idx_ins_income_id (ins_income_id ASC),
+	INDEX idx_ins_partner_id (ins_partner_id ASC),
+	CONSTRAINT ins_split_type_check CHECK (ins_split_type IN ('percentage':::STRING, 'fixed':::STRING)),
+	CONSTRAINT ins_split_value_positive CHECK (ins_split_value > 0:::DECIMAL),
+	CONSTRAINT ins_resolved_amount_positive CHECK (ins_resolved_amount > 0:::DECIMAL)
+);
+COMMENT ON TABLE public.income_splits IS e'Divisi\u00F3n de un ingreso entre partners del proyecto.';
+COMMENT ON TABLE public.income_splits IS 'División de un ingreso entre partners del proyecto.';
 
 
 -- public.transaction_currency_exchanges definition
@@ -707,3 +740,32 @@ CREATE TABLE public.transaction_currency_exchanges (
 );
 COMMENT ON TABLE public.transaction_currency_exchanges IS 'Conversiones de gastos/ingresos a monedas alternativas del proyecto.';
 COMMENT ON TABLE public.transaction_currency_exchanges IS 'Conversiones de gastos/ingresos a monedas alternativas del proyecto.';
+
+
+-- public.expense_splits definition
+
+-- Drop table
+
+-- DROP TABLE expense_splits;
+
+CREATE TABLE public.expense_splits (
+	exs_id UUID NOT NULL DEFAULT gen_random_uuid(),
+	exs_expense_id UUID NOT NULL,
+	exs_partner_id UUID NOT NULL,
+	exs_split_type VARCHAR(10) NOT NULL,
+	exs_split_value DECIMAL(14,4) NOT NULL,
+	exs_resolved_amount DECIMAL(14,2) NOT NULL,
+	exs_created_at TIMESTAMPTZ NOT NULL DEFAULT now():::TIMESTAMPTZ,
+	exs_updated_at TIMESTAMPTZ NOT NULL DEFAULT now():::TIMESTAMPTZ,
+	CONSTRAINT expense_splits_pkey PRIMARY KEY (exs_id ASC),
+	CONSTRAINT exs_expense_fkey FOREIGN KEY (exs_expense_id) REFERENCES public.expenses(exp_id) ON DELETE CASCADE,
+	CONSTRAINT exs_partner_fkey FOREIGN KEY (exs_partner_id) REFERENCES public.partners(ptr_id),
+	UNIQUE INDEX uq_exs_expense_partner (exs_expense_id ASC, exs_partner_id ASC),
+	INDEX idx_exs_expense_id (exs_expense_id ASC),
+	INDEX idx_exs_partner_id (exs_partner_id ASC),
+	CONSTRAINT exs_split_type_check CHECK (exs_split_type IN ('percentage':::STRING, 'fixed':::STRING)),
+	CONSTRAINT exs_split_value_positive CHECK (exs_split_value > 0:::DECIMAL),
+	CONSTRAINT exs_resolved_amount_positive CHECK (exs_resolved_amount > 0:::DECIMAL)
+);
+COMMENT ON TABLE public.expense_splits IS e'Divisi\u00F3n del costo de un gasto entre partners del proyecto.';
+COMMENT ON TABLE public.expense_splits IS 'División del costo de un gasto entre partners del proyecto.';

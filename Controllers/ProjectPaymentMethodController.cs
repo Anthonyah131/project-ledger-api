@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.Project;
+using ProjectLedger.API.DTOs.ProjectPartner;
 using ProjectLedger.API.Extensions.Mappings;
 using ProjectLedger.API.Models;
 using ProjectLedger.API.Services;
@@ -16,13 +17,49 @@ public class ProjectPaymentMethodController : ControllerBase
 {
     private readonly IProjectPaymentMethodService _ppmService;
     private readonly IPlanAuthorizationService _planAuth;
+    private readonly IProjectPartnerService _projectPartnerService;
+    private readonly IProjectAccessService _accessService;
 
     public ProjectPaymentMethodController(
         IProjectPaymentMethodService ppmService,
-        IPlanAuthorizationService planAuth)
+        IPlanAuthorizationService planAuth,
+        IProjectPartnerService projectPartnerService,
+        IProjectAccessService accessService)
     {
         _ppmService = ppmService;
         _planAuth = planAuth;
+        _projectPartnerService = projectPartnerService;
+        _accessService = accessService;
+    }
+
+    /// <summary>
+    /// Métodos de pago que se pueden enlazar al proyecto: pertenecen a un partner asignado
+    /// al proyecto y aún no están vinculados al mismo.
+    /// No incluye métodos sin partner ni de partners no asignados al proyecto.
+    /// </summary>
+    [HttpGet("linkable")]
+    [Authorize(Policy = "ProjectViewer")]
+    [ProducesResponseType(typeof(IEnumerable<LinkablePaymentMethodResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetLinkablePaymentMethods(Guid projectId, CancellationToken ct)
+    {
+        var userId = User.GetRequiredUserId();
+        await _accessService.ValidateAccessAsync(userId, projectId, ProjectRoles.Viewer, ct);
+
+        var paymentMethods = await _projectPartnerService.GetLinkablePaymentMethodsAsync(projectId, userId, ct);
+
+        var result = paymentMethods.Select(pm => new LinkablePaymentMethodResponse
+        {
+            Id = pm.PmtId,
+            Name = pm.PmtName,
+            Type = pm.PmtType,
+            Currency = pm.PmtCurrency,
+            BankName = pm.PmtBankName,
+            AccountNumber = pm.PmtAccountNumber,
+            PartnerId = pm.PmtOwnerPartnerId!.Value,
+            PartnerName = pm.OwnerPartner?.PtrName ?? string.Empty
+        });
+
+        return Ok(result);
     }
 
     /// <summary>Lista los métodos de pago vinculados a un proyecto.</summary>

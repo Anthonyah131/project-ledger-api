@@ -381,6 +381,76 @@ public class ProjectController : ControllerBase
         });
     }
 
+    // ── PATCH /api/projects/{projectId}/settings ─────────────
+
+    /// <summary>
+    /// Actualiza configuraciones del proyecto (p.ej. habilitar/deshabilitar partner splits).
+    /// Requiere rol owner.
+    /// </summary>
+    /// <response code="204">Configuración actualizada.</response>
+    /// <response code="400">Datos inválidos o condiciones no cumplidas.</response>
+    /// <response code="403">Sin acceso al proyecto.</response>
+    /// <response code="404">Proyecto no encontrado.</response>
+    [HttpPatch("{projectId:guid}/settings")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateSettings(
+        Guid projectId,
+        [FromBody] UpdateProjectSettingsRequest request,
+        CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var userId = User.GetRequiredUserId();
+        await _accessService.ValidateAccessAsync(userId, projectId, ProjectRoles.Owner, ct);
+
+        try
+        {
+            await _projectService.UpdateSettingsAsync(projectId, request.PartnersEnabled, ct);
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    // ── GET /api/projects/{projectId}/partners/split-defaults ─
+
+    /// <summary>
+    /// Devuelve la distribución equitativa de porcentajes entre los partners del proyecto.
+    /// Usar para pre-llenar el formulario de splits al crear/editar un movimiento.
+    /// </summary>
+    /// <response code="200">Lista de partners con porcentaje por defecto.</response>
+    /// <response code="403">Sin acceso al proyecto.</response>
+    [HttpGet("{projectId:guid}/partners/split-defaults")]
+    [ProducesResponseType(typeof(SplitDefaultsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetSplitDefaults(Guid projectId, CancellationToken ct)
+    {
+        var userId = User.GetRequiredUserId();
+        await _accessService.ValidateAccessAsync(userId, projectId, ProjectRoles.Viewer, ct);
+
+        var defaults = await _projectPartnerService.GetSplitDefaultsAsync(projectId, ct);
+
+        return Ok(new SplitDefaultsResponse
+        {
+            Partners = defaults.Select(d => new PartnerSplitDefault
+            {
+                PartnerId = d.PartnerId,
+                Name = d.Name,
+                DefaultPercentage = d.DefaultPercentage
+            }).ToList()
+        });
+    }
+
     // ── Private Helpers ─────────────────────────────────────
 
     /// <summary>Comparer para deduplicar proyectos por PrjId.</summary>
