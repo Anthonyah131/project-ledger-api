@@ -154,43 +154,46 @@ public class ExpenseService : IExpenseService
         expense.ExpCreatedAt = DateTime.UtcNow;
         expense.ExpUpdatedAt = DateTime.UtcNow;
 
-        await _expenseRepo.AddAsync(expense, ct);
-        await _expenseRepo.SaveChangesAsync(ct);
+        await _expenseRepo.ExecuteInTransactionAsync(async (ct) =>
+        {
+            await _expenseRepo.AddAsync(expense, ct);
+            await _expenseRepo.SaveChangesAsync(ct);
 
-        // Crear splits: explícitos (si partners_enabled y se proveyeron) o auto-split
-        if (splits is { Count: > 0 } && project.PrjPartnersEnabled)
-        {
-            var splitEntities = await BuildExpenseSplitsAsync(expense.ExpId, expense.ExpOriginalAmount, expense.ExpProjectId, splits, ct);
-            foreach (var s in splitEntities)
-                await _expenseSplitRepo.AddAsync(s, ct);
-            await _expenseSplitRepo.SaveChangesAsync(ct);
-        }
-        else if (paymentMethod.PmtOwnerPartnerId.HasValue)
-        {
-            var autoSplit = new ExpenseSplit
+            // Crear splits: explícitos (si partners_enabled y se proveyeron) o auto-split
+            if (splits is { Count: > 0 } && project.PrjPartnersEnabled)
             {
-                ExsId = Guid.NewGuid(),
-                ExsExpenseId = expense.ExpId,
-                ExsPartnerId = paymentMethod.PmtOwnerPartnerId.Value,
-                ExsSplitType = "percentage",
-                ExsSplitValue = 100m,
-                ExsResolvedAmount = expense.ExpOriginalAmount
-            };
-            await _expenseSplitRepo.AddAsync(autoSplit, ct);
-            await _expenseSplitRepo.SaveChangesAsync(ct);
-        }
+                var splitEntities = await BuildExpenseSplitsAsync(expense.ExpId, expense.ExpOriginalAmount, expense.ExpProjectId, splits, ct);
+                foreach (var s in splitEntities)
+                    await _expenseSplitRepo.AddAsync(s, ct);
+                await _expenseSplitRepo.SaveChangesAsync(ct);
+            }
+            else if (paymentMethod.PmtOwnerPartnerId.HasValue)
+            {
+                var autoSplit = new ExpenseSplit
+                {
+                    ExsId = Guid.NewGuid(),
+                    ExsExpenseId = expense.ExpId,
+                    ExsPartnerId = paymentMethod.PmtOwnerPartnerId.Value,
+                    ExsSplitType = "percentage",
+                    ExsSplitValue = 100m,
+                    ExsResolvedAmount = expense.ExpOriginalAmount
+                };
+                await _expenseSplitRepo.AddAsync(autoSplit, ct);
+                await _expenseSplitRepo.SaveChangesAsync(ct);
+            }
 
-        // Auditar creación del gasto
-        await _auditLog.LogAsync("Expense", expense.ExpId, "create", expense.ExpCreatedByUserId,
-            newValues: new { expense.ExpId, expense.ExpTitle, expense.ExpConvertedAmount, expense.ExpProjectId }, ct: ct);
+            // Auditar creación del gasto
+            await _auditLog.LogAsync("Expense", expense.ExpId, "create", expense.ExpCreatedByUserId,
+                newValues: new { expense.ExpId, expense.ExpTitle, expense.ExpConvertedAmount, expense.ExpProjectId }, ct: ct);
 
-        // Auditar asociación a obligación si aplica
-        if (expense.ExpObligationId.HasValue)
-        {
-            await _auditLog.LogAsync("Obligation", expense.ExpObligationId.Value, "associate",
-                expense.ExpCreatedByUserId,
-                newValues: new { ExpenseId = expense.ExpId, Amount = expense.ExpConvertedAmount }, ct: ct);
-        }
+            // Auditar asociación a obligación si aplica
+            if (expense.ExpObligationId.HasValue)
+            {
+                await _auditLog.LogAsync("Obligation", expense.ExpObligationId.Value, "associate",
+                    expense.ExpCreatedByUserId,
+                    newValues: new { ExpenseId = expense.ExpId, Amount = expense.ExpConvertedAmount }, ct: ct);
+            }
+        }, ct);
 
         return expense;
     }
@@ -244,22 +247,26 @@ public class ExpenseService : IExpenseService
         }
 
         expense.ExpUpdatedAt = DateTime.UtcNow;
-        _expenseRepo.Update(expense);
-        await _expenseRepo.SaveChangesAsync(ct);
 
-        // Actualizar splits solo si se proveyeron explícitamente
-        // null → no modificar; lista vacía → eliminar todos; lista con items → reemplazar
-        if (splits is not null)
+        await _expenseRepo.ExecuteInTransactionAsync(async (ct) =>
         {
-            await _expenseSplitRepo.DeleteByExpenseIdAsync(expense.ExpId, ct);
-            if (splits.Count > 0 && project.PrjPartnersEnabled)
+            _expenseRepo.Update(expense);
+            await _expenseRepo.SaveChangesAsync(ct);
+
+            // Actualizar splits solo si se proveyeron explícitamente
+            // null → no modificar; lista vacía → eliminar todos; lista con items → reemplazar
+            if (splits is not null)
             {
-                var splitEntities = await BuildExpenseSplitsAsync(expense.ExpId, expense.ExpOriginalAmount, expense.ExpProjectId, splits, ct);
-                foreach (var s in splitEntities)
-                    await _expenseSplitRepo.AddAsync(s, ct);
+                await _expenseSplitRepo.DeleteByExpenseIdAsync(expense.ExpId, ct);
+                if (splits.Count > 0 && project.PrjPartnersEnabled)
+                {
+                    var splitEntities = await BuildExpenseSplitsAsync(expense.ExpId, expense.ExpOriginalAmount, expense.ExpProjectId, splits, ct);
+                    foreach (var s in splitEntities)
+                        await _expenseSplitRepo.AddAsync(s, ct);
+                }
+                await _expenseSplitRepo.SaveChangesAsync(ct);
             }
-            await _expenseSplitRepo.SaveChangesAsync(ct);
-        }
+        }, ct);
     }
 
     public async Task SoftDeleteAsync(Guid id, Guid deletedByUserId, CancellationToken ct = default)

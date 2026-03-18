@@ -455,14 +455,17 @@ public class AuthService : IAuthService
         user.UsrUpdatedAt    = DateTime.UtcNow;
         _userRepo.Update(user);
 
-        // Marcar el token como usado e invalidar todos los demás
-        await _passwordResetTokenRepo.InvalidateAllByUserIdAsync(user.UsrId, ct);
-        await _passwordResetTokenRepo.SaveChangesAsync(ct);
-        await _userRepo.SaveChangesAsync(ct);
+        await _userRepo.ExecuteInTransactionAsync(async (ct) =>
+        {
+            // Marcar el token como usado e invalidar todos los demás
+            await _passwordResetTokenRepo.InvalidateAllByUserIdAsync(user.UsrId, ct);
+            await _passwordResetTokenRepo.SaveChangesAsync(ct);
+            await _userRepo.SaveChangesAsync(ct);
 
-        // Revocar todos los refresh tokens activos (invalida todas las sesiones abiertas)
-        await _refreshTokenRepo.RevokeAllByUserIdAsync(user.UsrId, ct);
-        await _refreshTokenRepo.SaveChangesAsync(ct);
+            // Revocar todos los refresh tokens activos (invalida todas las sesiones abiertas)
+            await _refreshTokenRepo.RevokeAllByUserIdAsync(user.UsrId, ct);
+            await _refreshTokenRepo.SaveChangesAsync(ct);
+        }, ct);
 
         // Notificación por correo (fire-and-forget)
         _ = _emailService.SendPasswordChangedEmailAsync(user.UsrEmail, user.UsrFullName, ct);

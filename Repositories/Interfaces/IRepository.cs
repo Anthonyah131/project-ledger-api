@@ -13,4 +13,11 @@ public interface IRepository<T> where T : class
     void Remove(T entity);
     Task<bool> ExistsAsync(Guid id, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Ejecuta una operación dentro de una transacción explícita, compatible
+    /// con NpgsqlRetryingExecutionStrategy. Toda la operación se reintenta
+    /// como unidad atómica si ocurre un error transitorio.
+    /// </summary>
+    Task ExecuteInTransactionAsync(Func<CancellationToken, Task> operation, CancellationToken ct = default);
 }

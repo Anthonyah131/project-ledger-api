@@ -119,7 +119,8 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
         var query = DbSet
             .Include(e => e.Category)
             .Include(e => e.CurrencyExchanges)
-            .Include(e => e.Splits)
+            .Include(e => e.Splits).ThenInclude(s => s.Partner)
+            .Include(e => e.Splits).ThenInclude(s => s.CurrencyExchanges)
             .Where(e => e.ExpProjectId == projectId && (includeDeleted || !e.ExpIsDeleted));
 
         if (isActive.HasValue)

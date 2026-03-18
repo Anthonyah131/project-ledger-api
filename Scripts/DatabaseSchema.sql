@@ -492,6 +492,49 @@ CREATE TABLE public.obligations (
 );
 
 
+-- public.partner_settlements definition
+
+-- Drop table
+
+-- DROP TABLE partner_settlements;
+
+CREATE TABLE public.partner_settlements (
+	pst_id UUID NOT NULL DEFAULT gen_random_uuid(),
+	pst_project_id UUID NOT NULL,
+	pst_from_partner_id UUID NOT NULL,
+	pst_to_partner_id UUID NOT NULL,
+	pst_amount DECIMAL(14,2) NOT NULL,
+	pst_currency VARCHAR(3) NOT NULL,
+	pst_exchange_rate DECIMAL(18,6) NOT NULL DEFAULT 1.000000:::DECIMAL,
+	pst_converted_amount DECIMAL(14,2) NOT NULL,
+	pst_settlement_date DATE NOT NULL,
+	pst_description VARCHAR(500) NULL,
+	pst_notes STRING NULL,
+	pst_created_by_user_id UUID NOT NULL,
+	pst_created_at TIMESTAMPTZ NOT NULL DEFAULT now():::TIMESTAMPTZ,
+	pst_updated_at TIMESTAMPTZ NOT NULL DEFAULT now():::TIMESTAMPTZ,
+	pst_is_deleted BOOL NOT NULL DEFAULT false,
+	pst_deleted_at TIMESTAMPTZ NULL,
+	pst_deleted_by_user_id UUID NULL,
+	CONSTRAINT partner_settlements_pkey PRIMARY KEY (pst_id ASC),
+	CONSTRAINT pst_project_fkey FOREIGN KEY (pst_project_id) REFERENCES public.projects(prj_id),
+	CONSTRAINT pst_from_partner_fkey FOREIGN KEY (pst_from_partner_id) REFERENCES public.partners(ptr_id),
+	CONSTRAINT pst_to_partner_fkey FOREIGN KEY (pst_to_partner_id) REFERENCES public.partners(ptr_id),
+	CONSTRAINT pst_currency_fkey FOREIGN KEY (pst_currency) REFERENCES public.currencies(cur_code),
+	CONSTRAINT pst_created_by_fkey FOREIGN KEY (pst_created_by_user_id) REFERENCES public.users(usr_id),
+	CONSTRAINT pst_deleted_by_fkey FOREIGN KEY (pst_deleted_by_user_id) REFERENCES public.users(usr_id),
+	INDEX idx_pst_project_id (pst_project_id ASC),
+	INDEX idx_pst_from_partner_id (pst_from_partner_id ASC),
+	INDEX idx_pst_to_partner_id (pst_to_partner_id ASC),
+	INDEX idx_pst_date (pst_settlement_date ASC),
+	INDEX idx_pst_is_deleted (pst_is_deleted ASC),
+	CONSTRAINT pst_different_partners CHECK (pst_from_partner_id != pst_to_partner_id),
+	CONSTRAINT pst_amount_positive CHECK (pst_amount > 0:::DECIMAL)
+);
+COMMENT ON TABLE public.partner_settlements IS e'Pagos directos entre partners para saldar deudas. No afectan m\u00E9todos de pago del proyecto.';
+COMMENT ON TABLE public.partner_settlements IS 'Pagos directos entre partners para saldar deudas. No afectan métodos de pago del proyecto.';
+
+
 -- public.project_alternative_currencies definition
 
 -- Drop table
@@ -769,3 +812,29 @@ CREATE TABLE public.expense_splits (
 );
 COMMENT ON TABLE public.expense_splits IS e'Divisi\u00F3n del costo de un gasto entre partners del proyecto.';
 COMMENT ON TABLE public.expense_splits IS 'División del costo de un gasto entre partners del proyecto.';
+
+
+-- public.split_currency_exchanges definition
+
+-- Drop table
+
+-- DROP TABLE split_currency_exchanges;
+
+CREATE TABLE public.split_currency_exchanges (
+	sce_id UUID NOT NULL DEFAULT gen_random_uuid(),
+	sce_expense_split_id UUID NULL,
+	sce_income_split_id UUID NULL,
+	sce_currency_code VARCHAR(10) NOT NULL,
+	sce_exchange_rate DECIMAL(18,6) NOT NULL,
+	sce_converted_amount DECIMAL(18,4) NOT NULL,
+	sce_created_at TIMESTAMPTZ NOT NULL DEFAULT now():::TIMESTAMPTZ,
+	CONSTRAINT pk_split_currency_exchanges PRIMARY KEY (sce_id ASC),
+	CONSTRAINT fk_sce_expense_split FOREIGN KEY (sce_expense_split_id) REFERENCES public.expense_splits(exs_id) ON DELETE CASCADE,
+	CONSTRAINT fk_sce_income_split FOREIGN KEY (sce_income_split_id) REFERENCES public.income_splits(ins_id) ON DELETE CASCADE,
+	CONSTRAINT fk_sce_currency FOREIGN KEY (sce_currency_code) REFERENCES public.currencies(cur_code),
+	UNIQUE INDEX uix_sce_expense_split_currency (sce_expense_split_id ASC, sce_currency_code ASC) WHERE sce_expense_split_id IS NOT NULL,
+	UNIQUE INDEX uix_sce_income_split_currency (sce_income_split_id ASC, sce_currency_code ASC) WHERE sce_income_split_id IS NOT NULL,
+	INDEX ix_sce_expense_split_id (sce_expense_split_id ASC) WHERE sce_expense_split_id IS NOT NULL,
+	INDEX ix_sce_income_split_id (sce_income_split_id ASC) WHERE sce_income_split_id IS NOT NULL,
+	CONSTRAINT chk_sce_mutex CHECK (((sce_expense_split_id IS NOT NULL) AND (sce_income_split_id IS NULL)) OR ((sce_expense_split_id IS NULL) AND (sce_income_split_id IS NOT NULL)))
+);

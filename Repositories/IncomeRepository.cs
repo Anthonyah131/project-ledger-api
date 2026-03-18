@@ -36,7 +36,8 @@ public class IncomeRepository : Repository<Income>, IIncomeRepository
             .Include(e => e.Category)
             .Include(e => e.Project)
             .Include(e => e.CurrencyExchanges)
-            .Include(e => e.Splits)
+            .Include(e => e.Splits).ThenInclude(s => s.Partner)
+            .Include(e => e.Splits).ThenInclude(s => s.CurrencyExchanges)
             .Where(e => e.IncProjectId == projectId && (includeDeleted || !e.IncIsDeleted));
 
         if (isActive.HasValue)

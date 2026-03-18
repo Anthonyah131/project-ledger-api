@@ -60,10 +60,13 @@ public class SplitCurrencyExchangeService : ISplitCurrencyExchangeService
         IReadOnlyList<CurrencyExchangeRequest> exchanges,
         CancellationToken ct = default)
     {
-        await _repo.DeleteByExpenseIdAsync(expenseId, ct);
-        await _repo.SaveChangesAsync(ct);
-        if (exchanges.Count > 0)
-            await SaveForExpenseAsync(expenseId, expenseOriginalAmount, exchanges, ct);
+        await _repo.ExecuteInTransactionAsync(async (ct) =>
+        {
+            await _repo.DeleteByExpenseIdAsync(expenseId, ct);
+            await _repo.SaveChangesAsync(ct);
+            if (exchanges.Count > 0)
+                await SaveForExpenseAsync(expenseId, expenseOriginalAmount, exchanges, ct);
+        }, ct);
     }
 
     public async Task SaveForIncomeAsync(
@@ -102,9 +105,12 @@ public class SplitCurrencyExchangeService : ISplitCurrencyExchangeService
         IReadOnlyList<CurrencyExchangeRequest> exchanges,
         CancellationToken ct = default)
     {
-        await _repo.DeleteByIncomeIdAsync(incomeId, ct);
-        await _repo.SaveChangesAsync(ct);
-        if (exchanges.Count > 0)
-            await SaveForIncomeAsync(incomeId, incomeOriginalAmount, exchanges, ct);
+        await _repo.ExecuteInTransactionAsync(async (ct) =>
+        {
+            await _repo.DeleteByIncomeIdAsync(incomeId, ct);
+            await _repo.SaveChangesAsync(ct);
+            if (exchanges.Count > 0)
+                await SaveForIncomeAsync(incomeId, incomeOriginalAmount, exchanges, ct);
+        }, ct);
     }
 }

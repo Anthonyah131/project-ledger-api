@@ -81,6 +81,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISplitCurrencyExchangeRepository, SplitCurrencyExchangeRepository>();
         services.AddScoped<ISplitCurrencyExchangeService, SplitCurrencyExchangeService>();
 
+        // Partner Settlements & Balances (Fase 3c)
+        services.AddScoped<IPartnerSettlementRepository, PartnerSettlementRepository>();
+        services.AddScoped<IPartnerBalanceRepository, PartnerBalanceRepository>();
+
         return services;
     }
 
@@ -119,6 +123,9 @@ public static class ServiceCollectionExtensions
 
         // Reportes
         services.AddScoped<IReportExportService, ReportExportService>();
+        services.AddScoped<IDashboardService, DashboardService>();
+        services.AddScoped<IReportService, ReportService>();
+        services.AddScoped<IUserReportService, UserReportService>();
 
         // Multi-currency & Incomes
         services.AddScoped<IIncomeService, IncomeService>();
@@ -136,6 +143,10 @@ public static class ServiceCollectionExtensions
 
         // ProjectPartners (Fase 2c)
         services.AddScoped<IProjectPartnerService, ProjectPartnerService>();
+
+        // Partner Settlements & Balances (Fase 3c)
+        services.AddScoped<IPartnerSettlementService, PartnerSettlementService>();
+        services.AddScoped<IPartnerBalanceService, PartnerBalanceService>();
 
         return services;
     }

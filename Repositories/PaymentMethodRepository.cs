@@ -11,7 +11,7 @@ public class PaymentMethodRepository : Repository<PaymentMethod>, IPaymentMethod
     public override async Task<PaymentMethod?> GetByIdAsync(Guid id, CancellationToken ct = default)
         => await DbSet
             .Include(pm => pm.OwnerPartner)
-            .FirstOrDefaultAsync(pm => pm.PmtId == id, ct);
+            .FirstOrDefaultAsync(pm => pm.PmtId == id && !pm.PmtIsDeleted, ct);
 
     public async Task<IEnumerable<PaymentMethod>> GetByOwnerUserIdAsync(Guid userId, CancellationToken ct = default)
         => await DbSet

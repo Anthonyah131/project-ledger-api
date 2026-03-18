@@ -46,6 +46,9 @@ public class AppDbContext : DbContext
     public DbSet<IncomeSplit> IncomeSplits => Set<IncomeSplit>();
     public DbSet<SplitCurrencyExchange> SplitCurrencyExchanges => Set<SplitCurrencyExchange>();
 
+    // ── Fase 3c: Partner Settlements ─────────────────────────
+    public DbSet<PartnerSettlement> PartnerSettlements => Set<PartnerSettlement>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

@@ -111,43 +111,46 @@ public class IncomeService : IIncomeService
         income.IncCreatedAt = DateTime.UtcNow;
         income.IncUpdatedAt = DateTime.UtcNow;
 
-        await _incomeRepo.AddAsync(income, ct);
-        await _incomeRepo.SaveChangesAsync(ct);
-
-        // Crear splits: explícitos (si partners_enabled y se proveyeron) o auto-split
-        if (splits is { Count: > 0 } && project.PrjPartnersEnabled)
+        await _incomeRepo.ExecuteInTransactionAsync(async (ct) =>
         {
-            var splitEntities = await BuildIncomeSplitsAsync(income.IncId, income.IncOriginalAmount, income.IncProjectId, splits, ct);
-            foreach (var s in splitEntities)
-                await _incomeSplitRepo.AddAsync(s, ct);
-            await _incomeSplitRepo.SaveChangesAsync(ct);
-        }
-        else if (paymentMethod.PmtOwnerPartnerId.HasValue)
-        {
-            var autoSplit = new IncomeSplit
-            {
-                InsId = Guid.NewGuid(),
-                InsIncomeId = income.IncId,
-                InsPartnerId = paymentMethod.PmtOwnerPartnerId.Value,
-                InsSplitType = "percentage",
-                InsSplitValue = 100m,
-                InsResolvedAmount = income.IncOriginalAmount
-            };
-            await _incomeSplitRepo.AddAsync(autoSplit, ct);
-            await _incomeSplitRepo.SaveChangesAsync(ct);
-        }
+            await _incomeRepo.AddAsync(income, ct);
+            await _incomeRepo.SaveChangesAsync(ct);
 
-        await _auditLog.LogAsync("Income", income.IncId, "create", income.IncCreatedByUserId,
-            newValues: new
+            // Crear splits: explícitos (si partners_enabled y se proveyeron) o auto-split
+            if (splits is { Count: > 0 } && project.PrjPartnersEnabled)
             {
-                income.IncId,
-                income.IncTitle,
-                income.IncConvertedAmount,
-                income.IncProjectId,
-                income.IncAccountAmount,
-                income.IncAccountCurrency
-            },
-            ct: ct);
+                var splitEntities = await BuildIncomeSplitsAsync(income.IncId, income.IncOriginalAmount, income.IncProjectId, splits, ct);
+                foreach (var s in splitEntities)
+                    await _incomeSplitRepo.AddAsync(s, ct);
+                await _incomeSplitRepo.SaveChangesAsync(ct);
+            }
+            else if (paymentMethod.PmtOwnerPartnerId.HasValue)
+            {
+                var autoSplit = new IncomeSplit
+                {
+                    InsId = Guid.NewGuid(),
+                    InsIncomeId = income.IncId,
+                    InsPartnerId = paymentMethod.PmtOwnerPartnerId.Value,
+                    InsSplitType = "percentage",
+                    InsSplitValue = 100m,
+                    InsResolvedAmount = income.IncOriginalAmount
+                };
+                await _incomeSplitRepo.AddAsync(autoSplit, ct);
+                await _incomeSplitRepo.SaveChangesAsync(ct);
+            }
+
+            await _auditLog.LogAsync("Income", income.IncId, "create", income.IncCreatedByUserId,
+                newValues: new
+                {
+                    income.IncId,
+                    income.IncTitle,
+                    income.IncConvertedAmount,
+                    income.IncProjectId,
+                    income.IncAccountAmount,
+                    income.IncAccountCurrency
+                },
+                ct: ct);
+        }, ct);
 
         return income;
     }
@@ -170,22 +173,26 @@ public class IncomeService : IIncomeService
             project.PrjCurrencyCode);
 
         income.IncUpdatedAt = DateTime.UtcNow;
-        _incomeRepo.Update(income);
-        await _incomeRepo.SaveChangesAsync(ct);
 
-        // Actualizar splits solo si se proveyeron explícitamente
-        // null → no modificar; lista vacía → eliminar todos; lista con items → reemplazar
-        if (splits is not null)
+        await _incomeRepo.ExecuteInTransactionAsync(async (ct) =>
         {
-            await _incomeSplitRepo.DeleteByIncomeIdAsync(income.IncId, ct);
-            if (splits.Count > 0 && project.PrjPartnersEnabled)
+            _incomeRepo.Update(income);
+            await _incomeRepo.SaveChangesAsync(ct);
+
+            // Actualizar splits solo si se proveyeron explícitamente
+            // null → no modificar; lista vacía → eliminar todos; lista con items → reemplazar
+            if (splits is not null)
             {
-                var splitEntities = await BuildIncomeSplitsAsync(income.IncId, income.IncOriginalAmount, income.IncProjectId, splits, ct);
-                foreach (var s in splitEntities)
-                    await _incomeSplitRepo.AddAsync(s, ct);
+                await _incomeSplitRepo.DeleteByIncomeIdAsync(income.IncId, ct);
+                if (splits.Count > 0 && project.PrjPartnersEnabled)
+                {
+                    var splitEntities = await BuildIncomeSplitsAsync(income.IncId, income.IncOriginalAmount, income.IncProjectId, splits, ct);
+                    foreach (var s in splitEntities)
+                        await _incomeSplitRepo.AddAsync(s, ct);
+                }
+                await _incomeSplitRepo.SaveChangesAsync(ct);
             }
-            await _incomeSplitRepo.SaveChangesAsync(ct);
-        }
+        }, ct);
     }
 
     public async Task SoftDeleteAsync(Guid id, Guid deletedByUserId, CancellationToken ct = default)
@@ -221,9 +228,6 @@ public class IncomeService : IIncomeService
 
         var paymentMethod = await _paymentMethodRepo.GetByIdAsync(paymentMethodId, ct)
             ?? throw new KeyNotFoundException($"Payment method '{paymentMethodId}' not found.");
-
-        if (paymentMethod.PmtIsDeleted)
-            throw new KeyNotFoundException($"Payment method '{paymentMethodId}' not found.");
 
         return paymentMethod;
     }

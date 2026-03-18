@@ -38,4 +38,15 @@ public class Repository<T> : IRepository<T> where T : class
 
     public virtual async Task SaveChangesAsync(CancellationToken ct = default)
         => await Context.SaveChangesAsync(ct);
+
+    public async Task ExecuteInTransactionAsync(Func<CancellationToken, Task> operation, CancellationToken ct = default)
+    {
+        var strategy = Context.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async (cancellationToken) =>
+        {
+            await using var transaction = await Context.Database.BeginTransactionAsync(cancellationToken);
+            await operation(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }, ct);
+    }
 }

@@ -56,6 +56,21 @@ All business entities use soft delete (`IsDeleted`, `DeletedAt`, `DeletedByUserI
 ### Inactive/reminder transactions
 Expenses and incomes can be `IsActive = false` (reminder mode). Inactive records exist in the DB but **do not count** in accounting totals, balances, or budget calculations. Always filter `&& isActive` when computing financial aggregates.
 
+### Database transactions
+Multi-step write operations (entity + splits, entity + currency exchanges, password reset + token revocation) **must** be wrapped in an explicit transaction via `ExecuteInTransactionAsync`. This method uses `CreateExecutionStrategy()` internally, which is required because `NpgsqlRetryingExecutionStrategy` (enabled via `EnableRetryOnFailure`) does **not** allow direct `BeginTransactionAsync`.
+
+**Pattern:**
+```csharp
+await _repo.ExecuteInTransactionAsync(async (ct) =>
+{
+    await _repo.AddAsync(entity, ct);
+    await _repo.SaveChangesAsync(ct);
+    // … additional writes …
+}, ct);
+```
+
+If an exception occurs before commit, the transaction rolls back automatically. Single `SaveChangesAsync` calls do not need explicit transactions — EF Core handles those atomically.
+
 ---
 
 ## Database
