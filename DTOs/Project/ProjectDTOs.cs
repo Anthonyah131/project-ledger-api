@@ -132,6 +132,7 @@ public class ProjectPaymentMethodResponse
     public string? BankName { get; set; }
     public string? AccountNumber { get; set; }
     public string OwnerUserName { get; set; } = null!;
+    public Guid? PartnerId { get; set; }
     public string? PartnerName { get; set; }
     public DateTime LinkedAt { get; set; }
 }
