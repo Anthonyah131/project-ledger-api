@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.Report;
 using ProjectLedger.API.Models;
 using ProjectLedger.API.Services;
-using ProjectLedger.API.Services.Report;
 
 namespace ProjectLedger.API.Controllers;
 
@@ -165,6 +164,108 @@ public class ReportController : ControllerBase
                 _exportService.GenerateExpenseReportPdf(report),
                 $"expense-report-{project.PrjName}"),
             _ => Ok(report)
+        };
+    }
+
+    // ── GET /api/projects/{projectId}/reports/incomes ────────
+
+    /// <summary>
+    /// Reporte detallado de ingresos del proyecto con secciones mensuales.
+    /// Basic: líneas de ingresos + totales.
+    /// Premium: + análisis de categorías/métodos de pago + partners.
+    /// Solo el dueño del proyecto puede generar este reporte.
+    /// </summary>
+    /// <param name="format">Formato de exportación: json (default), excel, pdf.</param>
+    /// <response code="200">Reporte generado.</response>
+    /// <response code="403">No es dueño del proyecto o plan insuficiente.</response>
+    [HttpGet("incomes")]
+    [Authorize(Policy = "ProjectViewer")]
+    [ProducesResponseType(typeof(DetailedIncomeReportResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetDetailedIncomes(
+        Guid projectId,
+        [FromQuery] DateOnly? from,
+        [FromQuery] DateOnly? to,
+        [FromQuery] string format = "json",
+        CancellationToken ct = default)
+    {
+        var project = await _projectService.GetByIdAsync(projectId, ct);
+        if (project is null)
+            return NotFound(new { message = "Project not found." });
+
+        var userId = User.GetRequiredUserId();
+        if (project.PrjOwnerUserId != userId)
+            return Forbid();
+
+        await _planAuth.ValidatePermissionAsync(userId, PlanPermission.CanExportData, ct);
+
+        if (format.Equals("pdf", StringComparison.OrdinalIgnoreCase))
+            await _planAuth.ValidatePermissionAsync(userId, PlanPermission.CanUseAdvancedReports, ct);
+
+        var report = await _reportService.GetDetailedIncomesAsync(projectId, userId, from, to, ct);
+
+        return format.ToLowerInvariant() switch
+        {
+            "excel" => ExportExcel(
+                _exportService.GenerateIncomeReportExcel(report),
+                $"income-report-{project.PrjName}"),
+            "pdf" => ExportPdf(
+                _exportService.GenerateIncomeReportPdf(report),
+                $"income-report-{project.PrjName}"),
+            _ => Ok(report)
+        };
+    }
+
+    // ── GET /api/projects/{projectId}/reports/partner-balances
+
+    /// <summary>
+    /// Reporte de balances entre partners del proyecto.
+    /// Incluye splits de gastos/ingresos, settlements y balances netos por par.
+    /// Requiere que el proyecto tenga partners habilitados.
+    /// </summary>
+    /// <response code="200">Reporte de balances.</response>
+    /// <param name="format">Formato de exportación: json (default), excel, pdf.</param>
+    /// <response code="400">Partners no habilitados en el proyecto.</response>
+    /// <response code="403">Plan no permite reportes avanzados.</response>
+    [HttpGet("partner-balances")]
+    [Authorize(Policy = "ProjectViewer")]
+    [ProducesResponseType(typeof(PartnerBalanceReportResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetPartnerBalances(
+        Guid projectId,
+        [FromQuery] DateOnly? from,
+        [FromQuery] DateOnly? to,
+        [FromQuery] string format = "json",
+        CancellationToken ct = default)
+    {
+        var project = await _projectService.GetByIdAsync(projectId, ct);
+        if (project is null)
+            return NotFound(new { message = "Project not found." });
+
+        if (!project.PrjPartnersEnabled)
+            return BadRequest(new { message = "Partners are not enabled for this project." });
+
+        await _planAuth.ValidatePermissionAsync(
+            project.PrjOwnerUserId, PlanPermission.CanUseAdvancedReports, ct);
+
+        if (format.Equals("excel", StringComparison.OrdinalIgnoreCase) ||
+            format.Equals("pdf", StringComparison.OrdinalIgnoreCase))
+            await _planAuth.ValidatePermissionAsync(project.PrjOwnerUserId, PlanPermission.CanExportData, ct);
+
+        var response = await _reportService.GetPartnerBalancesAsync(projectId, from, to, ct);
+
+        return format.ToLowerInvariant() switch
+        {
+            "excel" => ExportExcel(
+                _exportService.GeneratePartnerBalanceReportExcel(response),
+                $"partner-balances-{project.PrjName}"),
+            "pdf" => ExportPdf(
+                _exportService.GeneratePartnerBalanceReportPdf(response),
+                $"partner-balances-{project.PrjName}"),
+            _ => Ok(response)
         };
     }
 

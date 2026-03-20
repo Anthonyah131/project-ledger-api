@@ -1,0 +1,314 @@
+using ClosedXML.Excel;
+using ProjectLedger.API.DTOs.Partner;
+using ProjectLedger.API.DTOs.Report;
+
+namespace ProjectLedger.API.Services.Report;
+
+public partial class ReportExportService
+{
+    // ════════════════════════════════════════════════════════
+    //  PARTNER BALANCE REPORT — EXCEL
+    // ════════════════════════════════════════════════════════
+
+    public byte[] GeneratePartnerBalanceReportExcel(PartnerBalanceReportResponse report)
+    {
+        using var workbook = new XLWorkbook();
+        ApplyWorkbookDefaults(workbook, "Reporte de Balances de Partners", "Balances y settlements entre partners del proyecto.");
+
+        AddPartnerBalanceSheet(workbook, report);
+
+        if (report.Settlements.Count > 0)
+            AddSettlementsSheet(workbook, report);
+
+        if (report.PairwiseBalances.Count > 0)
+            AddPairwiseSheet(workbook, report);
+
+        if (report.Warnings.Count > 0)
+            AddPartnerBalanceWarningsSheet(workbook, report);
+
+        return WorkbookToBytes(workbook);
+    }
+
+    private static void AddPartnerBalanceSheet(XLWorkbook workbook, PartnerBalanceReportResponse report)
+    {
+        var ws = workbook.Worksheets.Add("Balances");
+
+        // ── Summary block ───────────────────────────────────
+        ws.Cell(1, 1).Value = "Proyecto";   ws.Cell(1, 2).Value = report.ProjectName;
+        ws.Cell(2, 1).Value = "Moneda";     ws.Cell(2, 2).Value = report.CurrencyCode;
+        ws.Cell(3, 1).Value = "Período";    ws.Cell(3, 2).Value = FormatDateRange(report.DateFrom, report.DateTo);
+        ws.Cell(4, 1).Value = "Partners";   ws.Cell(4, 2).Value = report.Partners.Count;
+        ws.Cell(5, 1).Value = "Settlements"; ws.Cell(5, 2).Value = report.Settlements.Count;
+        ws.Cell(6, 1).Value = "Generado";   ws.Cell(6, 2).Value = report.GeneratedAt.ToString("yyyy-MM-dd HH:mm UTC");
+
+        // Insights block
+        var maxOwes = report.Partners.OrderBy(p => p.NetBalance).FirstOrDefault();
+        var maxOwed = report.Partners.OrderByDescending(p => p.NetBalance).FirstOrDefault();
+
+        if (maxOwes is not null && maxOwes.NetBalance < 0)
+        {
+            ws.Cell(1, 4).Value = "Debe Más";
+            ws.Cell(1, 5).Value = $"{maxOwes.PartnerName} ({maxOwes.NetBalance:N2})";
+            ws.Cell(1, 5).Style.Font.FontColor = XLColor.Red;
+        }
+
+        if (maxOwed is not null && maxOwed.NetBalance > 0)
+        {
+            ws.Cell(2, 4).Value = "Le Deben Más";
+            ws.Cell(2, 5).Value = $"{maxOwed.PartnerName} ({maxOwed.NetBalance:N2})";
+            ws.Cell(2, 5).Style.Font.FontColor = XLColor.DarkGreen;
+        }
+
+        ws.Cell(3, 4).Value = "Total Settlements";
+        ws.Cell(3, 5).Value = report.Settlements.Sum(s => s.ConvertedAmount);
+        ws.Cell(3, 5).Style.NumberFormat.Format = ExcelCurrencyFormat;
+
+        StyleHeaderRange(ws.Range(1, 1, 6, 1));
+        StyleHeaderRange(ws.Range(1, 4, 3, 4));
+
+        // ── Partner balance table ───────────────────────────
+        const int headerRow = 9;
+        string[] headers =
+        [
+            "Partner", $"Pagó Físicamente ({report.CurrencyCode})",
+            $"Otros le Deben ({report.CurrencyCode})", $"Él Debe ({report.CurrencyCode})",
+            $"Stl. Pagados ({report.CurrencyCode})", $"Stl. Recibidos ({report.CurrencyCode})",
+            $"Balance Neto ({report.CurrencyCode})"
+        ];
+
+        for (var c = 0; c < headers.Length; c++)
+            ws.Cell(headerRow, c + 1).Value = headers[c];
+
+        StyleTableHeader(ws.Range(headerRow, 1, headerRow, headers.Length));
+
+        var row = headerRow + 1;
+        foreach (var p in report.Partners)
+        {
+            ws.Cell(row, 1).Value = p.PartnerName;
+            ws.Cell(row, 2).Value = p.PaidPhysically;
+            ws.Cell(row, 2).Style.NumberFormat.Format = ExcelCurrencyFormat;
+            ws.Cell(row, 3).Value = p.OthersOweHim;
+            ws.Cell(row, 3).Style.NumberFormat.Format = ExcelCurrencyFormat;
+            ws.Cell(row, 4).Value = p.HeOwesOthers;
+            ws.Cell(row, 4).Style.NumberFormat.Format = ExcelCurrencyFormat;
+            ws.Cell(row, 5).Value = p.SettlementsPaid;
+            ws.Cell(row, 5).Style.NumberFormat.Format = ExcelCurrencyFormat;
+            ws.Cell(row, 6).Value = p.SettlementsReceived;
+            ws.Cell(row, 6).Style.NumberFormat.Format = ExcelCurrencyFormat;
+            ws.Cell(row, 7).Value = p.NetBalance;
+            ws.Cell(row, 7).Style.NumberFormat.Format = ExcelCurrencyFormat;
+            ws.Cell(row, 7).Style.Font.Bold = true;
+
+            if (p.NetBalance < 0)
+                ws.Cell(row, 7).Style.Font.FontColor = XLColor.Red;
+            else if (p.NetBalance > 0)
+                ws.Cell(row, 7).Style.Font.FontColor = XLColor.DarkGreen;
+
+            row++;
+        }
+
+        // Totals row
+        for (var c = 2; c <= 7; c++)
+        {
+            ws.Cell(row, c).Style.NumberFormat.Format = ExcelCurrencyFormat;
+            ws.Cell(row, c).Style.Font.Bold = true;
+        }
+        ws.Cell(row, 2).Value = report.Partners.Sum(p => p.PaidPhysically);
+        ws.Cell(row, 3).Value = report.Partners.Sum(p => p.OthersOweHim);
+        ws.Cell(row, 4).Value = report.Partners.Sum(p => p.HeOwesOthers);
+        ws.Cell(row, 5).Value = report.Partners.Sum(p => p.SettlementsPaid);
+        ws.Cell(row, 6).Value = report.Partners.Sum(p => p.SettlementsReceived);
+        ws.Cell(row, 7).Value = report.Partners.Sum(p => p.NetBalance);
+        ws.Range(row, 1, row, headers.Length).Style.Fill.BackgroundColor = XLColor.LightGray;
+        ws.Range(row, 1, row, headers.Length).Style.Border.TopBorder = XLBorderStyleValues.Thin;
+
+        // ── Currency totals sub-table ────────────────────────
+        var currencies = report.Partners
+            .SelectMany(p => p.CurrencyTotals)
+            .Select(ct => ct.CurrencyCode)
+            .Distinct()
+            .OrderBy(c => c)
+            .ToList();
+
+        if (currencies.Count > 0)
+        {
+            var altRow = row + 2;
+            ws.Cell(altRow, 1).Value = "Totales por Moneda Alternativa";
+            ws.Cell(altRow, 1).Style.Font.Bold = true;
+            ws.Cell(altRow, 1).Style.Font.FontColor = XLColor.DarkBlue;
+            altRow++;
+
+            string[] altHeaders = ["Partner", "Moneda", "Otros le Deben", "Él Debe", "Stl. Pagados", "Stl. Recibidos", "Balance Neto"];
+            for (var c = 0; c < altHeaders.Length; c++)
+                ws.Cell(altRow, c + 1).Value = altHeaders[c];
+            StyleTableHeader(ws.Range(altRow, 1, altRow, altHeaders.Length));
+            altRow++;
+
+            foreach (var p in report.Partners)
+            {
+                foreach (var ct in p.CurrencyTotals.OrderBy(c => c.CurrencyCode))
+                {
+                    ws.Cell(altRow, 1).Value = p.PartnerName;
+                    ws.Cell(altRow, 2).Value = ct.CurrencyCode;
+                    ws.Cell(altRow, 3).Value = ct.OthersOweHim;
+                    ws.Cell(altRow, 3).Style.NumberFormat.Format = ExcelCurrencyFormat;
+                    ws.Cell(altRow, 4).Value = ct.HeOwesOthers;
+                    ws.Cell(altRow, 4).Style.NumberFormat.Format = ExcelCurrencyFormat;
+                    ws.Cell(altRow, 5).Value = ct.SettlementsPaid;
+                    ws.Cell(altRow, 5).Style.NumberFormat.Format = ExcelCurrencyFormat;
+                    ws.Cell(altRow, 6).Value = ct.SettlementsReceived;
+                    ws.Cell(altRow, 6).Style.NumberFormat.Format = ExcelCurrencyFormat;
+                    ws.Cell(altRow, 7).Value = ct.NetBalance;
+                    ws.Cell(altRow, 7).Style.NumberFormat.Format = ExcelCurrencyFormat;
+                    ws.Cell(altRow, 7).Style.Font.Bold = true;
+
+                    if (ct.NetBalance < 0)
+                        ws.Cell(altRow, 7).Style.Font.FontColor = XLColor.Red;
+                    else if (ct.NetBalance > 0)
+                        ws.Cell(altRow, 7).Style.Font.FontColor = XLColor.DarkGreen;
+
+                    altRow++;
+                }
+            }
+        }
+
+        FinalizeSheetLayout(ws, headerRow, row, headers.Length, headerRow);
+    }
+
+    private static void AddSettlementsSheet(XLWorkbook workbook, PartnerBalanceReportResponse report)
+    {
+        var ws = workbook.Worksheets.Add("Settlements");
+
+        string[] headers =
+        [
+            "Fecha", "De", "A", "Monto", "Moneda",
+            "Tasa Cambio", "Monto Convertido", "Descripción", "Notas"
+        ];
+
+        for (var c = 0; c < headers.Length; c++)
+            ws.Cell(1, c + 1).Value = headers[c];
+
+        StyleTableHeader(ws.Range(1, 1, 1, headers.Length));
+
+        var row = 2;
+        foreach (var s in report.Settlements)
+        {
+            ws.Cell(row, 1).Value = s.SettlementDate.ToString("yyyy-MM-dd");
+            ws.Cell(row, 2).Value = s.FromPartnerName;
+            ws.Cell(row, 3).Value = s.ToPartnerName;
+            ws.Cell(row, 4).Value = s.Amount;
+            ws.Cell(row, 4).Style.NumberFormat.Format = ExcelCurrencyFormat;
+            ws.Cell(row, 5).Value = s.Currency;
+            ws.Cell(row, 6).Value = s.ExchangeRate;
+            ws.Cell(row, 6).Style.NumberFormat.Format = ExcelExchangeRateFormat;
+            ws.Cell(row, 7).Value = s.ConvertedAmount;
+            ws.Cell(row, 7).Style.NumberFormat.Format = ExcelCurrencyFormat;
+            ws.Cell(row, 8).Value = s.Description ?? "";
+            ws.Cell(row, 9).Value = s.Notes ?? "";
+            row++;
+        }
+
+        // Totals row
+        ws.Cell(row, 4).Value = report.Settlements.Sum(s => s.Amount);
+        ws.Cell(row, 4).Style.NumberFormat.Format = ExcelCurrencyFormat;
+        ws.Cell(row, 4).Style.Font.Bold = true;
+        ws.Cell(row, 7).Value = report.Settlements.Sum(s => s.ConvertedAmount);
+        ws.Cell(row, 7).Style.NumberFormat.Format = ExcelCurrencyFormat;
+        ws.Cell(row, 7).Style.Font.Bold = true;
+        ws.Range(row, 1, row, headers.Length).Style.Fill.BackgroundColor = XLColor.LightGray;
+        ws.Range(row, 1, row, headers.Length).Style.Border.TopBorder = XLBorderStyleValues.Thin;
+
+        FinalizeSheetLayout(ws, 1, row, headers.Length, 1, wrapColumns: [8, 9]);
+    }
+
+    private static void AddPairwiseSheet(XLWorkbook workbook, PartnerBalanceReportResponse report)
+    {
+        var ws = workbook.Worksheets.Add("Balances por Par");
+
+        string[] headers =
+        [
+            "Partner A", "Partner B",
+            $"A debe a B ({report.CurrencyCode})", $"B debe a A ({report.CurrencyCode})",
+            $"Stl. A→B ({report.CurrencyCode})", $"Stl. B→A ({report.CurrencyCode})",
+            $"Balance Neto ({report.CurrencyCode})", "Dirección", "Estado"
+        ];
+
+        for (var c = 0; c < headers.Length; c++)
+            ws.Cell(1, c + 1).Value = headers[c];
+
+        StyleTableHeader(ws.Range(1, 1, 1, headers.Length));
+
+        var row = 2;
+        foreach (var pw in report.PairwiseBalances)
+        {
+            ws.Cell(row, 1).Value = pw.PartnerAName;
+            ws.Cell(row, 2).Value = pw.PartnerBName;
+            ws.Cell(row, 3).Value = pw.AOwesB;
+            ws.Cell(row, 3).Style.NumberFormat.Format = ExcelCurrencyFormat;
+            ws.Cell(row, 4).Value = pw.BOwesA;
+            ws.Cell(row, 4).Style.NumberFormat.Format = ExcelCurrencyFormat;
+            ws.Cell(row, 5).Value = pw.SettlementsAToB;
+            ws.Cell(row, 5).Style.NumberFormat.Format = ExcelCurrencyFormat;
+            ws.Cell(row, 6).Value = pw.SettlementsBToA;
+            ws.Cell(row, 6).Style.NumberFormat.Format = ExcelCurrencyFormat;
+            ws.Cell(row, 7).Value = pw.NetBalance;
+            ws.Cell(row, 7).Style.NumberFormat.Format = ExcelCurrencyFormat;
+            ws.Cell(row, 7).Style.Font.Bold = true;
+
+            ws.Cell(row, 8).Value = pw.NetBalance > 0
+                ? $"{pw.PartnerAName} → {pw.PartnerBName}"
+                : pw.NetBalance < 0
+                    ? $"{pw.PartnerBName} → {pw.PartnerAName}"
+                    : "Saldado";
+
+            if (pw.NetBalance == 0)
+            {
+                ws.Cell(row, 9).Value = "✓ Saldado";
+                ws.Cell(row, 9).Style.Font.FontColor = XLColor.DarkGreen;
+                ws.Range(row, 1, row, headers.Length).Style.Fill.BackgroundColor = XLColor.LightGreen;
+            }
+            else
+            {
+                ws.Cell(row, 9).Value = "Pendiente";
+                ws.Cell(row, 9).Style.Font.FontColor = XLColor.DarkOrange;
+
+                if (pw.NetBalance < 0)
+                    ws.Cell(row, 7).Style.Font.FontColor = XLColor.Red;
+                else
+                    ws.Cell(row, 7).Style.Font.FontColor = XLColor.DarkGreen;
+            }
+
+            row++;
+        }
+
+        FinalizeSheetLayout(ws, 1, Math.Max(1, row - 1), headers.Length, 1, maxColumnWidth: 36);
+    }
+
+    private static void AddPartnerBalanceWarningsSheet(XLWorkbook workbook, PartnerBalanceReportResponse report)
+    {
+        var ws = workbook.Worksheets.Add("Advertencias");
+
+        ws.Cell(1, 1).Value = "Las siguientes transacciones no tienen tipos de cambio configurados para todas las monedas del proyecto.";
+        ws.Cell(1, 1).Style.Font.Italic = true;
+        ws.Cell(1, 1).Style.Font.FontColor = XLColor.DarkOrange;
+        ws.Range(1, 1, 1, 5).Merge();
+
+        string[] headers = ["Tipo", "Título", "Fecha", "Monto (Moneda Base)"];
+        for (var c = 0; c < headers.Length; c++)
+            ws.Cell(3, c + 1).Value = headers[c];
+        StyleTableHeader(ws.Range(3, 1, 3, headers.Length));
+
+        var row = 4;
+        foreach (var w in report.Warnings)
+        {
+            ws.Cell(row, 1).Value = w.TransactionType;
+            ws.Cell(row, 2).Value = w.Title;
+            ws.Cell(row, 3).Value = w.Date.ToString("yyyy-MM-dd");
+            ws.Cell(row, 4).Value = w.ConvertedAmount;
+            ws.Cell(row, 4).Style.NumberFormat.Format = ExcelCurrencyFormat;
+            row++;
+        }
+
+        FinalizeSheetLayout(ws, 3, Math.Max(3, row - 1), headers.Length, 3);
+    }
+}

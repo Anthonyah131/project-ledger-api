@@ -126,6 +126,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<IUserReportService, UserReportService>();
+        services.AddScoped<IWorkspaceReportService, WorkspaceReportService>();
 
         // Multi-currency & Incomes
         services.AddScoped<IIncomeService, IncomeService>();
@@ -147,6 +148,9 @@ public static class ServiceCollectionExtensions
         // Partner Settlements & Balances (Fase 3c)
         services.AddScoped<IPartnerSettlementService, PartnerSettlementService>();
         services.AddScoped<IPartnerBalanceService, PartnerBalanceService>();
+
+        // Partner Reports
+        services.AddScoped<IPartnerReportService, PartnerReportService>();
 
         return services;
     }

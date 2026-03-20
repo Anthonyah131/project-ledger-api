@@ -69,7 +69,7 @@ public class IncomeRepository : Repository<Income>, IIncomeRepository
             .OrderByDescending(e => e.IncIncomeDate)
             .ToListAsync(ct);
 
-    public async Task<(IReadOnlyList<Income> Items, int TotalCount)> GetByPaymentMethodIdPagedAsync(
+    public async Task<(IReadOnlyList<Income> Items, int TotalCount, decimal TotalActiveAmount)> GetByPaymentMethodIdPagedAsync(
         Guid paymentMethodId,
         bool? isActive,
         int skip,
@@ -101,10 +101,24 @@ public class IncomeRepository : Repository<Income>, IIncomeRepository
 
         var totalCount = await query.CountAsync(ct);
 
+        // Total de movimientos activos con los mismos filtros de fecha y proyecto
+        var activeAmountQuery = DbSet
+            .Where(e => e.IncPaymentMethodId == paymentMethodId && !e.IncIsDeleted && e.IncIsActive);
+
+        if (from.HasValue)
+            activeAmountQuery = activeAmountQuery.Where(e => e.IncIncomeDate >= from.Value);
+        if (to.HasValue)
+            activeAmountQuery = activeAmountQuery.Where(e => e.IncIncomeDate <= to.Value);
+        if (projectId.HasValue)
+            activeAmountQuery = activeAmountQuery.Where(e => e.IncProjectId == projectId.Value);
+
+        var totalActiveAmount = await activeAmountQuery.SumAsync(
+            e => (decimal?)(e.IncAccountAmount ?? e.IncConvertedAmount), ct) ?? 0m;
+
         query = ApplyIncomeSort(query, sortBy, descending);
         var items = await query.Skip(skip).Take(take).ToListAsync(ct);
 
-        return (items, totalCount);
+        return (items, totalCount, totalActiveAmount);
     }
 
     public async Task<IEnumerable<Income>> GetByPaymentMethodIdsWithDetailsAsync(
@@ -128,6 +142,47 @@ public class IncomeRepository : Repository<Income>, IIncomeRepository
 
         return await query
             .OrderByDescending(e => e.IncIncomeDate)
+            .ToListAsync(ct);
+    }
+
+    public async Task<IEnumerable<Income>> GetByProjectIdForPartnerAsync(
+        Guid projectId, Guid partnerId, DateOnly? from, DateOnly? to, CancellationToken ct = default)
+    {
+        var query = DbSet
+            .Include(e => e.Category)
+            .Include(e => e.PaymentMethod).ThenInclude(pm => pm.OwnerPartner)
+            .Include(e => e.Splits).ThenInclude(s => s.Partner)
+            .Include(e => e.Splits).ThenInclude(s => s.CurrencyExchanges)
+            .Where(e => e.IncProjectId == projectId
+                && !e.IncIsDeleted && e.IncIsActive
+                && e.Splits.Any(s => s.InsPartnerId == partnerId));
+
+        if (from.HasValue)
+            query = query.Where(e => e.IncIncomeDate >= from.Value);
+        if (to.HasValue)
+            query = query.Where(e => e.IncIncomeDate <= to.Value);
+
+        return await query.OrderBy(e => e.IncIncomeDate).ToListAsync(ct);
+    }
+
+    public async Task<IEnumerable<Income>> GetDetailedByProjectIdAsync(
+        Guid projectId, DateOnly? from, DateOnly? to, CancellationToken ct = default)
+    {
+        var query = DbSet
+            .Include(e => e.Category)
+            .Include(e => e.PaymentMethod)
+            .Include(e => e.CurrencyExchanges)
+            .Include(e => e.Splits).ThenInclude(s => s.Partner)
+            .Include(e => e.Splits).ThenInclude(s => s.CurrencyExchanges)
+            .Where(e => e.IncProjectId == projectId && !e.IncIsDeleted && e.IncIsActive);
+
+        if (from.HasValue)
+            query = query.Where(e => e.IncIncomeDate >= from.Value);
+        if (to.HasValue)
+            query = query.Where(e => e.IncIncomeDate <= to.Value);
+
+        return await query
+            .OrderBy(e => e.IncIncomeDate)
             .ToListAsync(ct);
     }
 

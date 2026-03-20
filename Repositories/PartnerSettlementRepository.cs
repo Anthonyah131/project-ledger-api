@@ -33,6 +33,15 @@ public class PartnerSettlementRepository : Repository<PartnerSettlement>, IPartn
         return (items, total);
     }
 
+    public async Task<IEnumerable<PartnerSettlement>> GetByProjectIdAsync(Guid projectId, CancellationToken ct = default)
+        => await DbSet
+            .Include(s => s.FromPartner)
+            .Include(s => s.ToPartner)
+            .Include(s => s.CurrencyExchanges)
+            .Where(s => s.PstProjectId == projectId && !s.PstIsDeleted)
+            .OrderByDescending(s => s.PstSettlementDate)
+            .ToListAsync(ct);
+
     public async Task<PartnerSettlement?> GetActiveByIdAsync(Guid settlementId, Guid projectId, CancellationToken ct = default)
         => await DbSet
             .Include(s => s.FromPartner)

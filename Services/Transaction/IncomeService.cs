@@ -58,7 +58,7 @@ public class IncomeService : IIncomeService
         Guid paymentMethodId, CancellationToken ct = default)
         => await _incomeRepo.GetByPaymentMethodIdAsync(paymentMethodId, ct);
 
-    public async Task<(IReadOnlyList<Income> Items, int TotalCount)> GetByPaymentMethodIdPagedAsync(
+    public async Task<(IReadOnlyList<Income> Items, int TotalCount, decimal TotalActiveAmount)> GetByPaymentMethodIdPagedAsync(
         Guid paymentMethodId,
         bool? isActive,
         int skip,

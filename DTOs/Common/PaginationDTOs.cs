@@ -77,3 +77,23 @@ public class PagedResponse<T>
     public static PagedResponse<T> Create(IReadOnlyList<T> items, int totalCount, PagedRequest request)
         => new(items, totalCount, request.Page, request.PageSize);
 }
+
+/// <summary>
+/// Respuesta paginada con total financiero de los movimientos activos que coinciden con los filtros.
+/// </summary>
+public class PagedWithTotalsResponse<T> : PagedResponse<T>
+{
+    /// <summary>Suma de montos de movimientos activos (no eliminados) que cumplen los filtros aplicados.</summary>
+    public decimal TotalActiveAmount { get; set; }
+
+    public PagedWithTotalsResponse() { }
+
+    public PagedWithTotalsResponse(IReadOnlyList<T> items, int totalCount, int page, int pageSize, decimal totalActiveAmount)
+        : base(items, totalCount, page, pageSize)
+    {
+        TotalActiveAmount = totalActiveAmount;
+    }
+
+    public static PagedWithTotalsResponse<T> Create(IReadOnlyList<T> items, int totalCount, PagedRequest request, decimal totalActiveAmount)
+        => new(items, totalCount, request.Page, request.PageSize, totalActiveAmount);
+}

@@ -137,6 +137,11 @@ public class PaymentMethodService : IPaymentMethodService
         if (pm.PmtOwnerPartnerId is null)
             throw new InvalidOperationException("Payment method has no partner linked.");
 
+        var isLinkedToProject = await _paymentMethodRepo.IsLinkedToAnyProjectAsync(pmtId, ct);
+        if (isLinkedToProject)
+            throw new InvalidOperationException(
+                "Cannot unlink partner: this payment method is linked to one or more projects. Remove it from all projects first.");
+
         pm.PmtOwnerPartnerId = null;
         pm.OwnerPartner = null;
         pm.PmtUpdatedAt = DateTime.UtcNow;

@@ -20,6 +20,10 @@ public class PaymentMethodRepository : Repository<PaymentMethod>, IPaymentMethod
             .OrderBy(pm => pm.PmtName)
             .ToListAsync(ct);
 
+    public async Task<bool> IsLinkedToAnyProjectAsync(Guid pmtId, CancellationToken ct = default)
+        => await Context.Set<ProjectPaymentMethod>()
+            .AnyAsync(ppm => ppm.PpmPaymentMethodId == pmtId, ct);
+
     public async Task<(decimal TotalIncome, decimal TotalExpenses)> GetProjectBalanceAsync(
         Guid pmtId, Guid projectId, CancellationToken ct = default)
     {

@@ -34,11 +34,7 @@ public class PartnerService : IPartnerService
 
     public async Task<(IEnumerable<Partner> Items, int TotalCount)> SearchAsync(
         Guid userId, string? search, int skip, int take, CancellationToken ct = default)
-    {
-        var items = await _partnerRepo.SearchByNameAsync(userId, search, skip, take, ct);
-        var totalCount = await _partnerRepo.CountByOwnerUserIdAsync(userId, ct);
-        return (items, totalCount);
-    }
+        => await _partnerRepo.SearchByNameAsync(userId, search, skip, take, ct);
 
     public async Task<Partner> CreateAsync(Partner partner, CancellationToken ct = default)
     {
@@ -81,11 +77,11 @@ public class PartnerService : IPartnerService
         await _partnerRepo.SaveChangesAsync(ct);
     }
 
-    public async Task<IEnumerable<PaymentMethod>> GetPaymentMethodsAsync(Guid partnerId, CancellationToken ct = default)
-    {
-        var partner = await _partnerRepo.GetByIdWithPaymentMethodsAsync(partnerId, ct)
-            ?? throw new KeyNotFoundException($"Partner '{partnerId}' not found.");
+    public async Task<(IEnumerable<PaymentMethod> Items, int TotalCount)> GetPaymentMethodsPagedAsync(
+        Guid partnerId, int skip, int take, CancellationToken ct = default)
+        => await _partnerRepo.GetPaymentMethodsByPartnerIdPagedAsync(partnerId, skip, take, ct);
 
-        return partner.PaymentMethods.Where(pm => !pm.PmtIsDeleted);
-    }
+    public async Task<(IEnumerable<Project> Items, int TotalCount)> GetProjectsPagedAsync(
+        Guid partnerId, int skip, int take, CancellationToken ct = default)
+        => await _partnerRepo.GetProjectsByPartnerIdPagedAsync(partnerId, skip, take, ct);
 }

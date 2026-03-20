@@ -89,6 +89,26 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
             .ToListAsync(ct);
     }
 
+    public async Task<IEnumerable<Expense>> GetByProjectIdForPartnerAsync(
+        Guid projectId, Guid partnerId, DateOnly? from, DateOnly? to, CancellationToken ct = default)
+    {
+        var query = DbSet
+            .Include(e => e.Category)
+            .Include(e => e.PaymentMethod).ThenInclude(pm => pm.OwnerPartner)
+            .Include(e => e.Splits).ThenInclude(s => s.Partner)
+            .Include(e => e.Splits).ThenInclude(s => s.CurrencyExchanges)
+            .Where(e => e.ExpProjectId == projectId
+                && !e.ExpIsDeleted && !e.ExpIsTemplate && e.ExpIsActive
+                && e.Splits.Any(s => s.ExsPartnerId == partnerId));
+
+        if (from.HasValue)
+            query = query.Where(e => e.ExpExpenseDate >= from.Value);
+        if (to.HasValue)
+            query = query.Where(e => e.ExpExpenseDate <= to.Value);
+
+        return await query.OrderBy(e => e.ExpExpenseDate).ToListAsync(ct);
+    }
+
     public async Task<IEnumerable<Expense>> GetByPaymentMethodIdsWithDetailsAsync(
         IEnumerable<Guid> paymentMethodIds, DateOnly? from, DateOnly? to, CancellationToken ct = default)
     {
@@ -134,7 +154,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
         return (items, totalCount);
     }
 
-    public async Task<(IReadOnlyList<Expense> Items, int TotalCount)> GetByPaymentMethodIdPagedAsync(
+    public async Task<(IReadOnlyList<Expense> Items, int TotalCount, decimal TotalActiveAmount)> GetByPaymentMethodIdPagedAsync(
         Guid paymentMethodId,
         bool? isActive,
         int skip,
@@ -166,10 +186,24 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
 
         var totalCount = await query.CountAsync(ct);
 
+        // Total de movimientos activos con los mismos filtros de fecha y proyecto
+        var activeAmountQuery = DbSet
+            .Where(e => e.ExpPaymentMethodId == paymentMethodId && !e.ExpIsDeleted && e.ExpIsActive);
+
+        if (from.HasValue)
+            activeAmountQuery = activeAmountQuery.Where(e => e.ExpExpenseDate >= from.Value);
+        if (to.HasValue)
+            activeAmountQuery = activeAmountQuery.Where(e => e.ExpExpenseDate <= to.Value);
+        if (projectId.HasValue)
+            activeAmountQuery = activeAmountQuery.Where(e => e.ExpProjectId == projectId.Value);
+
+        var totalActiveAmount = await activeAmountQuery.SumAsync(
+            e => (decimal?)(e.ExpAccountAmount ?? e.ExpConvertedAmount), ct) ?? 0m;
+
         query = ApplyExpenseSort(query, sortBy, descending);
         var items = await query.Skip(skip).Take(take).ToListAsync(ct);
 
-        return (items, totalCount);
+        return (items, totalCount, totalActiveAmount);
     }
 
     // ── Sorting helper ──────────────────────────────────────

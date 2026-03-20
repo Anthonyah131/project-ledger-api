@@ -293,7 +293,7 @@ public class ExpenseService : IExpenseService
         Guid paymentMethodId, CancellationToken ct = default)
         => await _expenseRepo.GetByPaymentMethodIdAsync(paymentMethodId, ct);
 
-    public async Task<(IReadOnlyList<Expense> Items, int TotalCount)> GetByPaymentMethodIdPagedAsync(
+    public async Task<(IReadOnlyList<Expense> Items, int TotalCount, decimal TotalActiveAmount)> GetByPaymentMethodIdPagedAsync(
         Guid paymentMethodId,
         bool? isActive,
         int skip,

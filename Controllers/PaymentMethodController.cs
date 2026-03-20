@@ -241,7 +241,7 @@ public class PaymentMethodController : ControllerBase
     /// <response code="200">Lista paginada de gastos asociados al método de pago.</response>
     /// <response code="404">Método de pago no encontrado.</response>
     [HttpGet("{id:guid}/expenses")]
-    [ProducesResponseType(typeof(PagedResponse<ExpenseResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedWithTotalsResponse<ExpenseResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetExpensesByPaymentMethod(
         Guid id,
@@ -261,13 +261,13 @@ public class PaymentMethodController : ControllerBase
         if (pm is null || pm.PmtOwnerUserId != userId)
             return NotFound(new { message = "Payment method not found." });
 
-        var (items, totalCount) = await _expenseService.GetByPaymentMethodIdPagedAsync(
+        var (items, totalCount, totalActiveAmount) = await _expenseService.GetByPaymentMethodIdPagedAsync(
             id, isActive, pagination.Skip, pagination.PageSize,
             pagination.SortBy, pagination.IsDescending,
             from, to, projectId, ct);
 
-        var response = PagedResponse<ExpenseResponse>.Create(
-            items.ToResponse().ToList(), totalCount, pagination);
+        var response = PagedWithTotalsResponse<ExpenseResponse>.Create(
+            items.ToResponse().ToList(), totalCount, pagination, totalActiveAmount);
 
         return Ok(response);
     }
@@ -281,7 +281,7 @@ public class PaymentMethodController : ControllerBase
     /// <response code="200">Lista paginada de ingresos asociados al método de pago.</response>
     /// <response code="404">Método de pago no encontrado.</response>
     [HttpGet("{id:guid}/incomes")]
-    [ProducesResponseType(typeof(PagedResponse<IncomeResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedWithTotalsResponse<IncomeResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetIncomesByPaymentMethod(
         Guid id,
@@ -301,13 +301,13 @@ public class PaymentMethodController : ControllerBase
         if (pm is null || pm.PmtOwnerUserId != userId)
             return NotFound(new { message = "Payment method not found." });
 
-        var (items, totalCount) = await _incomeService.GetByPaymentMethodIdPagedAsync(
+        var (items, totalCount, totalActiveAmount) = await _incomeService.GetByPaymentMethodIdPagedAsync(
             id, isActive, pagination.Skip, pagination.PageSize,
             pagination.SortBy, pagination.IsDescending,
             from, to, projectId, ct);
 
-        var response = PagedResponse<IncomeResponse>.Create(
-            items.ToResponse().ToList(), totalCount, pagination);
+        var response = PagedWithTotalsResponse<IncomeResponse>.Create(
+            items.ToResponse().ToList(), totalCount, pagination, totalActiveAmount);
 
         return Ok(response);
     }

@@ -15,5 +15,5 @@ public interface IExpenseService
     Task UpdateAsync(Expense expense, IReadOnlyList<SplitInput>? splits = null, CancellationToken ct = default);
     Task SoftDeleteAsync(Guid id, Guid deletedByUserId, CancellationToken ct = default);
     Task<IEnumerable<Expense>> GetByPaymentMethodIdAsync(Guid paymentMethodId, CancellationToken ct = default);
-    Task<(IReadOnlyList<Expense> Items, int TotalCount)> GetByPaymentMethodIdPagedAsync(Guid paymentMethodId, bool? isActive, int skip, int take, string? sortBy, bool descending, DateOnly? from, DateOnly? to, Guid? projectId, CancellationToken ct = default);
+    Task<(IReadOnlyList<Expense> Items, int TotalCount, decimal TotalActiveAmount)> GetByPaymentMethodIdPagedAsync(Guid paymentMethodId, bool? isActive, int skip, int take, string? sortBy, bool descending, DateOnly? from, DateOnly? to, Guid? projectId, CancellationToken ct = default);
 }

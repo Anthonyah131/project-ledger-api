@@ -11,6 +11,8 @@ public interface IPartnerSettlementRepository : IRepository<PartnerSettlement>
 
     Task<PartnerSettlement?> GetActiveByIdAsync(Guid settlementId, Guid projectId, CancellationToken ct = default);
 
+    Task<IEnumerable<PartnerSettlement>> GetByProjectIdAsync(Guid projectId, CancellationToken ct = default);
+
     Task SaveCurrencyExchangesAsync(Guid settlementId, IReadOnlyList<CurrencyExchangeRequest> exchanges, CancellationToken ct = default);
 
     Task ReplaceCurrencyExchangesAsync(Guid settlementId, IReadOnlyList<CurrencyExchangeRequest> exchanges, CancellationToken ct = default);

@@ -11,5 +11,6 @@ public interface IPartnerService
     Task<Partner> CreateAsync(Partner partner, CancellationToken ct = default);
     Task UpdateAsync(Partner partner, CancellationToken ct = default);
     Task SoftDeleteAsync(Guid id, Guid deletedByUserId, CancellationToken ct = default);
-    Task<IEnumerable<PaymentMethod>> GetPaymentMethodsAsync(Guid partnerId, CancellationToken ct = default);
+    Task<(IEnumerable<PaymentMethod> Items, int TotalCount)> GetPaymentMethodsPagedAsync(Guid partnerId, int skip, int take, CancellationToken ct = default);
+    Task<(IEnumerable<Project> Items, int TotalCount)> GetProjectsPagedAsync(Guid partnerId, int skip, int take, CancellationToken ct = default);
 }

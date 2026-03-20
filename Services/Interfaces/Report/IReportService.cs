@@ -15,4 +15,10 @@ public interface IReportService
 
     Task<DetailedExpenseReportResponse> GetDetailedExpensesAsync(
         Guid projectId, Guid userId, DateOnly? from, DateOnly? to, CancellationToken ct = default);
+
+    Task<PartnerBalanceReportResponse> GetPartnerBalancesAsync(
+        Guid projectId, DateOnly? from, DateOnly? to, CancellationToken ct = default);
+
+    Task<DetailedIncomeReportResponse> GetDetailedIncomesAsync(
+        Guid projectId, Guid userId, DateOnly? from, DateOnly? to, CancellationToken ct = default);
 }
