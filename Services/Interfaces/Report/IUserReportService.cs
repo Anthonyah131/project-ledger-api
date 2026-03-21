@@ -5,5 +5,7 @@ namespace ProjectLedger.API.Services;
 public interface IUserReportService
 {
     Task<PaymentMethodReportResponse> GetPaymentMethodReportAsync(
-        Guid userId, DateOnly? from, DateOnly? to, Guid? paymentMethodId, CancellationToken ct = default);
+        Guid userId, DateOnly? from, DateOnly? to,
+        List<Guid>? paymentMethodIds, int? maxMovementsPerMethod,
+        CancellationToken ct = default);
 }

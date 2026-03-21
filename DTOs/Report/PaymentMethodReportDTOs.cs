@@ -1,11 +1,10 @@
-using ProjectLedger.API.DTOs.Common;
-
 namespace ProjectLedger.API.DTOs.Report;
 
 // ── Payment Method Report (User-scoped) ─────────────────────
 
 /// <summary>
-/// Reporte de métodos de pago del usuario con estadísticas y desglose.
+/// Reporte de métodos de pago del usuario. Sin totales generales;
+/// cada método muestra sus propios totales en la moneda del método.
 /// Requiere CanUseAdvancedReports.
 /// </summary>
 public class PaymentMethodReportResponse
@@ -15,26 +14,8 @@ public class PaymentMethodReportResponse
     public DateOnly? DateTo { get; set; }
     public DateTime GeneratedAt { get; set; }
 
-    public decimal GrandTotalSpent { get; set; }
-    public int GrandTotalExpenseCount { get; set; }
-    public decimal GrandTotalIncome { get; set; }
-    public int GrandTotalIncomeCount { get; set; }
-    public decimal GrandNetFlow { get; set; }
-    public decimal GrandAverageExpenseAmount { get; set; }
-    public decimal GrandAverageIncomeAmount { get; set; }
-    public decimal AverageMonthlySpend { get; set; }
-    public PeakMonthInfo? PeakMonth { get; set; }
-    public MethodReference? MostUsedMethod { get; set; }
-    public MethodReference? HighestSpendMethod { get; set; }
-
     public List<PaymentMethodReportRow> PaymentMethods { get; set; } = [];
     public List<PaymentMethodMonthlyRow> MonthlyTrend { get; set; } = [];
-}
-
-public class MethodReference
-{
-    public Guid PaymentMethodId { get; set; }
-    public string Name { get; set; } = null!;
 }
 
 public class PaymentMethodReportRow
@@ -46,13 +27,12 @@ public class PaymentMethodReportRow
     public string? BankName { get; set; }
     public string? OwnerPartnerName { get; set; }
 
-    // Estadísticas
+    // Estadísticas (en la moneda del método de pago)
     public decimal TotalSpent { get; set; }
     public int ExpenseCount { get; set; }
     public decimal TotalIncome { get; set; }
     public int IncomeCount { get; set; }
     public decimal NetFlow { get; set; }
-    public decimal Percentage { get; set; }
     public decimal AverageExpenseAmount { get; set; }
     public decimal AverageIncomeAmount { get; set; }
     public DateOnly? FirstUseDate { get; set; }
@@ -108,13 +88,7 @@ public class PaymentMethodExpenseRow
     public string ProjectName { get; set; } = null!;
     public Guid CategoryId { get; set; }
     public string CategoryName { get; set; } = null!;
-    public decimal OriginalAmount { get; set; }
-    public string OriginalCurrency { get; set; } = null!;
-    public decimal? AccountAmount { get; set; }
-    public string? AccountCurrency { get; set; }
-    public decimal ConvertedAmount { get; set; }
-    public string ProjectCurrency { get; set; } = null!;
-    public List<CurrencyExchangeResponse>? CurrencyExchanges { get; set; }
+    public decimal Amount { get; set; }
     public string? Description { get; set; }
 }
 
@@ -127,13 +101,7 @@ public class PaymentMethodIncomeRow
     public string ProjectName { get; set; } = null!;
     public Guid CategoryId { get; set; }
     public string CategoryName { get; set; } = null!;
-    public decimal OriginalAmount { get; set; }
-    public string OriginalCurrency { get; set; } = null!;
-    public decimal? AccountAmount { get; set; }
-    public string? AccountCurrency { get; set; }
-    public decimal ConvertedAmount { get; set; }
-    public string ProjectCurrency { get; set; } = null!;
-    public List<CurrencyExchangeResponse>? CurrencyExchanges { get; set; }
+    public decimal Amount { get; set; }
     public string? Description { get; set; }
 }
 
@@ -142,11 +110,6 @@ public class PaymentMethodMonthlyRow
     public int Year { get; set; }
     public int Month { get; set; }
     public string MonthLabel { get; set; } = null!;
-    public decimal TotalSpent { get; set; }
-    public int ExpenseCount { get; set; }
-    public decimal TotalIncome { get; set; }
-    public int IncomeCount { get; set; }
-    public decimal NetBalance { get; set; }
     public List<PaymentMethodMonthBreakdown> ByMethod { get; set; } = [];
 }
 
@@ -154,10 +117,10 @@ public class PaymentMethodMonthBreakdown
 {
     public Guid PaymentMethodId { get; set; }
     public string Name { get; set; } = null!;
+    public string Currency { get; set; } = null!;
     public decimal TotalSpent { get; set; }
     public int ExpenseCount { get; set; }
     public decimal TotalIncome { get; set; }
     public int IncomeCount { get; set; }
     public decimal NetFlow { get; set; }
-    public decimal Percentage { get; set; }
 }

@@ -28,6 +28,9 @@ public class DetailedExpenseReportResponse
     public PeakMonthInfo? PeakMonth { get; set; }
     public LargestExpenseInfo? LargestExpense { get; set; }
 
+    /// <summary>Totales calculados en monedas alternativas.</summary>
+    public List<AlternativeCurrencyTotals>? AlternativeCurrencies { get; set; }
+
     /// <summary>Gastos agrupados por mes, ordenados del más viejo al más nuevo.</summary>
     public List<MonthlyExpenseSection> Sections { get; set; } = [];
 
@@ -41,9 +44,6 @@ public class DetailedExpenseReportResponse
 
     /// <summary>Resumen de obligaciones/deudas. null si plan básico.</summary>
     public ObligationSummarySection? ObligationSummary { get; set; }
-
-    /// <summary>Resumen de splits por partner. null si plan básico o partnersEnabled = false.</summary>
-    public PartnerExpenseSummary? PartnerSummary { get; set; }
 }
 
 public class PeakMonthInfo
@@ -75,6 +75,7 @@ public class MonthlyExpenseSection
     public decimal PercentageOfTotal { get; set; }
     public decimal AverageExpenseAmount { get; set; }
     public SectionTopExpense? TopExpense { get; set; }
+    public List<AlternativeCurrencyTotals>? AlternativeCurrencies { get; set; }
     public List<DetailedExpenseRow> Expenses { get; set; } = [];
 }
 
@@ -107,7 +108,6 @@ public class DetailedExpenseRow
     public bool IsObligationPayment { get; set; }
     public Guid? ObligationId { get; set; }
     public string? ObligationTitle { get; set; }
-    public List<ExpenseSplitRow>? Splits { get; set; }
 }
 
 // ── Payment Method Analysis (Advanced) ─────────────────────
@@ -176,30 +176,14 @@ public class ObligationReportRow
     public DateOnly? LastPaymentDate { get; set; }
 }
 
-// ── Expense Split (per-row) ─────────────────────────────────
+// ── Alternative Currency Totals ──────────────────────────────
 
-public class ExpenseSplitRow
+public class AlternativeCurrencyTotals
 {
-    public Guid PartnerId { get; set; }
-    public string PartnerName { get; set; } = null!;
-    public string SplitType { get; set; } = null!;
-    public decimal SplitValue { get; set; }
-    public decimal ResolvedAmount { get; set; }
-    public List<CurrencyExchangeResponse>? CurrencyExchanges { get; set; }
-}
-
-// ── Partner Expense Summary (Advanced) ──────────────────────
-
-public class PartnerExpenseSummary
-{
-    public List<PartnerExpenseRow> Partners { get; set; } = [];
-}
-
-public class PartnerExpenseRow
-{
-    public Guid PartnerId { get; set; }
-    public string PartnerName { get; set; } = null!;
-    public decimal TotalSplitAmount { get; set; }
-    public int ExpenseCount { get; set; }
-    public decimal Percentage { get; set; }
+    public string CurrencyCode { get; set; } = null!;
+    public decimal TotalSpent { get; set; }
+    public decimal TotalIncome { get; set; }
+    public decimal NetBalance { get; set; }
+    public decimal AverageExpenseAmount { get; set; }
+    public decimal AverageMonthlySpend { get; set; }
 }

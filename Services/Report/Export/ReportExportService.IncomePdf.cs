@@ -71,6 +71,18 @@ public partial class ReportExportService
                     .FontSize(8).FontColor(Colors.Grey.Darken1);
             }
 
+            // Alternative currency totals
+            if (report.AlternativeCurrencies is { Count: > 0 })
+            {
+                foreach (var alt in report.AlternativeCurrencies)
+                {
+                    col.Item().PaddingTop(1)
+                        .Text($"[{alt.CurrencyCode}]  Ingresos: {alt.TotalIncome:N2}" +
+                              $"  ·  Promedio mensual: {alt.AverageMonthlySpend:N2}")
+                        .FontSize(8).FontColor(Colors.Grey.Darken1);
+                }
+            }
+
             col.Item().PaddingVertical(8).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
         });
     }
@@ -85,8 +97,10 @@ public partial class ReportExportService
                 return;
             }
 
+            var altCodes = report.AlternativeCurrencies?.Select(a => a.CurrencyCode).ToList() ?? [];
+
             foreach (var section in report.Sections)
-                ComposeIncomeSection(col, section, report.CurrencyCode);
+                ComposeIncomeSection(col, section, report.CurrencyCode, altCodes);
 
             if (report.CategoryAnalysis is { Count: > 0 })
                 ComposeIncomeCategoryAnalysisSection(col, report);
@@ -99,13 +113,20 @@ public partial class ReportExportService
     private static void ComposeIncomeSection(
         ColumnDescriptor col,
         MonthlyIncomeSection section,
-        string currencyCode)
+        string currencyCode,
+        List<string> altCodes)
     {
         col.Item().PaddingTop(8).Text(section.MonthLabel)
             .FontSize(12).Bold().FontColor(Colors.Blue.Darken2);
 
-        col.Item().Text($"Subtotal: {FormatCurrency(currencyCode, section.SectionTotal)}  ·  {section.SectionCount} ingresos")
-            .FontSize(8).FontColor(Colors.Grey.Darken1);
+        // Section subtitle with alternative currency subtotals
+        var subtotalText = $"Subtotal: {FormatCurrency(currencyCode, section.SectionTotal)}  ·  {section.SectionCount} ingresos";
+        if (section.AlternativeCurrencies is { Count: > 0 })
+        {
+            foreach (var alt in section.AlternativeCurrencies)
+                subtotalText += $"  ·  {alt.CurrencyCode}: {alt.TotalIncome:N2}";
+        }
+        col.Item().Text(subtotalText).FontSize(8).FontColor(Colors.Grey.Darken1);
 
         col.Item().PaddingTop(4).Table(table =>
         {
@@ -116,6 +137,8 @@ public partial class ReportExportService
                 cols.RelativeColumn(2);
                 cols.RelativeColumn(2);
                 cols.ConstantColumn(70);
+                foreach (var _ in altCodes)
+                    cols.ConstantColumn(60);
             });
 
             table.Header(header =>
@@ -125,6 +148,8 @@ public partial class ReportExportService
                 PdfTableHeaderCell(header, "Categoría");
                 PdfTableHeaderCell(header, "Método de Pago");
                 PdfTableHeaderCell(header, "Monto", true);
+                foreach (var code in altCodes)
+                    PdfTableHeaderCell(header, code, true);
             });
 
             foreach (var inc in section.Incomes)
@@ -134,6 +159,14 @@ public partial class ReportExportService
                 PdfTableCell(table, inc.CategoryName);
                 PdfTableCell(table, inc.PaymentMethodName);
                 PdfTableCell(table, FormatCurrency(currencyCode, inc.ConvertedAmount), true);
+
+                foreach (var code in altCodes)
+                {
+                    var altExchange = inc.CurrencyExchanges?
+                        .FirstOrDefault(ce => ce.CurrencyCode == code);
+                    PdfTableCell(table, altExchange is not null
+                        ? $"{altExchange.ConvertedAmount:N2}" : "—", true);
+                }
             }
         });
     }

@@ -22,9 +22,6 @@ public partial class ReportExportService
         if (report.PaymentMethodAnalysis is { Count: > 0 })
             AddIncomePaymentMethodAnalysisSheet(workbook, report);
 
-        if (report.PartnerSummary is not null)
-            AddPartnerIncomeSummarySheet(workbook, report);
-
         return WorkbookToBytes(workbook);
     }
 
@@ -66,15 +63,41 @@ public partial class ReportExportService
 
         StyleHeaderRange(ws.Range(1, 4, 4, 4));
 
+        // ── Alternative currencies block (columns G-J) ──────
+        var altCurrencies = report.AlternativeCurrencies ?? [];
+        if (altCurrencies.Count > 0)
+        {
+            var altRow = 1;
+            ws.Cell(altRow, 7).Value = "Moneda Alternativa";
+            ws.Cell(altRow, 8).Value = "Total Ingresos";
+            ws.Cell(altRow, 9).Value = "Promedio Mensual";
+            StyleTableHeader(ws.Range(altRow, 7, altRow, 9));
+            altRow++;
+
+            foreach (var alt in altCurrencies)
+            {
+                ws.Cell(altRow, 7).Value = alt.CurrencyCode;
+                ws.Cell(altRow, 8).Value = alt.TotalIncome;
+                ws.Cell(altRow, 8).Style.NumberFormat.Format = ExcelCurrencyFormat;
+                ws.Cell(altRow, 9).Value = alt.AverageMonthlySpend;
+                ws.Cell(altRow, 9).Style.NumberFormat.Format = ExcelCurrencyFormat;
+                altRow++;
+            }
+        }
+
         // ── Detail table ────────────────────────────────────
         const int headerRow = 11;
-        string[] headers =
-        [
+        var baseHeaders = new List<string>
+        {
             "Fecha", "Título", "Categoría", "Método de Pago", "Tipo",
             "Monto Original", "Moneda Original", "Tipo Cambio", "Monto Convertido",
             "Monto Cuenta", "Moneda Cuenta",
             "Descripción", "Recibo", "Notas"
-        ];
+        };
+        var altCodes = altCurrencies.Select(a => a.CurrencyCode).ToList();
+        foreach (var code in altCodes)
+            baseHeaders.Add($"Monto {code}");
+        var headers = baseHeaders.ToArray();
 
         for (var c = 0; c < headers.Length; c++)
             ws.Cell(headerRow, c + 1).Value = headers[c];
@@ -125,6 +148,24 @@ public partial class ReportExportService
                 ws.Cell(row, 12).Value = inc.Description ?? "";
                 ws.Cell(row, 13).Value = inc.ReceiptNumber ?? "";
                 ws.Cell(row, 14).Value = inc.Notes ?? "";
+
+                // Alternative currency columns
+                for (var ci = 0; ci < altCodes.Count; ci++)
+                {
+                    var altExchange = inc.CurrencyExchanges?
+                        .FirstOrDefault(ce => ce.CurrencyCode == altCodes[ci]);
+                    var colIdx = 15 + ci;
+                    if (altExchange is not null)
+                    {
+                        ws.Cell(row, colIdx).Value = altExchange.ConvertedAmount;
+                        ws.Cell(row, colIdx).Style.NumberFormat.Format = ExcelCurrencyFormat;
+                    }
+                    else
+                    {
+                        ws.Cell(row, colIdx).Value = "—";
+                    }
+                }
+
                 row++;
             }
 
@@ -134,6 +175,19 @@ public partial class ReportExportService
             ws.Cell(row, 9).Value = section.SectionTotal;
             ws.Cell(row, 9).Style.NumberFormat.Format = ExcelCurrencyFormat;
             ws.Cell(row, 9).Style.Font.Bold = true;
+
+            // Alternative currency subtotals
+            var sectionAlt = section.AlternativeCurrencies ?? [];
+            for (var ci = 0; ci < altCodes.Count; ci++)
+            {
+                var alt = sectionAlt.FirstOrDefault(a => a.CurrencyCode == altCodes[ci]);
+                if (alt is null) continue;
+                var colIdx = 15 + ci;
+                ws.Cell(row, colIdx).Value = alt.TotalIncome;
+                ws.Cell(row, colIdx).Style.NumberFormat.Format = ExcelCurrencyFormat;
+                ws.Cell(row, colIdx).Style.Font.Bold = true;
+            }
+
             row += 2;
         }
 
@@ -212,41 +266,6 @@ public partial class ReportExportService
         ws.Cell(row, 3).Style.Font.Bold = true;
         ws.Cell(row, 4).Value = report.PaymentMethodAnalysis.Sum(p => p.IncomeCount);
         ws.Cell(row, 4).Style.Font.Bold = true;
-        ws.Range(row, 1, row, headers.Length).Style.Fill.BackgroundColor = XLColor.LightGray;
-        ws.Range(row, 1, row, headers.Length).Style.Border.TopBorder = XLBorderStyleValues.Thin;
-
-        FinalizeSheetLayout(ws, 1, Math.Max(1, row), headers.Length, 1, maxColumnWidth: 36, wrapColumns: [1]);
-    }
-
-    private static void AddPartnerIncomeSummarySheet(XLWorkbook workbook, DetailedIncomeReportResponse report)
-    {
-        var ws = workbook.Worksheets.Add("Resumen Partners");
-
-        string[] headers = ["Partner", "Total Splits Ingresos", "# Ingresos", "% del Total"];
-
-        for (var c = 0; c < headers.Length; c++)
-            ws.Cell(1, c + 1).Value = headers[c];
-
-        StyleTableHeader(ws.Range(1, 1, 1, headers.Length));
-
-        var row = 2;
-        foreach (var p in report.PartnerSummary!.Partners)
-        {
-            ws.Cell(row, 1).Value = p.PartnerName;
-            ws.Cell(row, 2).Value = p.TotalSplitAmount;
-            ws.Cell(row, 2).Style.NumberFormat.Format = ExcelCurrencyFormat;
-            ws.Cell(row, 3).Value = p.IncomeCount;
-            ws.Cell(row, 4).Value = p.Percentage;
-            ws.Cell(row, 4).Style.NumberFormat.Format = ExcelPercentFormat;
-            row++;
-        }
-
-        // Totals row
-        ws.Cell(row, 2).Value = report.PartnerSummary.Partners.Sum(p => p.TotalSplitAmount);
-        ws.Cell(row, 2).Style.NumberFormat.Format = ExcelCurrencyFormat;
-        ws.Cell(row, 2).Style.Font.Bold = true;
-        ws.Cell(row, 3).Value = report.PartnerSummary.Partners.Sum(p => p.IncomeCount);
-        ws.Cell(row, 3).Style.Font.Bold = true;
         ws.Range(row, 1, row, headers.Length).Style.Fill.BackgroundColor = XLColor.LightGray;
         ws.Range(row, 1, row, headers.Length).Style.Border.TopBorder = XLBorderStyleValues.Thin;
 

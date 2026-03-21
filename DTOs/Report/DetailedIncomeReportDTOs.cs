@@ -25,6 +25,9 @@ public class DetailedIncomeReportResponse
     public PeakMonthInfo? PeakMonth { get; set; }
     public LargestIncomeInfo? LargestIncome { get; set; }
 
+    /// <summary>Totales calculados en monedas alternativas.</summary>
+    public List<AlternativeCurrencyTotals>? AlternativeCurrencies { get; set; }
+
     /// <summary>Ingresos agrupados por mes, ordenados del más viejo al más nuevo.</summary>
     public List<MonthlyIncomeSection> Sections { get; set; } = [];
 
@@ -35,9 +38,6 @@ public class DetailedIncomeReportResponse
 
     /// <summary>Análisis por método de pago. null si plan básico.</summary>
     public List<PaymentMethodIncomeAnalysisRow>? PaymentMethodAnalysis { get; set; }
-
-    /// <summary>Resumen de splits por partner. null si plan básico o partnersEnabled = false.</summary>
-    public PartnerIncomeSummary? PartnerSummary { get; set; }
 }
 
 public class LargestIncomeInfo
@@ -60,6 +60,7 @@ public class MonthlyIncomeSection
     public decimal PercentageOfTotal { get; set; }
     public decimal AverageIncomeAmount { get; set; }
     public SectionTopIncome? TopIncome { get; set; }
+    public List<AlternativeCurrencyTotals>? AlternativeCurrencies { get; set; }
     public List<DetailedIncomeRow> Incomes { get; set; } = [];
 }
 
@@ -89,17 +90,6 @@ public class DetailedIncomeRow
     public string? Description { get; set; }
     public string? ReceiptNumber { get; set; }
     public string? Notes { get; set; }
-    public List<IncomeSplitRow>? Splits { get; set; }
-}
-
-public class IncomeSplitRow
-{
-    public Guid PartnerId { get; set; }
-    public string PartnerName { get; set; } = null!;
-    public string SplitType { get; set; } = null!;
-    public decimal SplitValue { get; set; }
-    public decimal ResolvedAmount { get; set; }
-    public List<CurrencyExchangeResponse>? CurrencyExchanges { get; set; }
 }
 
 // ── Income Analysis (Advanced) ──────────────────────────────
@@ -125,18 +115,3 @@ public class PaymentMethodIncomeAnalysisRow
     public decimal AverageAmount { get; set; }
 }
 
-// ── Partner Income Summary (Advanced) ───────────────────────
-
-public class PartnerIncomeSummary
-{
-    public List<PartnerIncomeRow> Partners { get; set; } = [];
-}
-
-public class PartnerIncomeRow
-{
-    public Guid PartnerId { get; set; }
-    public string PartnerName { get; set; } = null!;
-    public decimal TotalSplitAmount { get; set; }
-    public int IncomeCount { get; set; }
-    public decimal Percentage { get; set; }
-}

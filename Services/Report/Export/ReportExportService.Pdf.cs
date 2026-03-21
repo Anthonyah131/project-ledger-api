@@ -76,6 +76,19 @@ public partial class ReportExportService
                       $"  ·  Balance neto: {FormatCurrency(report.CurrencyCode, report.NetBalance)}")
                 .FontSize(8).FontColor(Colors.Grey.Darken1);
 
+            // Alternative currency totals
+            if (report.AlternativeCurrencies is { Count: > 0 })
+            {
+                foreach (var alt in report.AlternativeCurrencies)
+                {
+                    col.Item().PaddingTop(1)
+                        .Text($"[{alt.CurrencyCode}]  Gastado: {alt.TotalSpent:N2}" +
+                              $"  ·  Ingresos: {alt.TotalIncome:N2}" +
+                              $"  ·  Balance: {alt.NetBalance:N2}")
+                        .FontSize(8).FontColor(Colors.Grey.Darken1);
+                }
+            }
+
             col.Item().PaddingVertical(8).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
         });
     }
@@ -90,8 +103,10 @@ public partial class ReportExportService
                 return;
             }
 
+            var altCodes = report.AlternativeCurrencies?.Select(a => a.CurrencyCode).ToList() ?? [];
+
             foreach (var section in report.Sections)
-                ComposeExpenseSection(col, section, report.CurrencyCode);
+                ComposeExpenseSection(col, section, report.CurrencyCode, altCodes);
 
             if (report.CategoryAnalysis is { Count: > 0 })
                 ComposeCategoryAnalysisSection(col, report);
@@ -103,14 +118,21 @@ public partial class ReportExportService
 
     private static void ComposeExpenseSection(
         ColumnDescriptor col,
-        dynamic section,
-        string currencyCode)
+        MonthlyExpenseSection section,
+        string currencyCode,
+        List<string> altCodes)
     {
         col.Item().PaddingTop(8).Text($"{section.MonthLabel}")
             .FontSize(12).Bold().FontColor(Colors.Blue.Darken2);
 
-        col.Item().Text($"Subtotal: {FormatCurrency(currencyCode, section.SectionTotal)}  ·  {section.SectionCount} gastos")
-            .FontSize(8).FontColor(Colors.Grey.Darken1);
+        // Section subtitle with alternative currency subtotals
+        var subtotalText = $"Subtotal: {FormatCurrency(currencyCode, section.SectionTotal)}  ·  {section.SectionCount} gastos";
+        if (section.AlternativeCurrencies is { Count: > 0 })
+        {
+            foreach (var alt in section.AlternativeCurrencies)
+                subtotalText += $"  ·  {alt.CurrencyCode}: {alt.TotalSpent:N2}";
+        }
+        col.Item().Text(subtotalText).FontSize(8).FontColor(Colors.Grey.Darken1);
 
         col.Item().PaddingTop(4).Table(table =>
         {
@@ -121,6 +143,8 @@ public partial class ReportExportService
                 cols.RelativeColumn(2);
                 cols.RelativeColumn(2);
                 cols.ConstantColumn(70);
+                foreach (var _ in altCodes)
+                    cols.ConstantColumn(60);
             });
 
             table.Header(header =>
@@ -130,6 +154,8 @@ public partial class ReportExportService
                 PdfTableHeaderCell(header, "Categoría");
                 PdfTableHeaderCell(header, "Método de Pago");
                 PdfTableHeaderCell(header, "Monto", true);
+                foreach (var code in altCodes)
+                    PdfTableHeaderCell(header, code, true);
             });
 
             foreach (var exp in section.Expenses)
@@ -139,6 +165,14 @@ public partial class ReportExportService
                 PdfTableCell(table, exp.CategoryName);
                 PdfTableCell(table, exp.PaymentMethodName);
                 PdfTableCell(table, FormatCurrency(currencyCode, exp.ConvertedAmount), true);
+
+                foreach (var code in altCodes)
+                {
+                    var altExchange = exp.CurrencyExchanges?
+                        .FirstOrDefault(ce => ce.CurrencyCode == code);
+                    PdfTableCell(table, altExchange is not null
+                        ? $"{altExchange.ConvertedAmount:N2}" : "—", true);
+                }
             }
         });
     }
@@ -268,223 +302,4 @@ public partial class ReportExportService
         });
     }
 
-    // ════════════════════════════════════════════════════════
-    //  PAYMENT METHOD REPORT — PDF
-    // ════════════════════════════════════════════════════════
-
-    public byte[] GeneratePaymentMethodReportPdf(PaymentMethodReportResponse report)
-    {
-        return Document.Create(container =>
-        {
-            container.Page(page =>
-            {
-                page.Size(PageSizes.Letter);
-                page.Margin(30);
-                page.DefaultTextStyle(x => x.FontSize(9));
-
-                page.Header().Element(h => ComposePaymentMethodHeader(h, report));
-                page.Content().Element(c => ComposePaymentMethodContent(c, report));
-                page.Footer().Element(ComposeFooter);
-            });
-        }).GeneratePdf();
-    }
-
-    private static void ComposePaymentMethodHeader(IContainer container, PaymentMethodReportResponse report)
-    {
-        container.Column(col =>
-        {
-            col.Item().Text("Reporte de Métodos de Pago")
-                .FontSize(16).Bold().FontColor(Colors.Blue.Darken3);
-
-            col.Item().Row(row =>
-            {
-                row.RelativeItem().Text($"Período: {FormatDateRange(report.DateFrom, report.DateTo)}").FontSize(9);
-                row.RelativeItem().AlignRight()
-                    .Text($"Generado: {report.GeneratedAt:yyyy-MM-dd HH:mm} UTC").FontSize(8);
-            });
-
-            col.Item().PaddingTop(5).Row(row =>
-            {
-                row.RelativeItem().Background(Colors.Blue.Lighten4).Padding(8).Column(c =>
-                {
-                    c.Item().Text("Total Gastado").FontSize(8).FontColor(Colors.Grey.Darken2);
-                    c.Item().Text($"{report.GrandTotalSpent:N2}").FontSize(14).Bold();
-                });
-                row.ConstantItem(10);
-                row.RelativeItem().Background(Colors.Grey.Lighten3).Padding(8).Column(c =>
-                {
-                    c.Item().Text("Transacciones").FontSize(8).FontColor(Colors.Grey.Darken2);
-                    c.Item().Text($"{report.GrandTotalExpenseCount}").FontSize(14).Bold();
-                });
-                row.ConstantItem(10);
-                row.RelativeItem().Background(Colors.Grey.Lighten3).Padding(8).Column(c =>
-                {
-                    c.Item().Text("Método Líder").FontSize(8).FontColor(Colors.Grey.Darken2);
-                    c.Item().Text(GetTopPaymentMethodLabel(report)).FontSize(10).Bold();
-                });
-            });
-
-            col.Item().PaddingTop(6).Row(row =>
-            {
-                row.RelativeItem().Background(Colors.Green.Lighten4).Padding(8).Column(c =>
-                {
-                    c.Item().Text("Total Ingresos").FontSize(8).FontColor(Colors.Grey.Darken2);
-                    c.Item().Text($"{report.GrandTotalIncome:N2}").FontSize(12).Bold();
-                });
-                row.ConstantItem(10);
-                row.RelativeItem().Background(Colors.Orange.Lighten4).Padding(8).Column(c =>
-                {
-                    c.Item().Text("Balance Neto").FontSize(8).FontColor(Colors.Grey.Darken2);
-                    c.Item().Text($"{report.GrandNetFlow:N2}").FontSize(12).Bold();
-                });
-            });
-
-            col.Item().PaddingVertical(8).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
-        });
-    }
-
-    private static void ComposePaymentMethodContent(IContainer container, PaymentMethodReportResponse report)
-    {
-        container.Column(col =>
-        {
-            if (report.PaymentMethods.Count == 0)
-            {
-                ComposePdfEmptyState(col, "No se encontraron gastos para métodos de pago en el período seleccionado.");
-                return;
-            }
-
-            ComposePaymentMethodSummaryTable(col, report);
-
-            if (report.PaymentMethods.Any(pm => pm.Projects.Count > 0))
-                ComposePaymentMethodByProjectSection(col, report);
-
-            if (report.MonthlyTrend.Count > 0)
-                ComposeMonthlyTrendSection(col, report);
-        });
-    }
-
-    private static void ComposePaymentMethodSummaryTable(ColumnDescriptor col, PaymentMethodReportResponse report)
-    {
-        col.Item().Text("Resumen por Método de Pago")
-            .FontSize(12).Bold().FontColor(Colors.Blue.Darken2);
-
-        col.Item().PaddingTop(4).Table(table =>
-        {
-            table.ColumnsDefinition(cols =>
-            {
-                cols.RelativeColumn(3);
-                cols.ConstantColumn(45);
-                cols.ConstantColumn(40);
-                cols.ConstantColumn(70);
-                cols.ConstantColumn(70);
-                cols.ConstantColumn(70);
-                cols.ConstantColumn(40);
-                cols.ConstantColumn(40);
-            });
-
-            table.Header(header =>
-            {
-                PdfTableHeaderCell(header, "Método");
-                PdfTableHeaderCell(header, "Tipo");
-                PdfTableHeaderCell(header, "Moneda");
-                PdfTableHeaderCell(header, "Total",    true);
-                PdfTableHeaderCell(header, "Ingresos", true);
-                PdfTableHeaderCell(header, "Balance",  true);
-                PdfTableHeaderCell(header, "Gastos",   true);
-                PdfTableHeaderCell(header, "Ingr.",    true);
-            });
-
-            foreach (var pm in report.PaymentMethods)
-            {
-                PdfTableCell(table, pm.Name);
-                PdfTableCell(table, pm.Type);
-                PdfTableCell(table, pm.Currency);
-                PdfTableCell(table, FormatCurrency(pm.Currency, pm.TotalSpent),  true);
-                PdfTableCell(table, FormatCurrency(pm.Currency, pm.TotalIncome), true);
-                PdfTableCell(table, FormatCurrency(pm.Currency, pm.NetFlow),     true);
-                PdfTableCell(table, $"{pm.ExpenseCount}", true);
-                PdfTableCell(table, $"{pm.IncomeCount}",  true);
-            }
-        });
-    }
-
-    private static void ComposePaymentMethodByProjectSection(ColumnDescriptor col, PaymentMethodReportResponse report)
-    {
-        col.Item().PaddingTop(12).Text("Desglose por Proyecto")
-            .FontSize(12).Bold().FontColor(Colors.Blue.Darken2);
-
-        foreach (var pm in report.PaymentMethods.Where(pm => pm.Projects.Count > 0))
-        {
-            col.Item().PaddingTop(6).Text($"{pm.Name} ({pm.Type})").FontSize(10).Bold();
-
-            col.Item().PaddingTop(2).Table(table =>
-            {
-                table.ColumnsDefinition(cols =>
-                {
-                    cols.RelativeColumn(3);
-                    cols.ConstantColumn(50);
-                    cols.ConstantColumn(70);
-                    cols.ConstantColumn(40);
-                    cols.ConstantColumn(40);
-                });
-
-                table.Header(header =>
-                {
-                    PdfTableHeaderCell(header, "Proyecto");
-                    PdfTableHeaderCell(header, "Moneda");
-                    PdfTableHeaderCell(header, "Total",  true);
-                    PdfTableHeaderCell(header, "Gastos", true);
-                    PdfTableHeaderCell(header, "%",      true);
-                });
-
-                foreach (var proj in pm.Projects)
-                {
-                    PdfTableCell(table, proj.ProjectName);
-                    PdfTableCell(table, proj.ProjectCurrency);
-                    PdfTableCell(table, FormatCurrency(proj.ProjectCurrency, proj.TotalSpent), true);
-                    PdfTableCell(table, $"{proj.ExpenseCount}",        true);
-                    PdfTableCell(table, $"{proj.Percentage:N1}%",      true);
-                }
-            });
-        }
-    }
-
-    private static void ComposeMonthlyTrendSection(ColumnDescriptor col, PaymentMethodReportResponse report)
-    {
-        col.Item().PaddingTop(12).Text("Tendencia Mensual")
-            .FontSize(12).Bold().FontColor(Colors.Blue.Darken2);
-
-        col.Item().PaddingTop(4).Table(table =>
-        {
-            table.ColumnsDefinition(cols =>
-            {
-                cols.RelativeColumn(3);
-                cols.ConstantColumn(70);
-                cols.ConstantColumn(50);
-                cols.ConstantColumn(70);
-                cols.ConstantColumn(50);
-                cols.ConstantColumn(70);
-            });
-
-            table.Header(header =>
-            {
-                PdfTableHeaderCell(header, "Mes");
-                PdfTableHeaderCell(header, "Total",    true);
-                PdfTableHeaderCell(header, "Gastos",   true);
-                PdfTableHeaderCell(header, "Ingresos", true);
-                PdfTableHeaderCell(header, "Ingr.",    true);
-                PdfTableHeaderCell(header, "Balance",  true);
-            });
-
-            foreach (var m in report.MonthlyTrend)
-            {
-                PdfTableCell(table, m.MonthLabel);
-                PdfTableCell(table, $"{m.TotalSpent:N2}",  true);
-                PdfTableCell(table, $"{m.ExpenseCount}",   true);
-                PdfTableCell(table, $"{m.TotalIncome:N2}", true);
-                PdfTableCell(table, $"{m.IncomeCount}",    true);
-                PdfTableCell(table, $"{m.NetBalance:N2}",  true);
-            }
-        });
-    }
 }

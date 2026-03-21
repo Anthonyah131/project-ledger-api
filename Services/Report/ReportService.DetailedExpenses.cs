@@ -1,4 +1,3 @@
-using ProjectLedger.API.DTOs.Common;
 using ProjectLedger.API.DTOs.Report;
 using ProjectLedger.API.Extensions.Mappings;
 
@@ -22,6 +21,9 @@ public partial class ReportService
         var totalSpent = expenses.Sum(e => e.ExpConvertedAmount);
         var totalIncome = incomes.Sum(i => i.IncConvertedAmount);
 
+        // Alternative currency totals (root level)
+        var altCurrencies = BuildAlternativeCurrencyTotals(expenses, incomes);
+
         var incomeByMonth = incomes
             .GroupBy(i => new { i.IncIncomeDate.Year, i.IncIncomeDate.Month })
             .ToDictionary(
@@ -29,7 +31,8 @@ public partial class ReportService
                 g => new
                 {
                     Total = g.Sum(i => i.IncConvertedAmount),
-                    Count = g.Count()
+                    Count = g.Count(),
+                    Items = g.ToList()
                 });
 
         // Build monthly sections (oldest -> newest)
@@ -42,6 +45,11 @@ public partial class ReportService
                 var sectionCount = g.Count();
                 var topInSection = g.OrderByDescending(e => e.ExpConvertedAmount).First();
                 var sectionIncome = incomeByMonth.GetValueOrDefault((g.Key.Year, g.Key.Month));
+
+                // Alternative currency totals for this section
+                var sectionIncomeItems = sectionIncome?.Items ?? [];
+                var sectionAltCurrencies = BuildAlternativeCurrencyTotals(g.ToList(), sectionIncomeItems);
+
                 return new MonthlyExpenseSection
                 {
                     Year = g.Key.Year,
@@ -63,6 +71,7 @@ public partial class ReportService
                         Title = topInSection.ExpTitle,
                         Amount = topInSection.ExpConvertedAmount
                     },
+                    AlternativeCurrencies = sectionAltCurrencies.Count > 0 ? sectionAltCurrencies : null,
                     Expenses = g.OrderBy(e => e.ExpExpenseDate).Select(e => new DetailedExpenseRow
                     {
                         Id = e.ExpId,
@@ -85,26 +94,7 @@ public partial class ReportService
                         Notes = e.ExpNotes,
                         IsObligationPayment = e.ExpObligationId.HasValue,
                         ObligationId = e.ExpObligationId,
-                        ObligationTitle = e.Obligation?.OblTitle,
-                        Splits = e.Splits?.Count > 0
-                            ? e.Splits.Select(s => new ExpenseSplitRow
-                            {
-                                PartnerId = s.ExsPartnerId,
-                                PartnerName = s.Partner?.PtrName ?? "Unknown",
-                                SplitType = s.ExsSplitType,
-                                SplitValue = s.ExsSplitValue,
-                                ResolvedAmount = s.ExsResolvedAmount,
-                                CurrencyExchanges = s.CurrencyExchanges?.Count > 0
-                                    ? s.CurrencyExchanges.Select(ce => new CurrencyExchangeResponse
-                                    {
-                                        Id = ce.SceId,
-                                        CurrencyCode = ce.SceCurrencyCode,
-                                        ExchangeRate = ce.SceExchangeRate,
-                                        ConvertedAmount = ce.SceConvertedAmount
-                                    }).ToList()
-                                    : null
-                            }).ToList()
-                            : null
+                        ObligationTitle = e.Obligation?.OblTitle
                     }).ToList()
                 };
             }).ToList();
@@ -144,6 +134,7 @@ public partial class ReportService
                 CategoryName = largestExpense.Category?.CatName ?? "Unknown",
                 PaymentMethodName = largestExpense.PaymentMethod?.PmtName ?? "Unknown"
             },
+            AlternativeCurrencies = altCurrencies.Count > 0 ? altCurrencies : null,
             Sections = sections
         };
 
@@ -268,39 +259,47 @@ public partial class ReportService
                 OverdueAmount = oblRows.Where(o => o.Status == "overdue").Sum(o => o.RemainingAmount),
                 ByStatus = byStatus
             };
-
-            // Partner expense summary (only if project has partners enabled)
-            if (project.PrjPartnersEnabled)
-            {
-                var allSplits = expenses
-                    .SelectMany(e => e.Splits ?? [])
-                    .ToList();
-
-                if (allSplits.Count > 0)
-                {
-                    var partnerRows = allSplits
-                        .GroupBy(s => new { s.ExsPartnerId, Name = s.Partner?.PtrName ?? "Unknown" })
-                        .Select(g =>
-                        {
-                            var splitTotal = g.Sum(s => s.ExsResolvedAmount);
-                            return new PartnerExpenseRow
-                            {
-                                PartnerId = g.Key.ExsPartnerId,
-                                PartnerName = g.Key.Name,
-                                TotalSplitAmount = splitTotal,
-                                ExpenseCount = g.Select(s => s.ExsExpenseId).Distinct().Count(),
-                                Percentage = totalSpent > 0 ? Math.Round(splitTotal / totalSpent * 100, 2) : 0
-                            };
-                        })
-                        .OrderByDescending(p => p.TotalSplitAmount)
-                        .ToList();
-
-                    report.PartnerSummary = new PartnerExpenseSummary { Partners = partnerRows };
-                }
-            }
         }
 
         return report;
+    }
+
+    private static List<AlternativeCurrencyTotals> BuildAlternativeCurrencyTotals(
+        List<Models.Expense> expenses, List<Models.Income> incomes)
+    {
+        var expByCurrency = expenses
+            .SelectMany(e => e.CurrencyExchanges ?? [])
+            .GroupBy(ce => ce.TceCurrencyCode)
+            .ToDictionary(g => g.Key, g => g.Sum(ce => ce.TceConvertedAmount));
+
+        var incByCurrency = incomes
+            .SelectMany(i => i.CurrencyExchanges ?? [])
+            .GroupBy(ce => ce.TceCurrencyCode)
+            .ToDictionary(g => g.Key, g => g.Sum(ce => ce.TceConvertedAmount));
+
+        var allCurrencies = expByCurrency.Keys.Union(incByCurrency.Keys);
+        var sectionCount = expenses
+            .Select(e => (e.ExpExpenseDate.Year, e.ExpExpenseDate.Month))
+            .Distinct()
+            .Count();
+
+        return allCurrencies.Select(code =>
+        {
+            var spent = expByCurrency.GetValueOrDefault(code);
+            var income = incByCurrency.GetValueOrDefault(code);
+            var expCount = expenses.Count(e =>
+                e.CurrencyExchanges?.Any(ce => ce.TceCurrencyCode == code) == true);
+
+            return new AlternativeCurrencyTotals
+            {
+                CurrencyCode = code,
+                TotalSpent = spent,
+                TotalIncome = income,
+                NetBalance = income - spent,
+                AverageExpenseAmount = expCount > 0 ? Math.Round(spent / expCount, 2) : 0,
+                AverageMonthlySpend = sectionCount > 0 ? Math.Round(spent / sectionCount, 2) : 0
+            };
+        }).OrderBy(a => a.CurrencyCode).ToList();
     }
 
     private static string ComputeObligationStatus(Models.Obligation o, decimal paid, DateOnly today)

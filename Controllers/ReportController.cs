@@ -119,11 +119,11 @@ public class ReportController : ControllerBase
     /// Reporte detallado de gastos del proyecto con secciones mensuales.
     /// Basic: líneas de gastos + totales.
     /// Premium: + análisis de categorías/presupuestos + obligaciones.
-    /// Solo el dueño del proyecto puede generar este reporte.
+    /// Accesible para owner, editor y viewer del proyecto.
     /// </summary>
     /// <param name="format">Formato de exportación: json (default), excel, pdf.</param>
     /// <response code="200">Reporte generado.</response>
-    /// <response code="403">No es dueño del proyecto o plan insuficiente.</response>
+    /// <response code="403">Plan insuficiente.</response>
     [HttpGet("expenses")]
     [Authorize(Policy = "ProjectViewer")]
     [ProducesResponseType(typeof(DetailedExpenseReportResponse), StatusCodes.Status200OK)]
@@ -140,17 +140,15 @@ public class ReportController : ControllerBase
         if (project is null)
             return NotFound(new { message = "Project not found." });
 
-        // Solo el dueño del proyecto puede generar reportes
         var userId = User.GetRequiredUserId();
-        if (project.PrjOwnerUserId != userId)
-            return Forbid();
+        var ownerId = project.PrjOwnerUserId;
 
-        // Verificar permiso de exportación de datos
-        await _planAuth.ValidatePermissionAsync(userId, PlanPermission.CanExportData, ct);
+        // Verificar permiso de exportación de datos (plan del dueño del proyecto)
+        await _planAuth.ValidatePermissionAsync(ownerId, PlanPermission.CanExportData, ct);
 
         // PDF requiere CanUseAdvancedReports
         if (format.Equals("pdf", StringComparison.OrdinalIgnoreCase))
-            await _planAuth.ValidatePermissionAsync(userId, PlanPermission.CanUseAdvancedReports, ct);
+            await _planAuth.ValidatePermissionAsync(ownerId, PlanPermission.CanUseAdvancedReports, ct);
 
         var report = await _reportService.GetDetailedExpensesAsync(projectId, userId, from, to, ct);
 
@@ -163,7 +161,7 @@ public class ReportController : ControllerBase
             "pdf" => ExportPdf(
                 _exportService.GenerateExpenseReportPdf(report),
                 $"expense-report-{project.PrjName}"),
-            _ => Ok(report)
+            _ => ReturnJsonReport(report)
         };
     }
 
@@ -173,11 +171,11 @@ public class ReportController : ControllerBase
     /// Reporte detallado de ingresos del proyecto con secciones mensuales.
     /// Basic: líneas de ingresos + totales.
     /// Premium: + análisis de categorías/métodos de pago + partners.
-    /// Solo el dueño del proyecto puede generar este reporte.
+    /// Accesible para owner, editor y viewer del proyecto.
     /// </summary>
     /// <param name="format">Formato de exportación: json (default), excel, pdf.</param>
     /// <response code="200">Reporte generado.</response>
-    /// <response code="403">No es dueño del proyecto o plan insuficiente.</response>
+    /// <response code="403">Plan insuficiente.</response>
     [HttpGet("incomes")]
     [Authorize(Policy = "ProjectViewer")]
     [ProducesResponseType(typeof(DetailedIncomeReportResponse), StatusCodes.Status200OK)]
@@ -195,13 +193,12 @@ public class ReportController : ControllerBase
             return NotFound(new { message = "Project not found." });
 
         var userId = User.GetRequiredUserId();
-        if (project.PrjOwnerUserId != userId)
-            return Forbid();
+        var ownerId = project.PrjOwnerUserId;
 
-        await _planAuth.ValidatePermissionAsync(userId, PlanPermission.CanExportData, ct);
+        await _planAuth.ValidatePermissionAsync(ownerId, PlanPermission.CanExportData, ct);
 
         if (format.Equals("pdf", StringComparison.OrdinalIgnoreCase))
-            await _planAuth.ValidatePermissionAsync(userId, PlanPermission.CanUseAdvancedReports, ct);
+            await _planAuth.ValidatePermissionAsync(ownerId, PlanPermission.CanUseAdvancedReports, ct);
 
         var report = await _reportService.GetDetailedIncomesAsync(projectId, userId, from, to, ct);
 
@@ -213,7 +210,7 @@ public class ReportController : ControllerBase
             "pdf" => ExportPdf(
                 _exportService.GenerateIncomeReportPdf(report),
                 $"income-report-{project.PrjName}"),
-            _ => Ok(report)
+            _ => ReturnJsonIncomeReport(report)
         };
     }
 
@@ -283,6 +280,24 @@ public class ReportController : ControllerBase
     {
         var safeFileName = SanitizeFileName(baseName);
         return File(content, "application/pdf", $"{safeFileName}.pdf");
+    }
+
+    private IActionResult ReturnJsonReport(DetailedExpenseReportResponse report)
+    {
+        // JSON: limitar gastos a 10 por sección (totales ya calculados con todos)
+        foreach (var section in report.Sections)
+            section.Expenses = section.Expenses.Take(10).ToList();
+
+        return Ok(report);
+    }
+
+    private IActionResult ReturnJsonIncomeReport(DetailedIncomeReportResponse report)
+    {
+        // JSON: limitar ingresos a 10 por sección (totales ya calculados con todos)
+        foreach (var section in report.Sections)
+            section.Incomes = section.Incomes.Take(10).ToList();
+
+        return Ok(report);
     }
 
     private static string SanitizeFileName(string name)

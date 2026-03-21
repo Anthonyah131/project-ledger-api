@@ -1,4 +1,3 @@
-using ProjectLedger.API.DTOs.Common;
 using ProjectLedger.API.DTOs.Report;
 using ProjectLedger.API.Extensions.Mappings;
 
@@ -16,6 +15,9 @@ public partial class ReportService
 
         var totalIncome = incomes.Sum(i => i.IncConvertedAmount);
 
+        // Alternative currency totals (root level)
+        var altCurrencies = BuildIncomeAlternativeCurrencyTotals(incomes);
+
         // Build monthly sections (oldest -> newest)
         var sections = incomes
             .GroupBy(i => new { i.IncIncomeDate.Year, i.IncIncomeDate.Month })
@@ -25,6 +27,9 @@ public partial class ReportService
                 var sectionTotal = g.Sum(i => i.IncConvertedAmount);
                 var sectionCount = g.Count();
                 var topInSection = g.OrderByDescending(i => i.IncConvertedAmount).First();
+
+                // Alternative currency totals for this section
+                var sectionAltCurrencies = BuildIncomeAlternativeCurrencyTotals(g.ToList());
 
                 return new MonthlyIncomeSection
                 {
@@ -44,6 +49,7 @@ public partial class ReportService
                         Title = topInSection.IncTitle,
                         Amount = topInSection.IncConvertedAmount
                     },
+                    AlternativeCurrencies = sectionAltCurrencies.Count > 0 ? sectionAltCurrencies : null,
                     Incomes = g.OrderBy(i => i.IncIncomeDate).Select(i => new DetailedIncomeRow
                     {
                         Id = i.IncId,
@@ -63,26 +69,7 @@ public partial class ReportService
                         CurrencyExchanges = i.CurrencyExchanges?.Select(x => x.ToResponse()).ToList(),
                         Description = i.IncDescription,
                         ReceiptNumber = i.IncReceiptNumber,
-                        Notes = i.IncNotes,
-                        Splits = i.Splits?.Count > 0
-                            ? i.Splits.Select(s => new IncomeSplitRow
-                            {
-                                PartnerId = s.InsPartnerId,
-                                PartnerName = s.Partner?.PtrName ?? "Unknown",
-                                SplitType = s.InsSplitType,
-                                SplitValue = s.InsSplitValue,
-                                ResolvedAmount = s.InsResolvedAmount,
-                                CurrencyExchanges = s.CurrencyExchanges?.Count > 0
-                                    ? s.CurrencyExchanges.Select(ce => new CurrencyExchangeResponse
-                                    {
-                                        Id = ce.SceId,
-                                        CurrencyCode = ce.SceCurrencyCode,
-                                        ExchangeRate = ce.SceExchangeRate,
-                                        ConvertedAmount = ce.SceConvertedAmount
-                                    }).ToList()
-                                    : null
-                            }).ToList()
-                            : null
+                        Notes = i.IncNotes
                     }).ToList()
                 };
             }).ToList();
@@ -119,6 +106,7 @@ public partial class ReportService
                 CategoryName = largestIncome.Category?.CatName ?? "Unknown",
                 PaymentMethodName = largestIncome.PaymentMethod?.PmtName ?? "Unknown"
             },
+            AlternativeCurrencies = altCurrencies.Count > 0 ? altCurrencies : null,
             Sections = sections
         };
 
@@ -173,38 +161,38 @@ public partial class ReportService
                 })
                 .OrderByDescending(p => p.TotalAmount)
                 .ToList();
-
-            // Partner income summary
-            if (project.PrjPartnersEnabled)
-            {
-                var allSplits = incomes
-                    .SelectMany(i => i.Splits ?? [])
-                    .ToList();
-
-                if (allSplits.Count > 0)
-                {
-                    var partnerRows = allSplits
-                        .GroupBy(s => new { s.InsPartnerId, Name = s.Partner?.PtrName ?? "Unknown" })
-                        .Select(g =>
-                        {
-                            var splitTotal = g.Sum(s => s.InsResolvedAmount);
-                            return new PartnerIncomeRow
-                            {
-                                PartnerId = g.Key.InsPartnerId,
-                                PartnerName = g.Key.Name,
-                                TotalSplitAmount = splitTotal,
-                                IncomeCount = g.Select(s => s.InsIncomeId).Distinct().Count(),
-                                Percentage = totalIncome > 0 ? Math.Round(splitTotal / totalIncome * 100, 2) : 0
-                            };
-                        })
-                        .OrderByDescending(p => p.TotalSplitAmount)
-                        .ToList();
-
-                    report.PartnerSummary = new PartnerIncomeSummary { Partners = partnerRows };
-                }
-            }
         }
 
         return report;
+    }
+
+    private static List<AlternativeCurrencyTotals> BuildIncomeAlternativeCurrencyTotals(
+        List<Models.Income> incomes)
+    {
+        var incByCurrency = incomes
+            .SelectMany(i => i.CurrencyExchanges ?? [])
+            .GroupBy(ce => ce.TceCurrencyCode)
+            .ToDictionary(g => g.Key, g => g.Sum(ce => ce.TceConvertedAmount));
+
+        var sectionCount = incomes
+            .Select(i => (i.IncIncomeDate.Year, i.IncIncomeDate.Month))
+            .Distinct()
+            .Count();
+
+        return incByCurrency.Select(kvp =>
+        {
+            var incCount = incomes.Count(i =>
+                i.CurrencyExchanges?.Any(ce => ce.TceCurrencyCode == kvp.Key) == true);
+
+            return new AlternativeCurrencyTotals
+            {
+                CurrencyCode = kvp.Key,
+                TotalSpent = 0,
+                TotalIncome = kvp.Value,
+                NetBalance = kvp.Value,
+                AverageExpenseAmount = 0,
+                AverageMonthlySpend = sectionCount > 0 ? Math.Round(kvp.Value / sectionCount, 2) : 0
+            };
+        }).OrderBy(a => a.CurrencyCode).ToList();
     }
 }

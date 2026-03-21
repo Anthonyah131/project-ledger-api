@@ -194,25 +194,4 @@ public partial class ReportExportService : IReportExportService
             : $"{topFromRows.Category} ({topFromRows.Total:N2})";
     }
 
-    private static string GetTopPaymentMethodLabel(PaymentMethodReportResponse report)
-    {
-        var top = report.PaymentMethods
-            .OrderByDescending(pm => pm.TotalSpent)
-            .FirstOrDefault();
-
-        return top is null
-            ? "—"
-            : $"{top.Name} ({top.TotalSpent:N2})";
-    }
-
-    private static string GetPeakTrendMonthLabel(PaymentMethodReportResponse report)
-    {
-        var peak = report.MonthlyTrend
-            .OrderByDescending(m => m.TotalSpent)
-            .FirstOrDefault();
-
-        return peak is null
-            ? "—"
-            : $"{peak.MonthLabel} ({peak.TotalSpent:N2})";
-    }
 }

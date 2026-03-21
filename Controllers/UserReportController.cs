@@ -34,14 +34,14 @@ public class UserReportController : ControllerBase
     // ── GET /api/reports/payment-methods ────────────────────
 
     /// <summary>
-    /// Reporte de métodos de pago del usuario con estadísticas, desglose
-    /// por proyecto y tendencia mensual.
-    /// Solo accede a los métodos de pago y gastos del usuario autenticado.
-    /// Requiere CanUseAdvancedReports.
+    /// Reporte de métodos de pago del usuario con estadísticas individualizadas
+    /// por método, desglose por proyecto y tendencia mensual.
+    /// Todos los montos se expresan en la moneda de cada método de pago.
+    /// JSON devuelve los últimos 10 movimientos por método; Excel/PDF incluyen todos.
     /// </summary>
     /// <param name="from">Fecha inicio (opcional).</param>
     /// <param name="to">Fecha fin (opcional).</param>
-    /// <param name="paymentMethodId">Filtrar por un método de pago específico (opcional).</param>
+    /// <param name="paymentMethodIds">Filtrar por métodos específicos (opcional, vacío = todos).</param>
     /// <param name="format">Formato de exportación: json (default), excel, pdf.</param>
     /// <response code="200">Reporte generado.</response>
     /// <response code="403">Plan no permite reportes avanzados.</response>
@@ -51,7 +51,7 @@ public class UserReportController : ControllerBase
     public async Task<IActionResult> GetPaymentMethodReport(
         [FromQuery] DateOnly? from,
         [FromQuery] DateOnly? to,
-        [FromQuery] Guid? paymentMethodId,
+        [FromQuery] List<Guid>? paymentMethodIds,
         [FromQuery] string format = "json",
         CancellationToken ct = default)
     {
@@ -60,11 +60,18 @@ public class UserReportController : ControllerBase
         // Requiere reportes avanzados
         await _planAuth.ValidatePermissionAsync(userId, PlanPermission.CanUseAdvancedReports, ct);
 
-        // Excel también requiere CanExportData
-        if (format.Equals("excel", StringComparison.OrdinalIgnoreCase))
+        // Excel/PDF también requieren CanExportData
+        var isExport = format.Equals("excel", StringComparison.OrdinalIgnoreCase)
+                    || format.Equals("pdf", StringComparison.OrdinalIgnoreCase);
+
+        if (isExport)
             await _planAuth.ValidatePermissionAsync(userId, PlanPermission.CanExportData, ct);
 
-        var report = await _userReportService.GetPaymentMethodReportAsync(userId, from, to, paymentMethodId, ct);
+        // JSON: 10 movimientos por método; Export: todos
+        int? maxMovements = isExport ? null : 10;
+
+        var report = await _userReportService.GetPaymentMethodReportAsync(
+            userId, from, to, paymentMethodIds, maxMovements, ct);
 
         return format.ToLowerInvariant() switch
         {
