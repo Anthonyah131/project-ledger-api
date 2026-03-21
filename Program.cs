@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.OpenApi;
 using Microsoft.Extensions.Options;
+using ProjectLedger.API.Common.Settings;
 using ProjectLedger.API.Extensions;
 using ProjectLedger.API.Filters;
 using ProjectLedger.API.Middleware;
@@ -280,6 +281,28 @@ builder.Services.PostConfigure<JwtSettings>(settings =>
     }
 });
 
+builder.Services.Configure<ChatbotSettings>(
+    builder.Configuration.GetSection(ChatbotSettings.SectionName));
+// Resolver placeholders ${ENV_VAR} en los API keys del chatbot
+builder.Services.PostConfigure<ChatbotSettings>(settings =>
+{
+    settings.OpenRouter = ResolveProviderSettings(settings.OpenRouter);
+    settings.Groq       = ResolveProviderSettings(settings.Groq);
+    settings.Cerebras   = ResolveProviderSettings(settings.Cerebras);
+    settings.BytePlus   = ResolveProviderSettings(settings.BytePlus);
+
+    static ChatbotProviderSettings ResolveProviderSettings(ChatbotProviderSettings p)
+    {
+        p.ApiKey = Resolve(p.ApiKey);
+        return p;
+    }
+
+    static string Resolve(string value) =>
+        !string.IsNullOrWhiteSpace(value) && value.StartsWith("${") && value.EndsWith("}")
+            ? Environment.GetEnvironmentVariable(value[2..^1]) ?? string.Empty
+            : value;
+});
+
 builder.Services.Configure<McpSettings>(
     builder.Configuration.GetSection(McpSettings.SectionName));
 builder.Services.PostConfigure<McpSettings>(settings =>
@@ -309,6 +332,38 @@ builder.Services.AddHttpClient<IExchangeRateService, ExchangeRateService>((servi
     var settings = serviceProvider.GetRequiredService<IOptions<ExchangeRateSettings>>().Value;
     client.BaseAddress = new Uri(settings.BaseUrl);
     client.Timeout = TimeSpan.FromSeconds(Math.Clamp(settings.TimeoutSeconds, 1, 60));
+});
+
+// ── Chatbot HTTP clients (uno por proveedor, OpenAI-compatible) ──────────────
+// Cada cliente tiene su BaseAddress y Authorization pre-configurados.
+// IHttpClientFactory reutiliza los handlers internos (socket pooling).
+builder.Services.AddHttpClient("Chatbot.OpenRouter", (sp, client) =>
+{
+    var s = sp.GetRequiredService<IOptions<ChatbotSettings>>().Value.OpenRouter;
+    if (!string.IsNullOrWhiteSpace(s.BaseUrl)) client.BaseAddress = new Uri(s.BaseUrl.TrimEnd('/') + "/");
+    if (!string.IsNullOrWhiteSpace(s.ApiKey))  client.DefaultRequestHeaders.Authorization = new("Bearer", s.ApiKey);
+    client.Timeout = TimeSpan.FromSeconds(Math.Clamp(s.TimeoutSeconds, 5, 120));
+});
+builder.Services.AddHttpClient("Chatbot.Groq", (sp, client) =>
+{
+    var s = sp.GetRequiredService<IOptions<ChatbotSettings>>().Value.Groq;
+    if (!string.IsNullOrWhiteSpace(s.BaseUrl)) client.BaseAddress = new Uri(s.BaseUrl.TrimEnd('/') + "/");
+    if (!string.IsNullOrWhiteSpace(s.ApiKey))  client.DefaultRequestHeaders.Authorization = new("Bearer", s.ApiKey);
+    client.Timeout = TimeSpan.FromSeconds(Math.Clamp(s.TimeoutSeconds, 5, 120));
+});
+builder.Services.AddHttpClient("Chatbot.Cerebras", (sp, client) =>
+{
+    var s = sp.GetRequiredService<IOptions<ChatbotSettings>>().Value.Cerebras;
+    if (!string.IsNullOrWhiteSpace(s.BaseUrl)) client.BaseAddress = new Uri(s.BaseUrl.TrimEnd('/') + "/");
+    if (!string.IsNullOrWhiteSpace(s.ApiKey))  client.DefaultRequestHeaders.Authorization = new("Bearer", s.ApiKey);
+    client.Timeout = TimeSpan.FromSeconds(Math.Clamp(s.TimeoutSeconds, 5, 120));
+});
+builder.Services.AddHttpClient("Chatbot.BytePlus", (sp, client) =>
+{
+    var s = sp.GetRequiredService<IOptions<ChatbotSettings>>().Value.BytePlus;
+    if (!string.IsNullOrWhiteSpace(s.BaseUrl)) client.BaseAddress = new Uri(s.BaseUrl.TrimEnd('/') + "/");
+    if (!string.IsNullOrWhiteSpace(s.ApiKey))  client.DefaultRequestHeaders.Authorization = new("Bearer", s.ApiKey);
+    client.Timeout = TimeSpan.FromSeconds(Math.Clamp(s.TimeoutSeconds, 5, 120));
 });
 
 builder.Services.AddHttpClient<IExpenseDocumentIntelligenceService, ExpenseDocumentIntelligenceService>((serviceProvider, client) =>

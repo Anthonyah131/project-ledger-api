@@ -2,6 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using ProjectLedger.API.Data;
 using ProjectLedger.API.Repositories;
 using ProjectLedger.API.Services;
+using ProjectLedger.API.Services.Chatbot;
+using ProjectLedger.API.Services.Chatbot.Interfaces;
+using ProjectLedger.API.Services.Chatbot.Providers;
 using ProjectLedger.API.Services.Report;
 
 namespace ProjectLedger.API.Extensions;
@@ -151,6 +154,16 @@ public static class ServiceCollectionExtensions
 
         // Partner Reports
         services.AddScoped<IPartnerReportService, PartnerReportService>();
+
+        // Chatbot IA (rotación de proveedores gratuitos)
+        // Singleton: el rotador mantiene el índice entre peticiones
+        services.AddSingleton<ChatbotProviderRotator>();
+        // Los proveedores se registran como IEnumerable<IChatProvider> para inyectarlos todos
+        services.AddScoped<IChatProvider, OpenRouterChatProvider>();
+        services.AddScoped<IChatProvider, GroqChatProvider>();
+        services.AddScoped<IChatProvider, CerebrasChatProvider>();
+        services.AddScoped<IChatProvider, BytePlusChatProvider>();
+        services.AddScoped<IChatbotService, ChatbotService>();
 
         return services;
     }
