@@ -1,6 +1,8 @@
+﻿using Microsoft.Extensions.Localization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.Common;
+using ProjectLedger.API.Resources;
 using ProjectLedger.API.DTOs.Partner;
 using ProjectLedger.API.DTOs.Report;
 using ProjectLedger.API.Extensions.Mappings;
@@ -27,17 +29,20 @@ public class PartnerController : ControllerBase
     private readonly IPlanAuthorizationService _planAuth;
     private readonly IPartnerReportService _partnerReportService;
     private readonly IReportExportService _exportService;
+    private readonly IStringLocalizer<Messages> _localizer;
 
     public PartnerController(
         IPartnerService partnerService,
         IPlanAuthorizationService planAuth,
         IPartnerReportService partnerReportService,
-        IReportExportService exportService)
+        IReportExportService exportService,
+        IStringLocalizer<Messages> localizer)
     {
         _partnerService = partnerService;
         _planAuth = planAuth;
         _partnerReportService = partnerReportService;
         _exportService = exportService;
+        _localizer = localizer;
     }
 
     // ── GET /api/partners ───────────────────────────────────
@@ -76,7 +81,7 @@ public class PartnerController : ControllerBase
         var partner = await _partnerService.GetByIdAsync(id, ct);
 
         if (partner is null || partner.PtrOwnerUserId != userId)
-            return NotFound(new { message = "Partner not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["PartnerNotFound"]));
 
         return Ok(partner.ToResponse());
     }
@@ -126,7 +131,7 @@ public class PartnerController : ControllerBase
         var partner = await _partnerService.GetByIdAsync(id, ct);
 
         if (partner is null || partner.PtrOwnerUserId != userId)
-            return NotFound(new { message = "Partner not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["PartnerNotFound"]));
 
         partner.ApplyUpdate(request);
         await _partnerService.UpdateAsync(partner, ct);
@@ -150,7 +155,7 @@ public class PartnerController : ControllerBase
         var partner = await _partnerService.GetByIdAsync(id, ct);
 
         if (partner is null || partner.PtrOwnerUserId != userId)
-            return NotFound(new { message = "Partner not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["PartnerNotFound"]));
 
         try
         {
@@ -159,7 +164,7 @@ public class PartnerController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return Conflict(new { message = ex.Message });
+            return Conflict(LocalizedResponse.Create("CONFLICT", _localizer[ex.Message]));
         }
     }
 
@@ -180,7 +185,7 @@ public class PartnerController : ControllerBase
         var partner = await _partnerService.GetByIdAsync(id, ct);
 
         if (partner is null || partner.PtrOwnerUserId != userId)
-            return NotFound(new { message = "Partner not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["PartnerNotFound"]));
 
         var (paymentMethods, totalCount) = await _partnerService.GetPaymentMethodsPagedAsync(
             id, pagination.Skip, pagination.PageSize, ct);
@@ -215,7 +220,7 @@ public class PartnerController : ControllerBase
         var partner = await _partnerService.GetByIdAsync(id, ct);
 
         if (partner is null || partner.PtrOwnerUserId != userId)
-            return NotFound(new { message = "Partner not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["PartnerNotFound"]));
 
         var (projects, totalCount) = await _partnerService.GetProjectsPagedAsync(
             id, pagination.Skip, pagination.PageSize, ct);
@@ -262,7 +267,7 @@ public class PartnerController : ControllerBase
         var partner = await _partnerService.GetByIdAsync(id, ct);
 
         if (partner is null || partner.PtrOwnerUserId != userId)
-            return NotFound(new { message = "Partner not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["PartnerNotFound"]));
 
         await _planAuth.ValidatePermissionAsync(userId, PlanPermission.CanUseAdvancedReports, ct);
 

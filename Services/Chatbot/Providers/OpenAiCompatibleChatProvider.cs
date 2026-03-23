@@ -57,12 +57,12 @@ public abstract class OpenAiCompatibleChatProvider : IChatProvider
         httpResponse.EnsureSuccessStatusCode();
 
         var completion = await httpResponse.Content.ReadFromJsonAsync<ChatCompletionResponse>(cancellationToken: ct)
-            ?? throw new InvalidOperationException($"{ProviderName} devolvió un body vacío.");
+            ?? throw new InvalidOperationException("ChatbotProviderEmptyBody");
 
         var content = completion.Choices?.FirstOrDefault()?.Message?.Content;
 
         if (string.IsNullOrWhiteSpace(content))
-            throw new InvalidOperationException($"{ProviderName} devolvió un mensaje vacío.");
+            throw new InvalidOperationException("ChatbotProviderEmptyMessage");
 
         return content;
     }

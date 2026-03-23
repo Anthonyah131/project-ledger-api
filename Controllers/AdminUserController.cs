@@ -1,7 +1,9 @@
+﻿using Microsoft.Extensions.Localization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.Admin;
 using ProjectLedger.API.DTOs.Common;
+using ProjectLedger.API.Resources;
 using ProjectLedger.API.Extensions.Mappings;
 using ProjectLedger.API.Services;
 
@@ -26,10 +28,13 @@ namespace ProjectLedger.API.Controllers;
 public class AdminUserController : ControllerBase
 {
     private readonly IUserService _userService;
+    private readonly IStringLocalizer<Messages> _localizer;
 
-    public AdminUserController(IUserService userService)
+    public AdminUserController(IUserService userService,
+    IStringLocalizer<Messages> localizer)
     {
         _userService = userService;
+        _localizer = localizer;
     }
 
     // ── Authorization helper ────────────────────────────────
@@ -89,7 +94,7 @@ public class AdminUserController : ControllerBase
 
         var user = await _userService.GetByIdAsync(id, ct);
         if (user is null)
-            return NotFound(new { message = "User not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["UserNotFound"]));
 
         return Ok(user.ToAdminResponse());
     }
@@ -113,9 +118,9 @@ public class AdminUserController : ControllerBase
 
         var result = await _userService.ActivateAsync(id, ct);
         if (!result)
-            return NotFound(new { message = "User not found or deleted." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["UserNotFoundOrDeleted"]));
 
-        return Ok(new { message = "User activated successfully." });
+        return Ok(LocalizedResponse.Create("SUCCESS", _localizer["UserActivatedSuccess"]));
     }
 
     // ── PUT /api/admin/users/{id}/deactivate ────────────────
@@ -137,9 +142,9 @@ public class AdminUserController : ControllerBase
 
         var result = await _userService.DeactivateAsync(id, ct);
         if (!result)
-            return NotFound(new { message = "User not found or deleted." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["UserNotFoundOrDeleted"]));
 
-        return Ok(new { message = "User deactivated successfully." });
+        return Ok(LocalizedResponse.Create("SUCCESS", _localizer["UserDeactivatedSuccess"]));
     }
 
     // ── PUT /api/admin/users/{id} ───────────────────────────
@@ -168,7 +173,7 @@ public class AdminUserController : ControllerBase
 
         var user = await _userService.GetByIdAsync(id, ct);
         if (user is null)
-            return NotFound(new { message = "User not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["UserNotFound"]));
 
         user.ApplyAdminUpdate(request);
         await _userService.UpdateAsync(user, ct);
@@ -202,7 +207,7 @@ public class AdminUserController : ControllerBase
         }
         catch (KeyNotFoundException)
         {
-            return NotFound(new { message = "User not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["UserNotFound"]));
         }
     }
 }

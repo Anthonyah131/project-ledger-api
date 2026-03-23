@@ -1,4 +1,4 @@
-using ProjectLedger.API.DTOs.Common;
+﻿using ProjectLedger.API.DTOs.Common;
 using ProjectLedger.API.DTOs.Partner;
 using ProjectLedger.API.DTOs.Report;
 using ProjectLedger.API.Repositories;
@@ -31,7 +31,7 @@ public class PartnerReportService : IPartnerReportService
         Guid partnerId, DateOnly? from, DateOnly? to, CancellationToken ct = default)
     {
         var partner = await _partnerRepo.GetByIdAsync(partnerId, ct)
-            ?? throw new KeyNotFoundException("Partner not found.");
+            ?? throw new KeyNotFoundException("PartnerNotFound");
 
         // ── Projects with activity ─────────────────────────
         var projects = await _partnerRepo.GetProjectsWithActivityAsync(partnerId, ct);

@@ -1,8 +1,11 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
 using ProjectLedger.API.DTOs.Dashboard;
+using ProjectLedger.API.DTOs.Common;
+using ProjectLedger.API.Resources;
 using ProjectLedger.API.Services;
 
 namespace ProjectLedger.API.Controllers;
@@ -21,10 +24,13 @@ public class DashboardController : ControllerBase
     private static readonly Regex MonthPattern = new(@"^\d{4}-(0[1-9]|1[0-2])$", RegexOptions.Compiled);
 
     private readonly IDashboardService _dashboardService;
+    private readonly IStringLocalizer<Messages> _localizer;
 
-    public DashboardController(IDashboardService dashboardService)
+    public DashboardController(IDashboardService dashboardService,
+    IStringLocalizer<Messages> localizer)
     {
         _dashboardService = dashboardService;
+        _localizer = localizer;
     }
 
     /// <summary>
@@ -61,7 +67,7 @@ public class DashboardController : ControllerBase
         }
 
         if (!projectId.HasValue)
-            return BadRequest(new { error = new { code = "PROJECT_ID_REQUIRED", message = "project_id is required." } });
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["ProjectIdRequired"]));
 
         var userId = User.GetRequiredUserId();
         var response = await _dashboardService.GetMonthlySummaryAsync(userId, monthStart, projectId.Value, ct);
@@ -95,7 +101,7 @@ public class DashboardController : ControllerBase
         }
 
         if (!projectId.HasValue)
-            return BadRequest(new { error = new { code = "PROJECT_ID_REQUIRED", message = "project_id is required." } });
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["ProjectIdRequired"]));
 
         var userId = User.GetRequiredUserId();
         var response = await _dashboardService.GetMonthlyDailyTrendAsync(userId, monthStart, projectId.Value, ct);
@@ -129,7 +135,7 @@ public class DashboardController : ControllerBase
         }
 
         if (!projectId.HasValue)
-            return BadRequest(new { error = new { code = "PROJECT_ID_REQUIRED", message = "project_id is required." } });
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["ProjectIdRequired"]));
 
         var userId = User.GetRequiredUserId();
         var response = await _dashboardService.GetMonthlyTopCategoriesAsync(userId, monthStart, projectId.Value, ct);
@@ -163,7 +169,7 @@ public class DashboardController : ControllerBase
         }
 
         if (!projectId.HasValue)
-            return BadRequest(new { error = new { code = "PROJECT_ID_REQUIRED", message = "project_id is required." } });
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["ProjectIdRequired"]));
 
         var userId = User.GetRequiredUserId();
         var response = await _dashboardService.GetMonthlyPaymentMethodsAsync(userId, monthStart, projectId.Value, ct);
@@ -217,14 +223,7 @@ public class DashboardController : ControllerBase
 
     private IActionResult InvalidMonth()
     {
-        return BadRequest(new
-        {
-            error = new
-            {
-                code = "INVALID_MONTH",
-                message = "month must use YYYY-MM format"
-            }
-        });
+        return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["InvalidMonth"]));
     }
 
     private bool IsAdminUser()

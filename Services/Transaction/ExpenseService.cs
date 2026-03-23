@@ -1,4 +1,4 @@
-using ProjectLedger.API.Models;
+﻿using ProjectLedger.API.Models;
 using ProjectLedger.API.Repositories;
 
 namespace ProjectLedger.API.Services;
@@ -72,7 +72,7 @@ public class ExpenseService : IExpenseService
             ValidateAccountingReadinessForActivation(expense);
 
         var project = await _projectRepo.GetByIdAsync(expense.ExpProjectId, ct)
-            ?? throw new KeyNotFoundException($"Project '{expense.ExpProjectId}' not found.");
+            ?? throw new KeyNotFoundException("ProjectNotFound");
 
         // Solo validar límite de gastos para gastos normales (no templates)
         if (!expense.ExpIsTemplate)
@@ -94,12 +94,12 @@ public class ExpenseService : IExpenseService
 
         if (!isLinked)
             throw new InvalidOperationException(
-                "The payment method is not linked to this project. " +
-                "Link it first via /api/projects/{projectId}/payment-methods.");
+                "El método de pago no está vinculado a este proyecto. " +
+                "Vincúlalo primero en /api/projects/{projectId}/payment-methods.");
 
         // Resolver monto y moneda en la moneda del método de pago
         var paymentMethod = await _paymentMethodRepo.GetByIdAsync(expense.ExpPaymentMethodId, ct)
-            ?? throw new KeyNotFoundException($"Payment method '{expense.ExpPaymentMethodId}' not found.");
+            ?? throw new KeyNotFoundException($"Método de pago '{expense.ExpPaymentMethodId}' no encontrado.");
 
         expense.ExpAccountCurrency = paymentMethod.PmtCurrency;
         expense.ExpAccountAmount = ResolveAccountAmount(
@@ -111,11 +111,11 @@ public class ExpenseService : IExpenseService
         {
             var obligation = await _obligationRepo.GetByIdAsync(expense.ExpObligationId.Value, ct)
                 ?? throw new KeyNotFoundException(
-                    $"Obligation '{expense.ExpObligationId}' not found.");
+                    $"Obligación '{expense.ExpObligationId}' no encontrada.");
 
             if (obligation.OblIsDeleted)
                 throw new KeyNotFoundException(
-                    $"Obligation '{expense.ExpObligationId}' not found.");
+                    $"Obligación '{expense.ExpObligationId}' no encontrada.");
 
             if (obligation.OblProjectId != expense.ExpProjectId)
                 throw new InvalidOperationException(
@@ -142,13 +142,13 @@ public class ExpenseService : IExpenseService
 
             if (currentPaid >= obligation.OblTotalAmount)
                 throw new InvalidOperationException(
-                    "This obligation is already fully paid. No additional payments are allowed.");
+                    "Esta obligación ya está completamente pagada. No se permiten pagos adicionales.");
 
             if (currentPaid + newPaymentAmount > obligation.OblTotalAmount)
                 throw new InvalidOperationException(
-                    $"Payment would exceed the obligation total. " +
-                    $"Remaining: {obligation.OblTotalAmount - currentPaid:F2} {obligation.OblCurrency}, " +
-                    $"Attempted: {newPaymentAmount:F2} {obligation.OblCurrency}.");
+                    $"El pago excedería el total de la obligación. " +
+                    $"Restante: {obligation.OblTotalAmount - currentPaid:F2} {obligation.OblCurrency}, " +
+                    $"Intento: {newPaymentAmount:F2} {obligation.OblCurrency}.");
         }
 
         expense.ExpCreatedAt = DateTime.UtcNow;
@@ -204,10 +204,10 @@ public class ExpenseService : IExpenseService
             ValidateAccountingReadinessForActivation(expense);
 
         var project = await _projectRepo.GetByIdAsync(expense.ExpProjectId, ct)
-            ?? throw new KeyNotFoundException($"Project '{expense.ExpProjectId}' not found.");
+            ?? throw new KeyNotFoundException("ProjectNotFound");
 
         var paymentMethod = await _paymentMethodRepo.GetByIdAsync(expense.ExpPaymentMethodId, ct)
-            ?? throw new KeyNotFoundException($"Payment method '{expense.ExpPaymentMethodId}' not found.");
+            ?? throw new KeyNotFoundException($"Método de pago '{expense.ExpPaymentMethodId}' no encontrado.");
 
         expense.ExpAccountCurrency = paymentMethod.PmtCurrency;
         expense.ExpAccountAmount = ResolveAccountAmount(
@@ -240,9 +240,9 @@ public class ExpenseService : IExpenseService
 
                 if (othersPaid + updatedAmount > obligation.OblTotalAmount)
                     throw new InvalidOperationException(
-                        $"Payment would exceed the obligation total. " +
-                        $"Remaining (excluding this expense): {obligation.OblTotalAmount - othersPaid:F2} {obligation.OblCurrency}, " +
-                        $"Attempted: {updatedAmount:F2} {obligation.OblCurrency}.");
+                        $"El pago excedería el total de la obligación. " +
+                        $"Restante (excluyendo este gasto): {obligation.OblTotalAmount - othersPaid:F2} {obligation.OblCurrency}, " +
+                        $"Intento: {updatedAmount:F2} {obligation.OblCurrency}.");
             }
         }
 
@@ -272,10 +272,10 @@ public class ExpenseService : IExpenseService
     public async Task SoftDeleteAsync(Guid id, Guid deletedByUserId, CancellationToken ct = default)
     {
         var expense = await _expenseRepo.GetByIdAsync(id, ct)
-            ?? throw new KeyNotFoundException($"Expense '{id}' not found.");
+            ?? throw new KeyNotFoundException("ExpenseNotFound");
 
         if (expense.ExpIsDeleted)
-            throw new KeyNotFoundException($"Expense '{id}' not found.");
+            throw new KeyNotFoundException("ExpenseNotFound");
 
         expense.ExpIsDeleted = true;
         expense.ExpDeletedAt = DateTime.UtcNow;
@@ -339,8 +339,7 @@ public class ExpenseService : IExpenseService
             return obligationEquivalentAmount.Value;
 
         if (requireEquivalentForCrossCurrency)
-            throw new InvalidOperationException(
-                $"Se requiere el equivalente en {obligationCurrency} para este pago.");
+            throw new InvalidOperationException("EquivalentAmountRequiredForCrossCurrency");
 
         // Compatibilidad con pagos históricos sin equivalente persistido.
         return convertedAmount;
@@ -361,28 +360,28 @@ public class ExpenseService : IExpenseService
             return expense.ExpConvertedAmount;
 
         throw new InvalidOperationException(
-            "AccountAmount is required when payment method currency differs from both original and project currencies.");
+            "El monto de cuenta es requerido cuando la moneda del método de pago difiere tanto de la moneda original como de la del proyecto.");
     }
 
     private static void ValidateAccountingReadinessForActivation(Expense expense)
     {
         if (expense.ExpOriginalAmount <= 0)
-            throw new InvalidOperationException("Cannot activate expense: OriginalAmount must be greater than 0.");
+            throw new InvalidOperationException("AmountMustBePositive");
 
         if (expense.ExpConvertedAmount <= 0)
-            throw new InvalidOperationException("Cannot activate expense: ConvertedAmount must be greater than 0.");
+            throw new InvalidOperationException("AmountMustBePositive");
 
         if (expense.ExpExchangeRate <= 0)
-            throw new InvalidOperationException("Cannot activate expense: ExchangeRate must be greater than 0.");
+            throw new InvalidOperationException("ExchangeRateMustBePositive");
 
         if (string.IsNullOrWhiteSpace(expense.ExpOriginalCurrency) || expense.ExpOriginalCurrency.Length != 3)
-            throw new InvalidOperationException("Cannot activate expense: OriginalCurrency must be a valid 3-letter ISO code.");
+            throw new InvalidOperationException("No se puede activar el gasto: la moneda original debe ser un código ISO válido de 3 letras.");
 
         if (string.IsNullOrWhiteSpace(expense.ExpTitle))
-            throw new InvalidOperationException("Cannot activate expense: Title is required.");
+            throw new InvalidOperationException("No se puede activar el gasto: el título es requerido.");
 
         if (expense.ExpExpenseDate == default)
-            throw new InvalidOperationException("Cannot activate expense: ExpenseDate is required.");
+            throw new InvalidOperationException("DateRequired");
     }
 
     private async Task<IReadOnlyList<ExpenseSplit>> BuildExpenseSplitsAsync(
@@ -395,19 +394,19 @@ public class ExpenseService : IExpenseService
         // No duplicate partners
         var partnerIds = splits.Select(s => s.PartnerId).ToList();
         if (partnerIds.Distinct().Count() != partnerIds.Count)
-            throw new InvalidOperationException("Duplicate partner found in splits.");
+            throw new InvalidOperationException("Se encontró un socio duplicado en las divisiones.");
 
         // All partners must be active in project
         var projectPartners = await _projectPartnerRepo.GetByProjectIdAsync(projectId, ct);
         var validPartnerIds = projectPartners.Select(pp => pp.PtpPartnerId).ToHashSet();
         var invalid = partnerIds.FirstOrDefault(id => !validPartnerIds.Contains(id));
         if (invalid != default)
-            throw new InvalidOperationException($"Partner '{invalid}' is not assigned to this project.");
+            throw new InvalidOperationException($"El socio '{invalid}' no está asignado a este proyecto.");
 
         // No mixed types
         var types = splits.Select(s => s.SplitType).Distinct().ToList();
         if (types.Count > 1)
-            throw new InvalidOperationException("Cannot mix 'percentage' and 'fixed' split types in the same expense.");
+            throw new InvalidOperationException("No se pueden mezclar tipos de división 'percentage' y 'fixed' en el mismo gasto.");
 
         var splitType = types[0];
 
@@ -415,13 +414,13 @@ public class ExpenseService : IExpenseService
         {
             var sum = splits.Sum(s => s.SplitValue);
             if (Math.Abs(sum - 100m) > 0.01m)
-                throw new InvalidOperationException($"Percentage splits must sum to 100. Got: {sum}.");
+                throw new InvalidOperationException("PercentageSplitsMustSum100");
         }
         else if (splitType == "fixed")
         {
             var sum = splits.Sum(s => s.SplitValue);
             if (Math.Abs(sum - originalAmount) > 0.01m)
-                throw new InvalidOperationException($"Fixed splits must sum to {originalAmount}. Got: {sum}.");
+                throw new InvalidOperationException("FixedSplitsMustSumTotal");
         }
 
         return splits.Select(s =>

@@ -1,4 +1,4 @@
-using ProjectLedger.API.Models;
+﻿using ProjectLedger.API.Models;
 using ProjectLedger.API.Repositories;
 
 namespace ProjectLedger.API.Services;
@@ -31,7 +31,7 @@ public class ProjectMemberService : IProjectMemberService
     {
         // Obtener el proyecto para saber quién es el owner y validar su plan
         var project = await _projectRepo.GetByIdAsync(member.PrmProjectId, ct)
-            ?? throw new KeyNotFoundException($"Project '{member.PrmProjectId}' not found.");
+            ?? throw new KeyNotFoundException("ProjectNotFound");
 
         // Validar que el plan del owner permite compartir proyectos
         await _planAuth.ValidatePermissionAsync(
@@ -46,7 +46,7 @@ public class ProjectMemberService : IProjectMemberService
         var existing = await _memberRepo.GetByProjectAndUserAsync(
             member.PrmProjectId, member.PrmUserId, ct);
         if (existing is not null)
-            throw new InvalidOperationException("User is already a member of this project.");
+            throw new InvalidOperationException("MemberAlreadyExists");
 
         member.PrmJoinedAt = DateTime.UtcNow;
         member.PrmCreatedAt = DateTime.UtcNow;
@@ -61,14 +61,14 @@ public class ProjectMemberService : IProjectMemberService
     public async Task UpdateRoleAsync(Guid memberId, string newRole, CancellationToken ct = default)
     {
         var member = await _memberRepo.GetByIdAsync(memberId, ct)
-            ?? throw new KeyNotFoundException($"Project member '{memberId}' not found.");
+            ?? throw new KeyNotFoundException("MemberNotFound");
 
         if (member.PrmIsDeleted)
-            throw new KeyNotFoundException($"Project member '{memberId}' not found.");
+            throw new KeyNotFoundException("MemberNotFound");
 
         // No se puede cambiar el rol del owner
         if (member.PrmRole == ProjectRoles.Owner)
-            throw new InvalidOperationException("Cannot change the role of the project owner.");
+            throw new InvalidOperationException("MemberCannotChangeOwnerRole");
 
         member.PrmRole = newRole;
         member.PrmUpdatedAt = DateTime.UtcNow;
@@ -80,14 +80,14 @@ public class ProjectMemberService : IProjectMemberService
     public async Task RemoveMemberAsync(Guid memberId, Guid deletedByUserId, CancellationToken ct = default)
     {
         var member = await _memberRepo.GetByIdAsync(memberId, ct)
-            ?? throw new KeyNotFoundException($"Project member '{memberId}' not found.");
+            ?? throw new KeyNotFoundException("MemberNotFound");
 
         if (member.PrmIsDeleted)
-            throw new KeyNotFoundException($"Project member '{memberId}' not found.");
+            throw new KeyNotFoundException("MemberNotFound");
 
         // No se puede remover al owner
         if (member.PrmRole == ProjectRoles.Owner)
-            throw new InvalidOperationException("Cannot remove the project owner from the project.");
+            throw new InvalidOperationException("MemberCannotRemoveOwner");
 
         member.PrmIsDeleted = true;
         member.PrmDeletedAt = DateTime.UtcNow;

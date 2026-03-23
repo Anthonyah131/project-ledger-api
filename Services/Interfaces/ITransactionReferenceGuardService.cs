@@ -6,4 +6,5 @@ public interface ITransactionReferenceGuardService
     Task EnsurePaymentMethodCanBeDeletedAsync(Guid paymentMethodId, CancellationToken ct = default);
     Task EnsureAlternativeCurrencyCanBeRemovedAsync(Guid projectId, string currencyCode, CancellationToken ct = default);
     Task EnsureProjectPaymentMethodCanBeUnlinkedAsync(Guid projectId, Guid paymentMethodId, CancellationToken ct = default);
+    Task EnsureObligationCanBeDeletedAsync(Guid obligationId, CancellationToken ct = default);
 }

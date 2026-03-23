@@ -9,13 +9,13 @@ namespace ProjectLedger.API.DTOs.User;
 public class UpdateProfileRequest
 {
     [Required]
-    [StringLength(255, MinimumLength = 1, ErrorMessage = "FullName must be between 1 and 255 characters.")]
+    [StringLength(255, MinimumLength = 1, ErrorMessage = "Full name must be between 1 and 255 characters.")]
     public string FullName { get; set; } = null!;
 
     private string? _avatarUrl;
 
-    [Url(ErrorMessage = "AvatarUrl must be a valid URL.")]
-    [RegularExpression(@"^https?://", ErrorMessage = "AvatarUrl must be a valid http/https URL.")]
+    [Url(ErrorMessage = "Avatar URL must be a valid URL.")]
+    [RegularExpression(@"^https?://", ErrorMessage = "Avatar URL must be a valid http/https URL.")]
     public string? AvatarUrl
     {
         get => _avatarUrl;
@@ -34,12 +34,12 @@ public class UpdateProfileRequest
 public class ChangePasswordRequest
 {
     [Required]
-    [MinLength(1, ErrorMessage = "CurrentPassword is required.")]
+    [MinLength(1, ErrorMessage = "Current password is required.")]
     public string CurrentPassword { get; set; } = null!;
 
     [Required]
-    [MinLength(8, ErrorMessage = "NewPassword must be at least 8 characters.")]
-    [StringLength(128, ErrorMessage = "NewPassword cannot exceed 128 characters.")]
+    [MinLength(8, ErrorMessage = "New password must be at least 8 characters.")]
+    [StringLength(128, ErrorMessage = "New password cannot exceed 128 characters.")]
     public string NewPassword { get; set; } = null!;
 }
 

@@ -17,7 +17,7 @@ public class CreateObligationRequest
     public string? Description { get; set; }
 
     [Required]
-    [Range(0.01, 99999999999999.99, ErrorMessage = "TotalAmount must be greater than 0.")]
+    [Range(0.01, 999999999999.99, ErrorMessage = "Total amount must be between 0.01 and 999,999,999,999.99.")]
     public decimal TotalAmount { get; set; }
 
     [Required]
@@ -38,7 +38,7 @@ public class UpdateObligationRequest
     public string? Description { get; set; }
 
     [Required]
-    [Range(0.01, 99999999999999.99, ErrorMessage = "TotalAmount must be greater than 0.")]
+    [Range(0.01, 999999999999.99, ErrorMessage = "Total amount must be between 0.01 and 999,999,999,999.99.")]
     public decimal TotalAmount { get; set; }
 
     public DateOnly? DueDate { get; set; }

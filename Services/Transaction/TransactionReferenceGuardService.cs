@@ -25,8 +25,7 @@ public class TransactionReferenceGuardService : ITransactionReferenceGuardServic
 
         if (hasActiveReferences)
         {
-            throw new InvalidOperationException(
-                "No se puede eliminar la categoría porque tiene gastos o ingresos activos relacionados.");
+            throw new InvalidOperationException("CategoryHasActiveTransactions");
         }
     }
 
@@ -39,8 +38,7 @@ public class TransactionReferenceGuardService : ITransactionReferenceGuardServic
 
         if (hasActiveReferences)
         {
-            throw new InvalidOperationException(
-                "No se puede eliminar el metodo de pago porque tiene gastos o ingresos activos relacionados.");
+            throw new InvalidOperationException("PaymentMethodHasActiveTransactions");
         }
     }
 
@@ -63,8 +61,7 @@ public class TransactionReferenceGuardService : ITransactionReferenceGuardServic
 
         if (hasActiveReferences)
         {
-            throw new InvalidOperationException(
-                "No se puede eliminar la moneda alternativa porque hay gastos o ingresos activos que la usan en este proyecto.");
+            throw new InvalidOperationException("AlternativeCurrencyHasActiveTransactions");
         }
     }
 
@@ -86,8 +83,16 @@ public class TransactionReferenceGuardService : ITransactionReferenceGuardServic
 
         if (hasActiveReferences)
         {
-            throw new InvalidOperationException(
-                "No se puede desvincular el metodo de pago del proyecto porque tiene gastos o ingresos activos relacionados en este proyecto.");
+            throw new InvalidOperationException("ProjectPaymentMethodHasActiveTransactions");
         }
+    }
+
+    public async Task EnsureObligationCanBeDeletedAsync(Guid obligationId, CancellationToken ct = default)
+    {
+        var hasActiveExpenses = await _context.Expenses.AnyAsync(
+            expense => expense.ExpObligationId == obligationId && !expense.ExpIsDeleted, ct);
+
+        if (hasActiveExpenses)
+            throw new InvalidOperationException("ObligationHasActiveExpenses");
     }
 }

@@ -196,7 +196,7 @@ public class McpFinancialHealthQuery
 
 public class McpMonthlyOverviewQuery
 {
-    [RegularExpression("^\\d{4}-(0[1-9]|1[0-2])$", ErrorMessage = "Month must use YYYY-MM format.")]
+    [RegularExpression("^\\d{4}-(0[1-9]|1[0-2])$", ErrorMessage = "Month must use the format YYYY-MM.")]
     public string? Month { get; set; }
 
     public Guid? ProjectId { get; set; }
@@ -205,7 +205,7 @@ public class McpMonthlyOverviewQuery
 
 public class McpAlertsQuery
 {
-    [RegularExpression("^\\d{4}-(0[1-9]|1[0-2])$", ErrorMessage = "Month must use YYYY-MM format.")]
+    [RegularExpression("^\\d{4}-(0[1-9]|1[0-2])$", ErrorMessage = "Month must use the format YYYY-MM.")]
     public string? Month { get; set; }
 
     public Guid? ProjectId { get; set; }

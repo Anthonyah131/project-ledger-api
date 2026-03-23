@@ -1,4 +1,4 @@
-using ProjectLedger.API.Models;
+﻿using ProjectLedger.API.Models;
 using ProjectLedger.API.Repositories;
 
 namespace ProjectLedger.API.Services;
@@ -127,7 +127,7 @@ public class ProjectService : IProjectService
     public async Task SetWorkspaceAsync(Guid projectId, Guid? workspaceId, CancellationToken ct = default)
     {
         var project = await _projectRepo.GetByIdAsync(projectId, ct)
-            ?? throw new KeyNotFoundException($"Project '{projectId}' not found.");
+            ?? throw new KeyNotFoundException("ProjectNotFound");
 
         project.PrjWorkspaceId = workspaceId;
         project.PrjUpdatedAt = DateTime.UtcNow;
@@ -139,7 +139,7 @@ public class ProjectService : IProjectService
     public async Task SoftDeleteAsync(Guid id, Guid deletedByUserId, CancellationToken ct = default)
     {
         var project = await _projectRepo.GetByIdAsync(id, ct)
-            ?? throw new KeyNotFoundException($"Project '{id}' not found.");
+            ?? throw new KeyNotFoundException("ProjectNotFound");
 
         // Validar que el plan del owner permite eliminar proyectos
         await _planAuth.ValidatePermissionAsync(
@@ -160,7 +160,7 @@ public class ProjectService : IProjectService
     public async Task UpdateSettingsAsync(Guid projectId, bool? partnersEnabled, CancellationToken ct = default)
     {
         var project = await _projectRepo.GetByIdAsync(projectId, ct)
-            ?? throw new KeyNotFoundException($"Project '{projectId}' not found.");
+            ?? throw new KeyNotFoundException("ProjectNotFound");
 
         if (partnersEnabled.HasValue)
         {
@@ -168,8 +168,7 @@ public class ProjectService : IProjectService
             {
                 var partners = await _projectPartnerRepo.GetByProjectIdAsync(projectId, ct);
                 if (partners.Count() < 2)
-                    throw new InvalidOperationException(
-                        "Cannot enable partner splits: the project needs at least 2 active partners.");
+                    throw new InvalidOperationException("ProjectPartnersEnabledRequiresMinPartners");
             }
             else
             {
@@ -177,9 +176,7 @@ public class ProjectService : IProjectService
                 var hasExpenseSplits = await _expenseSplitRepo.ExistsForProjectAsync(projectId, ct);
                 var hasIncomeSplits = await _incomeSplitRepo.ExistsForProjectAsync(projectId, ct);
                 if (hasExpenseSplits || hasIncomeSplits)
-                    throw new InvalidOperationException(
-                        "Cannot disable partner splits: the project has transactions with splits. " +
-                        "Delete all split transactions first before disabling this feature.");
+                    throw new InvalidOperationException("ProjectPartnersDisabledHasSplits");
             }
 
             project.PrjPartnersEnabled = partnersEnabled.Value;

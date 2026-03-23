@@ -1,3 +1,6 @@
+﻿using Microsoft.Extensions.Localization;
+using ProjectLedger.API.DTOs.Common;
+using ProjectLedger.API.Resources;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.Category;
@@ -24,15 +27,18 @@ public class CategoryController : ControllerBase
     private readonly ICategoryService _categoryService;
     private readonly IProjectAccessService _accessService;
     private readonly IPlanAuthorizationService _planAuth;
+    private readonly IStringLocalizer<Messages> _localizer;
 
     public CategoryController(
         ICategoryService categoryService,
         IProjectAccessService accessService,
-        IPlanAuthorizationService planAuth)
+        IPlanAuthorizationService planAuth,
+        IStringLocalizer<Messages> localizer)
     {
         _categoryService = categoryService;
         _accessService = accessService;
         _planAuth = planAuth;
+        _localizer = localizer;
     }
 
     // ── GET /api/projects/{projectId}/categories ────────────
@@ -67,7 +73,7 @@ public class CategoryController : ControllerBase
     {
         var category = await _categoryService.GetByIdAsync(categoryId, ct);
         if (category is null || category.CatProjectId != projectId)
-            return NotFound(new { message = "Category not found in this project." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["CategoryNotFound"]));
 
         return Ok(category.ToResponse());
     }
@@ -131,7 +137,7 @@ public class CategoryController : ControllerBase
 
         var category = await _categoryService.GetByIdAsync(categoryId, ct);
         if (category is null || category.CatProjectId != projectId)
-            return NotFound(new { message = "Category not found in this project." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["CategoryNotFound"]));
 
         category.ApplyUpdate(request);
         await _categoryService.UpdateAsync(category, ct);
@@ -162,7 +168,7 @@ public class CategoryController : ControllerBase
 
         var category = await _categoryService.GetByIdAsync(categoryId, ct);
         if (category is null || category.CatProjectId != projectId)
-            return NotFound(new { message = "Category not found in this project." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["CategoryNotFound"]));
 
         await _categoryService.SoftDeleteAsync(categoryId, userId, ct);
         return NoContent();

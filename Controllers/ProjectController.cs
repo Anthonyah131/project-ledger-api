@@ -1,6 +1,8 @@
+﻿using Microsoft.Extensions.Localization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.Common;
+using ProjectLedger.API.Resources;
 using ProjectLedger.API.DTOs.Project;
 using ProjectLedger.API.DTOs.ProjectPartner;
 using ProjectLedger.API.Extensions.Mappings;
@@ -30,19 +32,22 @@ public class ProjectController : ControllerBase
     private readonly IPlanAuthorizationService _planAuth;
     private readonly IProjectPartnerService _projectPartnerService;
     private readonly IWorkspaceService _workspaceService;
+    private readonly IStringLocalizer<Messages> _localizer;
 
     public ProjectController(
         IProjectService projectService,
         IProjectAccessService accessService,
         IPlanAuthorizationService planAuth,
         IProjectPartnerService projectPartnerService,
-        IWorkspaceService workspaceService)
+        IWorkspaceService workspaceService,
+        IStringLocalizer<Messages> localizer)
     {
         _projectService = projectService;
         _accessService = accessService;
         _planAuth = planAuth;
         _projectPartnerService = projectPartnerService;
         _workspaceService = workspaceService;
+        _localizer = localizer;
     }
 
     // ── GET /api/projects ───────────────────────────────────
@@ -92,7 +97,7 @@ public class ProjectController : ControllerBase
 
         var project = await _projectService.GetByIdAsync(projectId, ct);
         if (project == null)
-            return NotFound(new { message = "Project not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["ProjectNotFound"]));
 
         var role = await _accessService.GetUserRoleAsync(userId, projectId, ct);
         return Ok(project.ToResponse(role ?? ProjectRoles.Viewer));
@@ -180,7 +185,7 @@ public class ProjectController : ControllerBase
 
         var project = await _projectService.GetByIdAsync(projectId, ct);
         if (project == null)
-            return NotFound(new { message = "Project not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["ProjectNotFound"]));
 
         project.ApplyUpdate(request);
         await _projectService.UpdateAsync(project, ct);
@@ -282,7 +287,7 @@ public class ProjectController : ControllerBase
         }
         catch (KeyNotFoundException ex)
         {
-            return NotFound(new { message = ex.Message });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer[ex.Message]));
         }
         catch (UnauthorizedAccessException)
         {
@@ -290,7 +295,7 @@ public class ProjectController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return Conflict(new { message = ex.Message });
+            return Conflict(LocalizedResponse.Create("CONFLICT", _localizer[ex.Message]));
         }
     }
 
@@ -317,11 +322,11 @@ public class ProjectController : ControllerBase
         }
         catch (KeyNotFoundException ex)
         {
-            return NotFound(new { message = ex.Message });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer[ex.Message]));
         }
         catch (InvalidOperationException ex)
         {
-            return Conflict(new { message = ex.Message });
+            return Conflict(LocalizedResponse.Create("CONFLICT", _localizer[ex.Message]));
         }
     }
 
@@ -414,11 +419,11 @@ public class ProjectController : ControllerBase
         }
         catch (KeyNotFoundException ex)
         {
-            return NotFound(new { message = ex.Message });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer[ex.Message]));
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer[ex.Message]));
         }
     }
 

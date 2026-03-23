@@ -1,6 +1,8 @@
+﻿using Microsoft.Extensions.Localization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.Common;
+using ProjectLedger.API.Resources;
 using ProjectLedger.API.DTOs.Obligation;
 using ProjectLedger.API.Extensions.Mappings;
 using ProjectLedger.API.Repositories;
@@ -28,17 +30,20 @@ public class ObligationController : ControllerBase
     private readonly IExpenseRepository _expenseRepo;
     private readonly IProjectAccessService _accessService;
     private readonly IPlanAuthorizationService _planAuth;
+    private readonly IStringLocalizer<Messages> _localizer;
 
     public ObligationController(
         IObligationService obligationService,
         IExpenseRepository expenseRepo,
         IProjectAccessService accessService,
-        IPlanAuthorizationService planAuth)
+        IPlanAuthorizationService planAuth,
+        IStringLocalizer<Messages> localizer)
     {
         _obligationService = obligationService;
         _expenseRepo = expenseRepo;
         _accessService = accessService;
         _planAuth = planAuth;
+        _localizer = localizer;
     }
 
     // ── GET /api/projects/{projectId}/obligations ───────────
@@ -90,7 +95,7 @@ public class ObligationController : ControllerBase
     {
         var obl = await _obligationService.GetByIdAsync(obligationId, ct);
         if (obl is null || obl.OblProjectId != projectId)
-            return NotFound(new { message = "Obligation not found in this project." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["ObligationNotFound"]));
 
         var paidAmount = await CalculatePaidAmountAsync(obligationId, obl.OblCurrency, ct);
         return Ok(obl.ToResponse(paidAmount));
@@ -154,7 +159,7 @@ public class ObligationController : ControllerBase
 
         var obl = await _obligationService.GetByIdAsync(obligationId, ct);
         if (obl is null || obl.OblProjectId != projectId)
-            return NotFound(new { message = "Obligation not found in this project." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["ObligationNotFound"]));
 
         obl.ApplyUpdate(request);
         await _obligationService.UpdateAsync(obl, ct);
@@ -184,7 +189,7 @@ public class ObligationController : ControllerBase
 
         var obl = await _obligationService.GetByIdAsync(obligationId, ct);
         if (obl is null || obl.OblProjectId != projectId)
-            return NotFound(new { message = "Obligation not found in this project." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["ObligationNotFound"]));
 
         await _obligationService.SoftDeleteAsync(obligationId, userId, ct);
         return NoContent();

@@ -10,14 +10,14 @@ public class SplitInputDto
     public Guid PartnerId { get; set; }
 
     [Required]
-    [RegularExpression("^(percentage|fixed)$", ErrorMessage = "SplitType must be 'percentage' or 'fixed'.")]
+    [RegularExpression("^(percentage|fixed)$", ErrorMessage = "Split type must be 'percentage' or 'fixed'.")]
     public string SplitType { get; set; } = null!;
 
-    [Range(0.000001, 99999999999999.99, ErrorMessage = "SplitValue must be greater than 0.")]
+    [Range(0.0001, 9999999999.9999, ErrorMessage = "Split value must be between 0.0001 and 9,999,999,999.9999.")]
     public decimal SplitValue { get; set; }
 
     /// <summary>Monto resuelto del split en la moneda original del movimiento. Calculado por el frontend.</summary>
-    [Range(0.000001, 99999999999999.99, ErrorMessage = "ResolvedAmount must be greater than 0.")]
+    [Range(0.01, 999999999999.99, ErrorMessage = "Resolved amount must be between 0.01 and 999,999,999,999.99.")]
     public decimal ResolvedAmount { get; set; }
 
     /// <summary>Equivalencias en monedas alternativas del proyecto. Calculadas por el frontend, igual que en el movimiento padre.</summary>

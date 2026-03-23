@@ -29,7 +29,7 @@ public static class ClaimsPrincipalExtensions
     public static Guid GetRequiredUserId(this ClaimsPrincipal principal)
     {
         return principal.GetUserId()
-               ?? throw new UnauthorizedAccessException("User ID not found in JWT claims.");
+               ?? throw new UnauthorizedAccessException("UnauthorizedJwt");
     }
 
     /// <summary>

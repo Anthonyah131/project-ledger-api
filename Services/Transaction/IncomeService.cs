@@ -87,7 +87,7 @@ public class IncomeService : IIncomeService
             ValidateAccountingReadinessForActivation(income);
 
         var project = await _projectRepo.GetByIdAsync(income.IncProjectId, ct)
-            ?? throw new KeyNotFoundException($"Project '{income.IncProjectId}' not found.");
+            ?? throw new KeyNotFoundException("ProjectNotFound");
 
         // Validar límite de ingresos por mes
         var projectIncomes = await _incomeRepo.GetByProjectIdAsync(income.IncProjectId, ct);
@@ -161,7 +161,7 @@ public class IncomeService : IIncomeService
             ValidateAccountingReadinessForActivation(income);
 
         var project = await _projectRepo.GetByIdAsync(income.IncProjectId, ct)
-            ?? throw new KeyNotFoundException($"Project '{income.IncProjectId}' not found.");
+            ?? throw new KeyNotFoundException("ProjectNotFound");
 
         var paymentMethod = await GetLinkedPaymentMethodAsync(
             income.IncProjectId, income.IncPaymentMethodId, ct);
@@ -198,10 +198,10 @@ public class IncomeService : IIncomeService
     public async Task SoftDeleteAsync(Guid id, Guid deletedByUserId, CancellationToken ct = default)
     {
         var income = await _incomeRepo.GetByIdAsync(id, ct)
-            ?? throw new KeyNotFoundException($"Income '{id}' not found.");
+            ?? throw new KeyNotFoundException("IncomeNotFound");
 
         if (income.IncIsDeleted)
-            throw new KeyNotFoundException($"Income '{id}' not found.");
+            throw new KeyNotFoundException("IncomeNotFound");
 
         income.IncIsDeleted = true;
         income.IncDeletedAt = DateTime.UtcNow;
@@ -222,12 +222,10 @@ public class IncomeService : IIncomeService
     {
         var isLinked = await _ppmRepo.IsPaymentMethodLinkedToProjectAsync(projectId, paymentMethodId, ct);
         if (!isLinked)
-            throw new InvalidOperationException(
-                "The payment method is not linked to this project. " +
-                "Link it first via /api/projects/{projectId}/payment-methods.");
+            throw new InvalidOperationException("PaymentMethodNotLinkedToProject");
 
         var paymentMethod = await _paymentMethodRepo.GetByIdAsync(paymentMethodId, ct)
-            ?? throw new KeyNotFoundException($"Payment method '{paymentMethodId}' not found.");
+            ?? throw new KeyNotFoundException("PaymentMethodNotFound");
 
         return paymentMethod;
     }
@@ -246,29 +244,28 @@ public class IncomeService : IIncomeService
         if (string.Equals(paymentMethodCurrency, projectCurrency, StringComparison.OrdinalIgnoreCase))
             return income.IncConvertedAmount;
 
-        throw new InvalidOperationException(
-            "AccountAmount is required when payment method currency differs from both original and project currencies.");
+        throw new InvalidOperationException("AccountAmountRequiredForDistinctCurrencies");
     }
 
     private static void ValidateAccountingReadinessForActivation(Income income)
     {
         if (income.IncOriginalAmount <= 0)
-            throw new InvalidOperationException("Cannot activate income: OriginalAmount must be greater than 0.");
+            throw new InvalidOperationException("AmountMustBePositive");
 
         if (income.IncConvertedAmount <= 0)
-            throw new InvalidOperationException("Cannot activate income: ConvertedAmount must be greater than 0.");
+            throw new InvalidOperationException("AmountMustBePositive");
 
         if (income.IncExchangeRate <= 0)
-            throw new InvalidOperationException("Cannot activate income: ExchangeRate must be greater than 0.");
+            throw new InvalidOperationException("ExchangeRateMustBePositive");
 
         if (string.IsNullOrWhiteSpace(income.IncOriginalCurrency) || income.IncOriginalCurrency.Length != 3)
-            throw new InvalidOperationException("Cannot activate income: OriginalCurrency must be a valid 3-letter ISO code.");
+            throw new InvalidOperationException("InvalidCurrencyCode");
 
         if (string.IsNullOrWhiteSpace(income.IncTitle))
-            throw new InvalidOperationException("Cannot activate income: Title is required.");
+            throw new InvalidOperationException("TitleRequired");
 
         if (income.IncIncomeDate == default)
-            throw new InvalidOperationException("Cannot activate income: IncomeDate is required.");
+            throw new InvalidOperationException("DateRequired");
     }
 
     private async Task<IReadOnlyList<IncomeSplit>> BuildIncomeSplitsAsync(
@@ -281,19 +278,19 @@ public class IncomeService : IIncomeService
         // No duplicate partners
         var partnerIds = splits.Select(s => s.PartnerId).ToList();
         if (partnerIds.Distinct().Count() != partnerIds.Count)
-            throw new InvalidOperationException("Duplicate partner found in splits.");
+            throw new InvalidOperationException("Se encontró un socio duplicado en las divisiones.");
 
         // All partners must be active in project
         var projectPartners = await _projectPartnerRepo.GetByProjectIdAsync(projectId, ct);
         var validPartnerIds = projectPartners.Select(pp => pp.PtpPartnerId).ToHashSet();
         var invalid = partnerIds.FirstOrDefault(id => !validPartnerIds.Contains(id));
         if (invalid != default)
-            throw new InvalidOperationException($"Partner '{invalid}' is not assigned to this project.");
+            throw new InvalidOperationException($"El socio '{invalid}' no está asignado a este proyecto.");
 
         // No mixed types
         var types = splits.Select(s => s.SplitType).Distinct().ToList();
         if (types.Count > 1)
-            throw new InvalidOperationException("Cannot mix 'percentage' and 'fixed' split types in the same income.");
+            throw new InvalidOperationException("No se pueden mezclar tipos de división 'percentage' y 'fixed' en el mismo ingreso.");
 
         var splitType = types[0];
 
@@ -301,13 +298,13 @@ public class IncomeService : IIncomeService
         {
             var sum = splits.Sum(s => s.SplitValue);
             if (Math.Abs(sum - 100m) > 0.01m)
-                throw new InvalidOperationException($"Percentage splits must sum to 100. Got: {sum}.");
+                throw new InvalidOperationException("PercentageSplitsMustSum100");
         }
         else if (splitType == "fixed")
         {
             var sum = splits.Sum(s => s.SplitValue);
             if (Math.Abs(sum - originalAmount) > 0.01m)
-                throw new InvalidOperationException($"Fixed splits must sum to {originalAmount}. Got: {sum}.");
+                throw new InvalidOperationException("FixedSplitsMustSumTotal");
         }
 
         return splits.Select(s =>

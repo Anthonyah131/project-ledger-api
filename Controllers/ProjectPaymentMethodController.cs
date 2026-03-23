@@ -1,3 +1,6 @@
+using Microsoft.Extensions.Localization;
+using ProjectLedger.API.DTOs.Common;
+using ProjectLedger.API.Resources;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.Project;
@@ -19,17 +22,20 @@ public class ProjectPaymentMethodController : ControllerBase
     private readonly IPlanAuthorizationService _planAuth;
     private readonly IProjectPartnerService _projectPartnerService;
     private readonly IProjectAccessService _accessService;
+    private readonly IStringLocalizer<Messages> _localizer;
 
     public ProjectPaymentMethodController(
         IProjectPaymentMethodService ppmService,
         IPlanAuthorizationService planAuth,
         IProjectPartnerService projectPartnerService,
-        IProjectAccessService accessService)
+        IProjectAccessService accessService,
+        IStringLocalizer<Messages> localizer)
     {
         _ppmService = ppmService;
         _planAuth = planAuth;
         _projectPartnerService = projectPartnerService;
         _accessService = accessService;
+        _localizer = localizer;
     }
 
     /// <summary>
@@ -112,34 +118,33 @@ public class ProjectPaymentMethodController : ControllerBase
         }
         catch (KeyNotFoundException ex)
         {
-            return NotFound(new { message = ex.Message });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer[ex.Message]));
         }
         catch (InvalidOperationException ex)
         {
-            return Conflict(new { message = ex.Message });
+            return Conflict(LocalizedResponse.Create("CONFLICT", _localizer[ex.Message]));
         }
     }
 
-    /// <summary>Desvincula un método de pago del proyecto (solo owner).</summary>
-    [HttpDelete("{paymentMethodId:guid}")]
+    /// <summary>Desvincula un método de pago del proyecto (solo owner). Usa el <c>id</c> del vínculo devuelto por GET.</summary>
+    [HttpDelete("{id:guid}")]
     [Authorize(Policy = "ProjectOwner")]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UnlinkPaymentMethod(
-        Guid projectId, Guid paymentMethodId, CancellationToken ct)
+        Guid projectId, Guid id, CancellationToken ct)
     {
         var userId = User.GetRequiredUserId();
         await _planAuth.ValidateProjectWriteAccessAsync(projectId, userId, ct);
 
         try
         {
-            await _ppmService.UnlinkAsync(projectId, paymentMethodId, ct);
+            await _ppmService.UnlinkAsync(projectId, id, ct);
             return NoContent();
         }
         catch (KeyNotFoundException ex)
         {
-            return NotFound(new { message = ex.Message });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer[ex.Message]));
         }
     }
 }

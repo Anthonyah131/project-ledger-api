@@ -828,13 +828,17 @@ CREATE TABLE public.split_currency_exchanges (
 	sce_exchange_rate DECIMAL(18,6) NOT NULL,
 	sce_converted_amount DECIMAL(18,4) NOT NULL,
 	sce_created_at TIMESTAMPTZ NOT NULL DEFAULT now():::TIMESTAMPTZ,
+	sce_settlement_id UUID NULL,
 	CONSTRAINT pk_split_currency_exchanges PRIMARY KEY (sce_id ASC),
 	CONSTRAINT fk_sce_expense_split FOREIGN KEY (sce_expense_split_id) REFERENCES public.expense_splits(exs_id) ON DELETE CASCADE,
 	CONSTRAINT fk_sce_income_split FOREIGN KEY (sce_income_split_id) REFERENCES public.income_splits(ins_id) ON DELETE CASCADE,
 	CONSTRAINT fk_sce_currency FOREIGN KEY (sce_currency_code) REFERENCES public.currencies(cur_code),
+	CONSTRAINT split_currency_exchanges_sce_settlement_id_fkey FOREIGN KEY (sce_settlement_id) REFERENCES public.partner_settlements(pst_id) ON DELETE CASCADE,
+	CONSTRAINT split_currency_exchanges_sce_settlement_id_fkey_1 FOREIGN KEY (sce_settlement_id) REFERENCES public.partner_settlements(pst_id) ON DELETE CASCADE,
 	UNIQUE INDEX uix_sce_expense_split_currency (sce_expense_split_id ASC, sce_currency_code ASC) WHERE sce_expense_split_id IS NOT NULL,
 	UNIQUE INDEX uix_sce_income_split_currency (sce_income_split_id ASC, sce_currency_code ASC) WHERE sce_income_split_id IS NOT NULL,
 	INDEX ix_sce_expense_split_id (sce_expense_split_id ASC) WHERE sce_expense_split_id IS NOT NULL,
 	INDEX ix_sce_income_split_id (sce_income_split_id ASC) WHERE sce_income_split_id IS NOT NULL,
-	CONSTRAINT chk_sce_mutex CHECK (((sce_expense_split_id IS NOT NULL) AND (sce_income_split_id IS NULL)) OR ((sce_expense_split_id IS NULL) AND (sce_income_split_id IS NOT NULL)))
+	UNIQUE INDEX idx_sce_settlement_currency (sce_settlement_id ASC, sce_currency_code ASC) WHERE sce_settlement_id IS NOT NULL,
+	CONSTRAINT split_currency_exchanges_source_check CHECK ((((sce_expense_split_id IS NOT NULL)::INT8 + (sce_income_split_id IS NOT NULL)::INT8) + (sce_settlement_id IS NOT NULL)::INT8) = 1:::INT8)
 );

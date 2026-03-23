@@ -1,7 +1,10 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
 using ProjectLedger.API.DTOs.Currency;
 using ProjectLedger.API.Extensions.Mappings;
+using ProjectLedger.API.DTOs.Common;
+using ProjectLedger.API.Resources;
 using ProjectLedger.API.Services;
 
 namespace ProjectLedger.API.Controllers;
@@ -17,10 +20,13 @@ namespace ProjectLedger.API.Controllers;
 public class CurrencyController : ControllerBase
 {
     private readonly ICurrencyService _currencyService;
+    private readonly IStringLocalizer<Messages> _localizer;
 
-    public CurrencyController(ICurrencyService currencyService)
+    public CurrencyController(ICurrencyService currencyService,
+    IStringLocalizer<Messages> localizer)
     {
         _currencyService = currencyService;
+        _localizer = localizer;
     }
 
     // ── GET /api/currencies ─────────────────────────────────
@@ -52,7 +58,7 @@ public class CurrencyController : ControllerBase
     {
         var currency = await _currencyService.GetByCodeAsync(code, ct);
         if (currency is null)
-            return NotFound(new { message = $"Currency '{code.ToUpperInvariant()}' not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["CurrencyNotFound"]));
 
         return Ok(currency.ToResponse());
     }

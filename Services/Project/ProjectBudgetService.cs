@@ -1,4 +1,4 @@
-using ProjectLedger.API.Models;
+﻿using ProjectLedger.API.Models;
 using ProjectLedger.API.Repositories;
 
 namespace ProjectLedger.API.Services;
@@ -31,7 +31,7 @@ public class ProjectBudgetService : IProjectBudgetService
     {
         // Validar que el plan del owner permite definir presupuestos
         var project = await _projectRepo.GetByIdAsync(budget.PjbProjectId, ct)
-            ?? throw new KeyNotFoundException($"Project '{budget.PjbProjectId}' not found.");
+            ?? throw new KeyNotFoundException("ProjectNotFound");
 
         await _planAuth.ValidatePermissionAsync(
             project.PrjOwnerUserId, PlanPermission.CanSetBudgets, ct);
@@ -39,8 +39,7 @@ public class ProjectBudgetService : IProjectBudgetService
         // Verificar que no exista un presupuesto activo — solo uno por proyecto
         var existing = await _budgetRepo.GetActiveByProjectIdAsync(budget.PjbProjectId, ct);
         if (existing is not null)
-            throw new InvalidOperationException(
-                "An active budget already exists for this project. Update or delete the existing one first.");
+            throw new InvalidOperationException("BudgetAlreadyExists");
 
         budget.PjbCreatedAt = DateTime.UtcNow;
         budget.PjbUpdatedAt = DateTime.UtcNow;
@@ -55,7 +54,7 @@ public class ProjectBudgetService : IProjectBudgetService
     {
         // Validar que el plan del owner permite definir presupuestos
         var project = await _projectRepo.GetByIdAsync(budget.PjbProjectId, ct)
-            ?? throw new KeyNotFoundException($"Project '{budget.PjbProjectId}' not found.");
+            ?? throw new KeyNotFoundException("ProjectNotFound");
 
         await _planAuth.ValidatePermissionAsync(
             project.PrjOwnerUserId, PlanPermission.CanSetBudgets, ct);
@@ -68,10 +67,10 @@ public class ProjectBudgetService : IProjectBudgetService
     public async Task SoftDeleteAsync(Guid id, Guid deletedByUserId, CancellationToken ct = default)
     {
         var budget = await _budgetRepo.GetByIdAsync(id, ct)
-            ?? throw new KeyNotFoundException($"Project budget '{id}' not found.");
+            ?? throw new KeyNotFoundException("BudgetNotFound");
 
         if (budget.PjbIsDeleted)
-            throw new KeyNotFoundException($"Project budget '{id}' not found.");
+            throw new KeyNotFoundException("BudgetNotFound");
 
         budget.PjbIsDeleted = true;
         budget.PjbDeletedAt = DateTime.UtcNow;

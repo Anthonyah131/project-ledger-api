@@ -47,7 +47,7 @@ public class SplitCurrencyExchangeService : ISplitCurrencyExchangeService
                     SceExpenseSplitId = split.ExsId,
                     SceCurrencyCode = exchange.CurrencyCode,
                     SceExchangeRate = exchange.ExchangeRate,
-                    SceConvertedAmount = Math.Round(ratio * exchange.ConvertedAmount, 2)
+                    SceConvertedAmount = Math.Round(ratio * exchange.ConvertedAmount, 4, MidpointRounding.AwayFromZero)
                 }, ct);
             }
         }
@@ -92,7 +92,7 @@ public class SplitCurrencyExchangeService : ISplitCurrencyExchangeService
                     SceIncomeSplitId = split.InsId,
                     SceCurrencyCode = exchange.CurrencyCode,
                     SceExchangeRate = exchange.ExchangeRate,
-                    SceConvertedAmount = Math.Round(ratio * exchange.ConvertedAmount, 2)
+                    SceConvertedAmount = Math.Round(ratio * exchange.ConvertedAmount, 4, MidpointRounding.AwayFromZero)
                 }, ct);
             }
         }

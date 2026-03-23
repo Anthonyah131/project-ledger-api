@@ -9,7 +9,9 @@ public interface IPartnerRepository : IRepository<Partner>
     Task<(IEnumerable<Partner> Items, int TotalCount)> SearchByNameAsync(Guid userId, string? search, int skip, int take, CancellationToken ct = default);
     Task<(IEnumerable<PaymentMethod> Items, int TotalCount)> GetPaymentMethodsByPartnerIdPagedAsync(Guid partnerId, int skip, int take, CancellationToken ct = default);
     Task<(IEnumerable<Project> Items, int TotalCount)> GetProjectsByPartnerIdPagedAsync(Guid partnerId, int skip, int take, CancellationToken ct = default);
+    Task<bool> HasActivePaymentMethodsAsync(Guid partnerId, CancellationToken ct = default);
     Task<bool> HasActivePaymentMethodsInProjectsAsync(Guid partnerId, CancellationToken ct = default);
+    Task<bool> IsAssignedToAnyProjectAsync(Guid partnerId, CancellationToken ct = default);
     Task<IEnumerable<PaymentMethod>> GetPaymentMethodsByPartnerIdAsync(Guid partnerId, CancellationToken ct = default);
     Task<IReadOnlyList<Project>> GetProjectsWithActivityAsync(Guid partnerId, CancellationToken ct = default);
 }

@@ -27,12 +27,12 @@ public class WorkspaceReportService : IWorkspaceReportService
         string? referenceCurrency, CancellationToken ct = default)
     {
         var workspace = await _workspaceService.GetByIdWithDetailsAsync(workspaceId, ct)
-            ?? throw new KeyNotFoundException("Workspace not found.");
+            ?? throw new KeyNotFoundException("WorkspaceNotFound");
 
         // Verify membership
         var role = await _workspaceService.GetMemberRoleAsync(workspaceId, userId, ct);
         if (role is null)
-            throw new UnauthorizedAccessException("User is not a member of this workspace.");
+            throw new UnauthorizedAccessException("WorkspaceAccessDenied");
 
         var projects = workspace.Projects.Where(p => !p.PrjIsDeleted).ToList();
 

@@ -1,5 +1,5 @@
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using ProjectLedger.API.Common.Exceptions;
 
 namespace ProjectLedger.API.Filters;
 
@@ -44,16 +44,7 @@ public class ActiveUserWriteFilter : IAsyncActionFilter
         // Para escritura, verificar is_active claim
         var isActiveClaim = user.FindFirst("is_active")?.Value;
         if (isActiveClaim != "true")
-        {
-            context.Result = new ObjectResult(new
-            {
-                message = "Tu cuenta está desactivada. Solo puedes realizar operaciones de lectura."
-            })
-            {
-                StatusCode = StatusCodes.Status403Forbidden
-            };
-            return;
-        }
+            throw new ForbiddenAccessException("AccountDeactivated");
 
         await next();
     }

@@ -1,11 +1,14 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 using ProjectLedger.API.DTOs.Auth;
+using ProjectLedger.API.DTOs.Common;
+using ProjectLedger.API.Resources;
 using ProjectLedger.API.Services;
 using ProjectLedger.API.Common.Settings;
 
@@ -25,15 +28,18 @@ public class AuthController : ControllerBase
     private readonly IAuthService _authService;
     private readonly GoogleAuthSettings _googleAuthSettings;
     private readonly ILogger<AuthController> _logger;
+    private readonly IStringLocalizer<Messages> _localizer;
 
     public AuthController(
         IAuthService authService,
         IOptions<GoogleAuthSettings> googleAuthSettings,
-        ILogger<AuthController> logger)
+        ILogger<AuthController> logger,
+        IStringLocalizer<Messages> localizer)
     {
         _authService = authService;
         _googleAuthSettings = googleAuthSettings.Value;
         _logger = logger;
+        _localizer = localizer;
     }
 
     // ── POST /api/auth/register ─────────────────────────────
@@ -58,7 +64,7 @@ public class AuthController : ControllerBase
 
         var result = await _authService.RegisterAsync(request, ct);
         if (result == null)
-            return Conflict(new { message = "A user with this email already exists." });
+            return Conflict(LocalizedResponse.Create("USER_ALREADY_EXISTS", _localizer["UserAlreadyExists"]));
 
         return Created(string.Empty, result);
     }
@@ -85,7 +91,7 @@ public class AuthController : ControllerBase
 
         var result = await _authService.LoginAsync(request, ct);
         if (result == null)
-            return Unauthorized(new { message = "Invalid email or password." });
+            return Unauthorized(LocalizedResponse.Create("INVALID_CREDENTIALS", _localizer["InvalidCredentials"]));
 
         return Ok(result);
     }
@@ -106,7 +112,7 @@ public class AuthController : ControllerBase
         if (string.IsNullOrWhiteSpace(_googleAuthSettings.ClientId)
             || string.IsNullOrWhiteSpace(_googleAuthSettings.ClientSecret))
         {
-            return BadRequest(new { message = "Google authentication is not configured." });
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["GoogleAuthNotConfigured"]));
         }
 
         var callbackUrl = Url.Action(
@@ -215,7 +221,7 @@ public class AuthController : ControllerBase
 
         var result = await _authService.RefreshTokenAsync(request.RefreshToken, ct);
         if (result == null)
-            return Unauthorized(new { message = "Invalid or expired refresh token." });
+            return Unauthorized(LocalizedResponse.Create("UNAUTHORIZED", _localizer["InvalidRefreshToken"]));
 
         return Ok(result);
     }
@@ -238,9 +244,9 @@ public class AuthController : ControllerBase
     {
         var success = await _authService.RevokeTokenAsync(request.RefreshToken, ct);
         if (!success)
-            return NotFound(new { message = "Refresh token not found or already revoked." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["RefreshTokenNotFound"]));
 
-        return Ok(new { message = "Token revoked successfully." });
+        return Ok(LocalizedResponse.Create("SUCCESS", _localizer["TokenRevokedSuccess"]));
     }
 
     // ── POST /api/auth/revoke-all ───────────────────────────
@@ -258,7 +264,7 @@ public class AuthController : ControllerBase
         var userId = User.GetRequiredUserId();
         await _authService.RevokeAllTokensAsync(userId, ct);
 
-        return Ok(new { message = "All tokens revoked successfully." });
+        return Ok(LocalizedResponse.Create("SUCCESS", _localizer["AllTokensRevokedSuccess"]));
     }
 
     // ── GET /api/auth/me ────────────────────────────────────
@@ -300,9 +306,9 @@ public class AuthController : ControllerBase
 
         var valid = await _authService.VerifyOtpAsync(request.Email, request.OtpCode, ct);
         if (!valid)
-            return BadRequest(new { message = "Invalid, expired, or already used OTP code." });
+            return BadRequest(LocalizedResponse.Create("INVALID_OTP", _localizer["InvalidOtp"]));
 
-        return Ok(new { message = "OTP verified successfully." });
+        return Ok(LocalizedResponse.Create("SUCCESS", _localizer["OtpVerifiedSuccess"]));
     }
 
     // ── POST /api/auth/forgot-password ──────────────────────────────
@@ -328,7 +334,7 @@ public class AuthController : ControllerBase
         await _authService.ForgotPasswordAsync(request.Email, ct);
 
         // Respuesta genérica: nunca revelar si el email existe
-        return Ok(new { message = "If that email is registered, you will receive a reset code shortly." });
+        return Ok(LocalizedResponse.Create("SUCCESS", _localizer["ForgotPasswordSent"]));
     }
 
     // ── POST /api/auth/reset-password ───────────────────────────────
@@ -351,9 +357,9 @@ public class AuthController : ControllerBase
 
         var success = await _authService.ResetPasswordAsync(request, ct);
         if (!success)
-            return BadRequest(new { message = "Invalid, expired, or already used OTP code." });
+            return BadRequest(LocalizedResponse.Create("INVALID_OTP", _localizer["InvalidOtp"]));
 
-        return Ok(new { message = "Password updated successfully." });
+        return Ok(LocalizedResponse.Create("SUCCESS", _localizer["PasswordUpdatedSuccess"]));
     }
 
     private string BuildFrontendCallbackUrl(string? token = null, string? error = null)

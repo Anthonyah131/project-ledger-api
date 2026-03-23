@@ -36,20 +36,17 @@ public class ProjectPaymentMethodService : IProjectPaymentMethodService
     {
         // Verificar que el método de pago existe y no está eliminado
         var pm = await _pmRepo.GetByIdAsync(link.PpmPaymentMethodId, ct)
-            ?? throw new KeyNotFoundException(
-                $"Payment method '{link.PpmPaymentMethodId}' not found.");
+            ?? throw new KeyNotFoundException("PaymentMethodNotFound");
 
         if (pm.PmtIsDeleted)
-            throw new KeyNotFoundException(
-                $"Payment method '{link.PpmPaymentMethodId}' not found.");
+            throw new KeyNotFoundException("PaymentMethodNotFound");
 
         // Verificar que no esté ya vinculado
         var existing = await _ppmRepo.GetByProjectAndPaymentMethodAsync(
             link.PpmProjectId, link.PpmPaymentMethodId, ct);
 
         if (existing is not null)
-            throw new InvalidOperationException(
-                "This payment method is already linked to the project.");
+            throw new InvalidOperationException("PaymentMethodAlreadyLinkedToProject");
 
         link.PpmCreatedAt = DateTime.UtcNow;
 
@@ -60,15 +57,15 @@ public class ProjectPaymentMethodService : IProjectPaymentMethodService
     }
 
     public async Task UnlinkAsync(
-        Guid projectId, Guid paymentMethodId, CancellationToken ct = default)
+        Guid projectId, Guid linkId, CancellationToken ct = default)
     {
-        var link = await _ppmRepo.GetByProjectAndPaymentMethodAsync(projectId, paymentMethodId, ct)
-            ?? throw new KeyNotFoundException(
-                "Payment method is not linked to this project.");
+        var link = await _ppmRepo.GetByIdAsync(linkId, ct);
+        if (link is null || link.PpmProjectId != projectId)
+            throw new KeyNotFoundException("PaymentMethodNotLinkedToProject");
 
         await _transactionReferenceGuard.EnsureProjectPaymentMethodCanBeUnlinkedAsync(
             projectId,
-            paymentMethodId,
+            link.PpmPaymentMethodId,
             ct);
 
         _ppmRepo.Remove(link);

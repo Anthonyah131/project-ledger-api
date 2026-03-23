@@ -28,15 +28,15 @@ public class ProjectPartnerService : IProjectPartnerService
     {
         // Verificar que el partner existe y pertenece al usuario
         var partner = await _partnerRepo.GetByIdAsync(partnerId, ct)
-            ?? throw new KeyNotFoundException($"Partner '{partnerId}' not found.");
+            ?? throw new KeyNotFoundException("PartnerNotFound");
 
         if (partner.PtrOwnerUserId != addedByUserId)
-            throw new UnauthorizedAccessException("You can only assign your own partners to projects.");
+            throw new UnauthorizedAccessException("PartnerNotOwnedByUser");
 
         // Verificar que no esté ya asignado
         var existing = await _repo.GetActiveAsync(projectId, partnerId, ct);
         if (existing is not null)
-            throw new InvalidOperationException("This partner is already assigned to the project.");
+            throw new InvalidOperationException("PartnerAlreadyAssignedToProject");
 
         var projectPartner = new ProjectPartner
         {
@@ -60,12 +60,19 @@ public class ProjectPartnerService : IProjectPartnerService
         Guid projectId, Guid partnerId, Guid deletedByUserId, CancellationToken ct = default)
     {
         var assignment = await _repo.GetActiveAsync(projectId, partnerId, ct)
-            ?? throw new KeyNotFoundException("Partner is not assigned to this project.");
+            ?? throw new KeyNotFoundException("PartnerNotAssignedToProject");
 
         var hasLinkedMethods = await _repo.HasPartnerPaymentMethodsLinkedToProjectAsync(projectId, partnerId, ct);
         if (hasLinkedMethods)
-            throw new InvalidOperationException(
-                "Cannot remove partner from project while they have payment methods linked to it. Unlink those payment methods first.");
+            throw new InvalidOperationException("PartnerHasLinkedPaymentMethods");
+
+        var hasSplits = await _repo.HasPartnerSplitsInProjectAsync(projectId, partnerId, ct);
+        if (hasSplits)
+            throw new InvalidOperationException("PartnerHasSplits");
+
+        var hasSettlements = await _repo.HasPartnerSettlementsInProjectAsync(projectId, partnerId, ct);
+        if (hasSettlements)
+            throw new InvalidOperationException("PartnerHasSettlements");
 
         assignment.PtpIsDeleted = true;
         assignment.PtpDeletedAt = DateTime.UtcNow;

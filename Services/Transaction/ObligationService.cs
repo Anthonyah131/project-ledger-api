@@ -10,11 +10,16 @@ public class ObligationService : IObligationService
 {
     private readonly IObligationRepository _obligationRepo;
     private readonly IAuditLogService _auditLog;
+    private readonly ITransactionReferenceGuardService _transactionReferenceGuard;
 
-    public ObligationService(IObligationRepository obligationRepo, IAuditLogService auditLog)
+    public ObligationService(
+        IObligationRepository obligationRepo,
+        IAuditLogService auditLog,
+        ITransactionReferenceGuardService transactionReferenceGuard)
     {
         _obligationRepo = obligationRepo;
         _auditLog = auditLog;
+        _transactionReferenceGuard = transactionReferenceGuard;
     }
 
     public async Task<Obligation?> GetByIdAsync(Guid id, CancellationToken ct = default)
@@ -57,10 +62,12 @@ public class ObligationService : IObligationService
     public async Task SoftDeleteAsync(Guid id, Guid deletedByUserId, CancellationToken ct = default)
     {
         var obligation = await _obligationRepo.GetByIdAsync(id, ct)
-            ?? throw new KeyNotFoundException($"Obligation '{id}' not found.");
+            ?? throw new KeyNotFoundException("ObligationNotFound");
 
         if (obligation.OblIsDeleted)
-            throw new KeyNotFoundException($"Obligation '{id}' not found.");
+            throw new InvalidOperationException("ObligationAlreadyDeleted");
+
+        await _transactionReferenceGuard.EnsureObligationCanBeDeletedAsync(id, ct);
 
         obligation.OblIsDeleted = true;
         obligation.OblDeletedAt = DateTime.UtcNow;

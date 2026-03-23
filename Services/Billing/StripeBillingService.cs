@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using Microsoft.Extensions.Options;
 using Stripe;
 using Stripe.Checkout;
@@ -87,7 +87,7 @@ public class StripeBillingService : IStripeBillingService
 
         var plans = (await _planRepo.GetActiveAsync(ct)).ToList();
         if (plans.Count == 0)
-            throw new InvalidOperationException("No active plans found to sync with Stripe.");
+            throw new InvalidOperationException("NoActivePlansForSync");
 
         var productService = new ProductService();
         var priceService = new PriceService();
@@ -98,7 +98,7 @@ public class StripeBillingService : IStripeBillingService
         foreach (var plan in plans)
         {
             if (plan.PlnMonthlyPrice < 0)
-                throw new ArgumentException($"Plan '{plan.PlnSlug}' has invalid monthly price '{plan.PlnMonthlyPrice}'.");
+                throw new ArgumentException("InvalidPlanPrice");
 
             var currency = string.IsNullOrWhiteSpace(plan.PlnCurrency)
                 ? _stripeSettings.DefaultCurrency.ToLowerInvariant()
@@ -354,17 +354,17 @@ public class StripeBillingService : IStripeBillingService
         StripeConfiguration.ApiKey = _stripeSettings.SecretKey;
 
         var targetPlan = await _planRepo.GetByIdAsync(newPlanId, ct)
-            ?? throw new KeyNotFoundException($"Plan '{newPlanId}' not found.");
+            ?? throw new KeyNotFoundException("PlanNotFound");
 
         if (!targetPlan.PlnIsActive)
-            throw new InvalidOperationException($"Plan '{targetPlan.PlnSlug}' is not active.");
+            throw new InvalidOperationException("PlanNotActive");
 
         // Bajar a free = cancelar suscripción paga al final del período.
         if (targetPlan.PlnMonthlyPrice <= 0)
             return await CancelSubscriptionAsync(userId, cancelAtPeriodEnd: true, ct);
 
         if (string.IsNullOrWhiteSpace(targetPlan.PlnStripePriceId))
-            throw new InvalidOperationException($"Plan '{targetPlan.PlnSlug}' has no Stripe Price ID. Run sync-plans first.");
+            throw new InvalidOperationException("PlanMissingStripePriceId");
 
         var (user, stripeSubscription) = await GetManagedStripeSubscriptionForUserAsync(userId, ct);
         var currentPriceId = stripeSubscription.Items?.Data?.FirstOrDefault()?.Price?.Id;
@@ -372,12 +372,12 @@ public class StripeBillingService : IStripeBillingService
         if (string.Equals(currentPriceId, targetPlan.PlnStripePriceId, StringComparison.Ordinal)
             && !stripeSubscription.CancelAtPeriodEnd)
         {
-            throw new InvalidOperationException($"Subscription is already on plan '{targetPlan.PlnSlug}'.");
+            throw new InvalidOperationException("SubscriptionAlreadyOnPlan");
         }
 
         var itemId = stripeSubscription.Items?.Data?.FirstOrDefault()?.Id;
         if (string.IsNullOrWhiteSpace(itemId))
-            throw new InvalidOperationException("Stripe subscription has no billable item to update.");
+            throw new InvalidOperationException("SubscriptionMissingBillableItem");
 
         var updateOptions = new SubscriptionUpdateOptions
         {
@@ -413,7 +413,7 @@ public class StripeBillingService : IStripeBillingService
         await UpsertSubscriptionAsync(refreshed, user.UsrEmail, null, user.UsrId, ct);
 
         return await _userSubscriptionRepo.GetByStripeSubscriptionIdAsync(refreshed.Id, ct)
-            ?? throw new InvalidOperationException("Subscription was updated in Stripe but could not be loaded locally.");
+            ?? throw new InvalidOperationException("SubscriptionUpdatedButNotLoaded");
     }
 
     public async Task<UserSubscription> CancelSubscriptionAsync(
@@ -459,7 +459,7 @@ public class StripeBillingService : IStripeBillingService
         await UpsertSubscriptionAsync(refreshed, user.UsrEmail, null, user.UsrId, ct);
 
         return await _userSubscriptionRepo.GetByStripeSubscriptionIdAsync(refreshed.Id, ct)
-            ?? throw new InvalidOperationException("Subscription was canceled in Stripe but could not be loaded locally.");
+            ?? throw new InvalidOperationException("SubscriptionCanceledButNotLoaded");
     }
 
     private async Task<UserSubscription?> TryReconcileFromStripeAsync(Guid userId, User user, CancellationToken ct)
@@ -694,16 +694,16 @@ public class StripeBillingService : IStripeBillingService
         StripeConfiguration.ApiKey = _stripeSettings.SecretKey;
 
         var plan = await _planRepo.GetByIdAsync(planId, ct)
-            ?? throw new KeyNotFoundException($"Plan '{planId}' not found.");
+            ?? throw new KeyNotFoundException("PlanNotFound");
 
         if (!plan.PlnIsActive)
-            throw new InvalidOperationException($"Plan '{plan.PlnSlug}' is not active.");
+            throw new InvalidOperationException("PlanNotActive");
 
         if (plan.PlnMonthlyPrice <= 0)
-            throw new InvalidOperationException($"Plan '{plan.PlnSlug}' is free and does not require checkout.");
+            throw new InvalidOperationException("PlanIsFree");
 
         if (string.IsNullOrWhiteSpace(plan.PlnStripePriceId))
-            throw new InvalidOperationException($"Plan '{plan.PlnSlug}' has no Stripe Price ID. Run sync-plans first.");
+            throw new InvalidOperationException("PlanMissingStripePriceId");
 
         var normalizedEmail = userEmail.ToLowerInvariant().Trim();
         var customerLock = CheckoutCustomerLocks.GetOrAdd(userId, _ => new SemaphoreSlim(1, 1));
@@ -715,7 +715,7 @@ public class StripeBillingService : IStripeBillingService
         {
             // Re-fetch bajo lock para evitar carreras de creación de customer para el mismo usuario.
             var user = await _userRepo.GetByIdAsync(userId, ct)
-                ?? throw new KeyNotFoundException($"User '{userId}' not found.");
+                ?? throw new KeyNotFoundException("UserNotFound");
 
             stripeCustomerId = await GetOrCreateStripeCustomerIdForUserAsync(user, normalizedEmail, ct);
         }
@@ -733,12 +733,10 @@ public class StripeBillingService : IStripeBillingService
             if (string.Equals(currentPriceId, plan.PlnStripePriceId, StringComparison.Ordinal)
                 && !managedSubscription.CancelAtPeriodEnd)
             {
-                throw new InvalidOperationException(
-                    $"User already has an active subscription to plan '{plan.PlnSlug}'.");
+                throw new InvalidOperationException("SubscriptionAlreadyOnPlan");
             }
 
-            throw new InvalidOperationException(
-                "User already has an active subscription. Use /api/billing/subscription/change-plan instead of creating a second subscription.");
+            throw new InvalidOperationException("SubscriptionAlreadyActive");
         }
 
         var sessionService = new SessionService();
@@ -935,13 +933,13 @@ public class StripeBillingService : IStripeBillingService
         CancellationToken ct)
     {
         var user = await _userRepo.GetByIdAsync(userId, ct)
-            ?? throw new KeyNotFoundException($"User '{userId}' not found.");
+            ?? throw new KeyNotFoundException("UserNotFound");
 
         var local = await GetCurrentUserSubscriptionAsync(userId, ct)
-            ?? throw new KeyNotFoundException("No subscription found for current user.");
+            ?? throw new KeyNotFoundException("SubscriptionNotFound");
 
         if (IsCanceledSubscriptionStatus(local.UssStatus))
-            throw new InvalidOperationException("Current subscription is already canceled.");
+            throw new InvalidOperationException("SubscriptionAlreadyCanceled");
 
         EnsureStripeSecretConfigured();
         StripeConfiguration.ApiKey = _stripeSettings.SecretKey;
@@ -958,14 +956,13 @@ public class StripeBillingService : IStripeBillingService
         if (IsCanceledSubscriptionStatus(stripeSubscription.Status))
         {
             await UpsertSubscriptionAsync(stripeSubscription, user.UsrEmail, null, user.UsrId, ct);
-            throw new InvalidOperationException("Current subscription is already canceled.");
+            throw new InvalidOperationException("SubscriptionAlreadyCanceled");
         }
 
         if (!IsManagedSubscriptionStatus(stripeSubscription.Status))
         {
             await UpsertSubscriptionAsync(stripeSubscription, user.UsrEmail, null, user.UsrId, ct);
-            throw new InvalidOperationException(
-                $"Subscription is in status '{stripeSubscription.Status}' and cannot be managed automatically.");
+            throw new InvalidOperationException("SubscriptionCannotBeManagedAutomatically");
         }
 
         return (user, stripeSubscription);
@@ -1270,18 +1267,18 @@ public class StripeBillingService : IStripeBillingService
     private void EnsureStripeEnabled()
     {
         if (!_stripeSettings.Enabled)
-            throw new InvalidOperationException("Stripe billing is disabled by configuration.");
+            throw new InvalidOperationException("StripeDisabled");
     }
 
     private void EnsureStripeSecretConfigured()
     {
         if (string.IsNullOrWhiteSpace(_stripeSettings.SecretKey))
-            throw new InvalidOperationException("Stripe secret key is missing. Configure Stripe:SecretKey.");
+            throw new InvalidOperationException("StripeMissingSecretKey");
     }
 
     private void EnsureStripeWebhookConfigured()
     {
         if (string.IsNullOrWhiteSpace(_stripeSettings.WebhookSecret))
-            throw new InvalidOperationException("Stripe webhook secret is missing. Configure Stripe:WebhookSecret.");
+            throw new InvalidOperationException("StripeMissingWebhookSecret");
     }
 }

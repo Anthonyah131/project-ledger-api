@@ -334,7 +334,7 @@ public class PartnerBalanceRepository : IPartnerBalanceRepository
                 pp.PtpProjectId == projectId
                 && pp.PtpPartnerId == partnerId
                 && !pp.PtpIsDeleted, ct)
-            ?? throw new KeyNotFoundException($"Partner {partnerId} not found in project {projectId}.");
+            ?? throw new KeyNotFoundException("PartnerNotAssignedToProject");
 
         // Build all transactions in memory (merge expense + income splits), then paginate.
         // This is straightforward since each partner typically has a manageable number of splits.

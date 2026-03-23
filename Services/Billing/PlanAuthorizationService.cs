@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using ProjectLedger.API.DTOs.Plan;
 using ProjectLedger.API.Models;
@@ -126,10 +126,10 @@ public class PlanAuthorizationService : IPlanAuthorizationService
         Guid projectId, Guid actingUserId, CancellationToken ct = default)
     {
         var project = await _projectRepo.GetByIdAsync(projectId, ct)
-            ?? throw new KeyNotFoundException($"Project '{projectId}' not found.");
+            ?? throw new KeyNotFoundException("ProjectNotFound");
 
         if (project.PrjIsDeleted)
-            throw new KeyNotFoundException($"Project '{projectId}' not found.");
+            throw new KeyNotFoundException("ProjectNotFound");
 
         // El plan del OWNER gobierna todo el proyecto
         var ownerPlan = await GetUserPlanAsync(project.PrjOwnerUserId, ct);
@@ -143,11 +143,7 @@ public class PlanAuthorizationService : IPlanAuthorizationService
         if (actingUserId != project.PrjOwnerUserId)
         {
             if (!EvaluatePermission(ownerPlan, PlanPermission.CanShareProjects))
-                throw new PlanDeniedException(
-                    $"The project owner's current plan '{ownerPlan.PlnName}' no longer includes " +
-                    $"the '{nameof(PlanPermission.CanShareProjects)}' feature. " +
-                    $"Shared members cannot create or modify resources in this project. " +
-                    $"Contact the project owner to upgrade their plan.");
+                throw new PlanDeniedException("PlanDenied");
         }
     }
 
@@ -161,13 +157,12 @@ public class PlanAuthorizationService : IPlanAuthorizationService
         var user = await _userRepo.GetByIdAsync(userId, ct);
 
         if (user is null || user.UsrIsDeleted)
-            throw new UnauthorizedAccessException("User not found.");
+            throw new UnauthorizedAccessException("UserNotFoundOrDeleted");
 
         var plan = await _planRepo.GetByIdAsync(user.UsrPlanId, ct);
 
         if (plan is null || !plan.PlnIsActive)
-            throw new InvalidOperationException(
-                $"Plan '{user.UsrPlanId}' not found or inactive for user '{userId}'.");
+            throw new InvalidOperationException("PlanNotFoundOrInactive");
 
         return plan;
     }

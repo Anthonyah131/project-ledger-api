@@ -1,5 +1,8 @@
 using System.Net;
 using System.Text.Json;
+using Microsoft.Extensions.Localization;
+using ProjectLedger.API.DTOs.Common;
+using ProjectLedger.API.Resources;
 
 namespace ProjectLedger.API.Middleware;
 
@@ -34,26 +37,27 @@ public class GlobalExceptionHandlerMiddleware
     private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
         context.Response.ContentType = "application/json";
+        var localizer = context.RequestServices.GetRequiredService<IStringLocalizer<Messages>>();
         var isDev = context.RequestServices.GetService<IHostEnvironment>()?.IsDevelopment() == true;
 
-        var (statusCode, message) = exception switch
+        var (statusCode, code, message) = exception switch
         {
             PlanDeniedException => (StatusCodes.Status403Forbidden,
-                exception.Message),
+                "PLAN_DENIED", localizer[exception.Message].Value),
             PlanLimitExceededException => (StatusCodes.Status403Forbidden,
-                exception.Message),
+                "PLAN_LIMIT_EXCEEDED", localizer[exception.Message].Value),
             ForbiddenAccessException => (StatusCodes.Status403Forbidden,
-                exception.Message),
+                "FORBIDDEN", localizer[exception.Message].Value),
             UnauthorizedAccessException => (StatusCodes.Status401Unauthorized,
-                exception.Message),
+                "UNAUTHORIZED", localizer[exception.Message].Value),
             KeyNotFoundException => (StatusCodes.Status404NotFound,
-                exception.Message),
+                "NOT_FOUND", localizer[exception.Message].Value),
             InvalidOperationException => (StatusCodes.Status400BadRequest,
-                exception.Message),
+                "BAD_REQUEST", localizer[exception.Message].Value),
             ArgumentException => (StatusCodes.Status400BadRequest,
-                exception.Message),
+                "BAD_REQUEST", localizer[exception.Message].Value),
             _ => (StatusCodes.Status500InternalServerError,
-                "An unexpected error occurred. Please try again later.")
+                "INTERNAL_ERROR", localizer["UnexpectedError"].Value)
         };
 
         context.Response.StatusCode = statusCode;
@@ -63,9 +67,8 @@ public class GlobalExceptionHandlerMiddleware
         {
             response = new
             {
-                statusCode,
+                code,
                 message,
-                errorCode = "PLAN_LIMIT_EXCEEDED",
                 feature = planDenied.Permission?.ToString()
             };
         }
@@ -73,20 +76,16 @@ public class GlobalExceptionHandlerMiddleware
         {
             response = new
             {
-                statusCode,
+                code,
                 message,
-                errorCode = "PLAN_LIMIT_EXCEEDED",
                 feature = planLimit.LimitName
             };
         }
         else
         {
-            response = new
-            {
-                status = statusCode,
-                message,
-                detail = isDev && statusCode == 500 ? exception.Message : (string?)null
-            };
+            response = isDev && statusCode == 500
+                ? new { code, message, detail = exception.Message }
+                : LocalizedResponse.Create(code, message);
         }
 
         var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
@@ -104,3 +103,4 @@ public static class GlobalExceptionHandlerMiddlewareExtensions
         return app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
     }
 }
+

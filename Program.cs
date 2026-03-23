@@ -1,4 +1,6 @@
+using System.Globalization;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.OpenApi;
 using Microsoft.Extensions.Options;
 using ProjectLedger.API.Common.Settings;
@@ -40,6 +42,9 @@ var keysPath = Environment.GetEnvironmentVariable("HOME") is { } home
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(keysPath))
     .SetApplicationName("ProjectLedger");
+
+// ── Localization ────────────────────────────────────────────
+builder.Services.AddLocalization();
 
 // ── Service Registration ────────────────────────────────────
 builder.Services.AddControllers(options =>
@@ -382,10 +387,27 @@ builder.Services.AddHttpClient<IExpenseDocumentIntelligenceService, ExpenseDocum
 var app = builder.Build();
 
 // ── Middleware Pipeline ─────────────────────────────────────
-// 1. Global error handler (debe ser el primero)
+// 1. Request localization (Accept-Language header)
+// MUST be before UseGlobalExceptionHandler so that CultureInfo.CurrentUICulture
+// is set in the outer async context before the exception handler runs.
+// AsyncLocal values do not flow back up the chain — if localization runs after
+// the exception handler, the handler's catch block sees the server default culture.
+var supportedCultures = new[] { new CultureInfo("en"), new CultureInfo("es") };
+app.UseRequestLocalization(new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new RequestCulture("en"),
+    SupportedCultures = supportedCultures,
+    SupportedUICultures = supportedCultures,
+    RequestCultureProviders = new List<IRequestCultureProvider>
+    {
+        new AcceptLanguageHeaderRequestCultureProvider()
+    }
+});
+
+// 2. Global error handler
 app.UseGlobalExceptionHandler();
 
-// 2. Security headers en todas las respuestas
+// 3. Security headers en todas las respuestas
 app.UseSecurityHeaders();
 
 if (app.Environment.IsDevelopment())

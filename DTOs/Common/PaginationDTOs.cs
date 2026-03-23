@@ -25,7 +25,7 @@ public class PagedRequest
     }
 
     /// <summary>Cantidad de registros por página. Máximo 100. Por defecto 20.</summary>
-    [Range(1, MaxPageSize, ErrorMessage = "PageSize must be between 1 and 100.")]
+    [Range(1, MaxPageSize, ErrorMessage = "Page size must be between 1 and 100.")]
     public int PageSize
     {
         get => _pageSize;
@@ -36,7 +36,7 @@ public class PagedRequest
     public string? SortBy { get; set; }
 
     /// <summary>"asc" o "desc". Por defecto "desc".</summary>
-    [RegularExpression("^(asc|desc)$", ErrorMessage = "SortDirection must be 'asc' or 'desc'.")]
+    [RegularExpression("^(asc|desc)$", ErrorMessage = "Sort direction must be 'asc' or 'desc'.")]
     public string SortDirection { get; set; } = "desc";
 
     // ── Helpers ──────────────────────────────────────────────

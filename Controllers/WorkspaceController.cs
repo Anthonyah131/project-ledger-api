@@ -1,6 +1,8 @@
+using Microsoft.Extensions.Localization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.Common;
+using ProjectLedger.API.Resources;
 using ProjectLedger.API.DTOs.Project;
 using ProjectLedger.API.DTOs.Workspace;
 using ProjectLedger.API.Extensions.Mappings;
@@ -27,15 +29,18 @@ public class WorkspaceController : ControllerBase
     private readonly IWorkspaceService _workspaceService;
     private readonly IProjectService _projectService;
     private readonly IProjectAccessService _projectAccessService;
+    private readonly IStringLocalizer<Messages> _localizer;
 
     public WorkspaceController(
         IWorkspaceService workspaceService,
         IProjectService projectService,
-        IProjectAccessService projectAccessService)
+        IProjectAccessService projectAccessService,
+        IStringLocalizer<Messages> localizer)
     {
         _workspaceService = workspaceService;
         _projectService = projectService;
         _projectAccessService = projectAccessService;
+        _localizer = localizer;
     }
 
     // ── GET /api/workspaces ─────────────────────────────────
@@ -76,7 +81,7 @@ public class WorkspaceController : ControllerBase
         var workspace = await _workspaceService.GetByIdWithDetailsAsync(id, ct);
 
         if (workspace is null)
-            return NotFound(new { message = "Workspace not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["WorkspaceNotFound"]));
 
         var role = await _workspaceService.GetMemberRoleAsync(id, userId, ct);
         if (role is null)
@@ -132,7 +137,7 @@ public class WorkspaceController : ControllerBase
         var workspace = await _workspaceService.GetByIdAsync(id, ct);
 
         if (workspace is null)
-            return NotFound(new { message = "Workspace not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["WorkspaceNotFound"]));
 
         if (workspace.WksOwnerUserId != userId)
             return Forbid();
@@ -161,7 +166,7 @@ public class WorkspaceController : ControllerBase
         var workspace = await _workspaceService.GetByIdAsync(id, ct);
 
         if (workspace is null)
-            return NotFound(new { message = "Workspace not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["WorkspaceNotFound"]));
 
         if (workspace.WksOwnerUserId != userId)
             return Forbid();
@@ -173,7 +178,7 @@ public class WorkspaceController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return Conflict(new { message = ex.Message });
+            return Conflict(LocalizedResponse.Create("CONFLICT", _localizer[ex.Message]));
         }
     }
 
@@ -199,7 +204,7 @@ public class WorkspaceController : ControllerBase
 
         var workspace = await _workspaceService.GetByIdAsync(id, ct);
         if (workspace is null)
-            return NotFound(new { message = "Workspace not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["WorkspaceNotFound"]));
 
         var role = await _workspaceService.GetMemberRoleAsync(id, userId, ct);
         if (role is null)
@@ -251,7 +256,7 @@ public class WorkspaceController : ControllerBase
         // Validar que el workspace existe
         var workspace = await _workspaceService.GetByIdAsync(id, ct);
         if (workspace is null)
-            return NotFound(new { message = "Workspace not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["WorkspaceNotFound"]));
 
         // Validar que el usuario tiene acceso de editor al proyecto
         await _projectAccessService.ValidateAccessAsync(userId, request.ProjectId, ProjectRoles.Editor, ct);
@@ -286,7 +291,7 @@ public class WorkspaceController : ControllerBase
         // Validar que el workspace existe
         var workspace = await _workspaceService.GetByIdAsync(id, ct);
         if (workspace is null)
-            return NotFound(new { message = "Workspace not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["WorkspaceNotFound"]));
 
         // Validar que el usuario tiene acceso de editor al proyecto
         await _projectAccessService.ValidateAccessAsync(userId, projectId, ProjectRoles.Editor, ct);

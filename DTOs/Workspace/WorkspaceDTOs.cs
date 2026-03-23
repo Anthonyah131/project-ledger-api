@@ -13,7 +13,7 @@ public class CreateWorkspaceRequest
 
     public string? Description { get; set; }
 
-    [StringLength(7, ErrorMessage = "Color must be a valid hex color (e.g. #RRGGBB).")]
+    [StringLength(7, ErrorMessage = "Color must be a valid hexadecimal color (e.g. #RRGGBB).")]
     public string? Color { get; set; }
 
     [StringLength(50, ErrorMessage = "Icon cannot exceed 50 characters.")]
@@ -36,7 +36,7 @@ public class UpdateWorkspaceRequest
 
     public string? Description { get; set; }
 
-    [StringLength(7, ErrorMessage = "Color must be a valid hex color (e.g. #RRGGBB).")]
+    [StringLength(7, ErrorMessage = "Color must be a valid hexadecimal color (e.g. #RRGGBB).")]
     public string? Color { get; set; }
 
     [StringLength(50, ErrorMessage = "Icon cannot exceed 50 characters.")]

@@ -1,5 +1,5 @@
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using ProjectLedger.API.Common.Exceptions;
 
 namespace ProjectLedger.API.Filters;
 
@@ -58,10 +58,6 @@ public class AdminIsolationFilter : IAsyncActionFilter
         }
 
         // Ruta NO permitida para admin → 403
-        context.Result = new ObjectResult(new
-        {
-            message = "Los administradores globales solo pueden gestionar usuarios. No tienen acceso a datos de proyectos, categorías, gastos ni obligaciones."
-        })
-        { StatusCode = StatusCodes.Status403Forbidden };
+        throw new ForbiddenAccessException("AdminIsolation");
     }
 }

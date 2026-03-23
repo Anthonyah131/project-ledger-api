@@ -1,4 +1,4 @@
-using ProjectLedger.API.Models;
+﻿using ProjectLedger.API.Models;
 using ProjectLedger.API.Repositories;
 
 namespace ProjectLedger.API.Services;
@@ -40,10 +40,10 @@ public class ProjectAlternativeCurrencyService : IProjectAlternativeCurrencyServ
         Guid projectId, string currencyCode, CancellationToken ct = default)
     {
         var project = await _projectRepo.GetByIdAsync(projectId, ct)
-            ?? throw new KeyNotFoundException($"Project '{projectId}' not found.");
+            ?? throw new KeyNotFoundException("ProjectNotFound");
 
         if (project.PrjIsDeleted)
-            throw new KeyNotFoundException($"Project '{projectId}' not found.");
+            throw new KeyNotFoundException("ProjectNotFound");
 
         // Validar permiso multi-moneda
         await _planAuth.ValidatePermissionAsync(
@@ -51,21 +51,19 @@ public class ProjectAlternativeCurrencyService : IProjectAlternativeCurrencyServ
 
         // Validar que la moneda existe y está activa
         var currency = await _currencyRepo.GetByCodeAsync(currencyCode, ct)
-            ?? throw new KeyNotFoundException($"Currency '{currencyCode}' not found.");
+            ?? throw new KeyNotFoundException("CurrencyNotFound");
 
         if (!currency.CurIsActive)
-            throw new InvalidOperationException($"Currency '{currencyCode}' is not active.");
+            throw new InvalidOperationException("CurrencyNotActive");
 
         // No permitir que la moneda alternativa sea la misma que la base del proyecto
         if (string.Equals(project.PrjCurrencyCode, currencyCode, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException(
-                "Cannot add the project's base currency as an alternative currency.");
+            throw new InvalidOperationException("AlternativeCurrencyCannotBeBaseCurrency");
 
         // Verificar si ya existe
         var existing = await _pacRepo.GetByProjectAndCurrencyAsync(projectId, currencyCode, ct);
         if (existing is not null)
-            throw new InvalidOperationException(
-                $"Currency '{currencyCode}' is already configured as an alternative for this project.");
+            throw new InvalidOperationException("AlternativeCurrencyAlreadyExists");
 
         // Validar límite de monedas alternativas
         var currentCount = await _pacRepo.CountByProjectIdAsync(projectId, ct);
@@ -94,8 +92,7 @@ public class ProjectAlternativeCurrencyService : IProjectAlternativeCurrencyServ
     public async Task RemoveAsync(Guid projectId, string currencyCode, CancellationToken ct = default)
     {
         var pac = await _pacRepo.GetByProjectAndCurrencyAsync(projectId, currencyCode, ct)
-            ?? throw new KeyNotFoundException(
-                $"Alternative currency '{currencyCode}' not found for project '{projectId}'.");
+            ?? throw new KeyNotFoundException("AlternativeCurrencyNotFound");
 
         await _transactionReferenceGuard.EnsureAlternativeCurrencyCanBeRemovedAsync(
             projectId,

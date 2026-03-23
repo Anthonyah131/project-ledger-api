@@ -1,9 +1,12 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 using Stripe;
 using ProjectLedger.API.DTOs.Billing;
+using ProjectLedger.API.DTOs.Common;
 using ProjectLedger.API.Models;
+using ProjectLedger.API.Resources;
 using ProjectLedger.API.Services;
 
 namespace ProjectLedger.API.Controllers;
@@ -48,14 +51,20 @@ public class BillingController : ControllerBase
     private const string StripeDisabledMessage = "Stripe billing is disabled by configuration.";
 
     private readonly IStripeBillingService _stripeBillingService;
+    private readonly IUserService _userService;
     private readonly StripeSettings _stripeSettings;
+    private readonly IStringLocalizer<Messages> _localizer;
 
     public BillingController(
         IStripeBillingService stripeBillingService,
-        IOptions<StripeSettings> stripeSettings)
+        IUserService userService,
+        IOptions<StripeSettings> stripeSettings,
+        IStringLocalizer<Messages> localizer)
     {
         _stripeBillingService = stripeBillingService;
+        _userService = userService;
         _stripeSettings = stripeSettings.Value;
+        _localizer = localizer;
     }
 
     [HttpPost("stripe/sync-plans")]
@@ -100,7 +109,7 @@ public class BillingController : ControllerBase
         return Ok(new BillingStatusResponse
         {
             StripeEnabled = _stripeSettings.Enabled,
-            Reason = _stripeSettings.Enabled ? null : StripeDisabledMessage
+            Reason = _stripeSettings.Enabled ? null : _localizer["StripeDisabled"].Value
         });
     }
 
@@ -127,7 +136,7 @@ public class BillingController : ControllerBase
 
         var userId = User.GetRequiredUserId();
         var email = User.GetEmail()
-                    ?? throw new InvalidOperationException("Email claim not found in JWT.");
+                    ?? throw new InvalidOperationException(_localizer["EmailClaimNotFound"]);
 
         try
         {
@@ -142,11 +151,11 @@ public class BillingController : ControllerBase
         }
         catch (KeyNotFoundException ex)
         {
-            return NotFound(new { message = ex.Message });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer[ex.Message]));
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer[ex.Message]));
         }
     }
 
@@ -161,10 +170,30 @@ public class BillingController : ControllerBase
             ? await _stripeBillingService.GetCurrentUserSubscriptionAsync(userId, ct)
             : await _stripeBillingService.GetCurrentUserSubscriptionReadOnlyAsync(userId, ct);
 
-        if (subscription is null)
-            return NotFound(new { message = "No subscription found for current user." });
+        if (subscription is not null)
+            return Ok(ToMySubscriptionResponse(subscription));
 
-        return Ok(ToMySubscriptionResponse(subscription));
+        // No Stripe subscription record — build a synthetic response from the user's assigned plan.
+        // This covers manual plan assignments and deployments with Stripe disabled.
+        var user = await _userService.GetByIdAsync(userId, ct);
+        if (user is null)
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["UserNotFound"]));
+
+        return Ok(new MySubscriptionResponse
+        {
+            UserId = userId,
+            PlanId = user.UsrPlanId,
+            PlanName = user.Plan?.PlnName,
+            PlanSlug = user.Plan?.PlnSlug,
+            StripeSubscriptionId = string.Empty,
+            StripeCustomerId = null,
+            StripePriceId = null,
+            Status = "manual",
+            CancelAtPeriodEnd = false,
+            AutoRenews = false,
+            WillDowngradeToFree = false,
+            UpdatedAt = user.UsrUpdatedAt
+        });
     }
 
     [HttpPost("subscription/change-plan")]
@@ -190,11 +219,11 @@ public class BillingController : ControllerBase
         }
         catch (KeyNotFoundException ex)
         {
-            return NotFound(new { message = ex.Message });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer[ex.Message]));
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer[ex.Message]));
         }
     }
 
@@ -221,11 +250,11 @@ public class BillingController : ControllerBase
         }
         catch (KeyNotFoundException ex)
         {
-            return NotFound(new { message = ex.Message });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer[ex.Message]));
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer[ex.Message]));
         }
     }
 
@@ -246,7 +275,7 @@ public class BillingController : ControllerBase
 
         var signature = Request.Headers["Stripe-Signature"].ToString();
         if (string.IsNullOrWhiteSpace(signature))
-            return BadRequest(new { message = "Missing Stripe-Signature header." });
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", "Missing Stripe-Signature header."));
 
         try
         {
@@ -254,11 +283,11 @@ public class BillingController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer[ex.Message]));
         }
         catch (StripeException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer[ex.Message]));
         }
 
         return Ok(new { received = true });
@@ -308,7 +337,7 @@ public class BillingController : ControllerBase
             new BillingUnavailableResponse
             {
                 Code = StripeDisabledCode,
-                Message = StripeDisabledMessage
+                Message = _localizer["StripeDisabled"]
             });
     }
 }

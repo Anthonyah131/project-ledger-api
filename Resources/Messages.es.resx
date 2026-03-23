@@ -1,0 +1,512 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root><xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema><resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader><resheader name="version">
+    <value>2.0</value>
+  </resheader><resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader><resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <!-- ══ General ══ -->
+  <data name="TransactionNotFound" xml:space="preserve">
+    <value>Transacción no encontrada.</value>
+  </data>
+  <data name="UnexpectedError" xml:space="preserve">
+    <value>Ocurrió un error inesperado. Por favor, intente de nuevo más tarde.</value>
+  </data>
+
+  <!-- ══ Auth ══ -->
+  <data name="AllTokensRevokedSuccess" xml:space="preserve">
+    <value>Todos los tokens fueron revocados exitosamente.</value>
+  </data>
+  <data name="CurrentPasswordIncorrect" xml:space="preserve">
+    <value>La contraseña actual es incorrecta.</value>
+  </data>
+  <data name="EmailClaimNotFound" xml:space="preserve">
+    <value>No se encontró el claim de email en el token JWT.</value>
+  </data>
+  <data name="ForgotPasswordSent" xml:space="preserve">
+    <value>Si ese correo está registrado, recibirás un código de restablecimiento en breve.</value>
+  </data>
+  <data name="GoogleAuthNotConfigured" xml:space="preserve">
+    <value>La autenticación con Google no está configurada.</value>
+  </data>
+  <data name="InvalidCredentials" xml:space="preserve">
+    <value>Correo electrónico o contraseña inválidos.</value>
+  </data>
+  <data name="InvalidOtp" xml:space="preserve">
+    <value>Código OTP inválido, expirado o ya utilizado.</value>
+  </data>
+  <data name="InvalidRefreshToken" xml:space="preserve">
+    <value>Token de actualización inválido o expirado.</value>
+  </data>
+  <data name="OtpVerifiedSuccess" xml:space="preserve">
+    <value>OTP verificado exitosamente.</value>
+  </data>
+  <data name="PasswordUpdatedSuccess" xml:space="preserve">
+    <value>Contraseña actualizada exitosamente.</value>
+  </data>
+  <data name="RefreshTokenNotFound" xml:space="preserve">
+    <value>Token de actualización no encontrado o ya revocado.</value>
+  </data>
+  <data name="TokenRevokedSuccess" xml:space="preserve">
+    <value>Token revocado exitosamente.</value>
+  </data>
+  <data name="UnauthorizedJwt" xml:space="preserve">
+    <value>No autorizado. Se requiere un token JWT válido.</value>
+  </data>
+
+  <!-- ══ Admin ══ -->
+  <data name="AdminIsolation" xml:space="preserve">
+    <value>Los administradores globales solo pueden gestionar usuarios. No tienen acceso a datos de proyectos, categorías, gastos ni obligaciones.</value>
+  </data>
+  <data name="UserActivatedSuccess" xml:space="preserve">
+    <value>Usuario activado exitosamente.</value>
+  </data>
+  <data name="UserDeactivatedSuccess" xml:space="preserve">
+    <value>Usuario desactivado exitosamente.</value>
+  </data>
+
+  <!-- ══ Users ══ -->
+  <data name="UserAlreadyExists" xml:space="preserve">
+    <value>Ya existe un usuario con este correo electrónico.</value>
+  </data>
+  <data name="UserEmailNotFound" xml:space="preserve">
+    <value>No se encontró un usuario con el correo especificado.</value>
+  </data>
+  <data name="UserNotFound" xml:space="preserve">
+    <value>Usuario no encontrado.</value>
+  </data>
+  <data name="UserNotFoundOrDeleted" xml:space="preserve">
+    <value>Usuario no encontrado o eliminado.</value>
+  </data>
+
+  <!-- ══ Filters / Security ══ -->
+  <data name="AccountDeactivated" xml:space="preserve">
+    <value>Tu cuenta está desactivada. Solo puedes realizar operaciones de lectura.</value>
+  </data>
+  <data name="ForbiddenAccess" xml:space="preserve">
+    <value>No tienes permiso para acceder a este recurso.</value>
+  </data>
+  <data name="ForbiddenResource" xml:space="preserve">
+    <value>Prohibido. No tienes permiso para acceder a este recurso.</value>
+  </data>
+  <data name="TooManyRequests" xml:space="preserve">
+    <value>Demasiadas solicitudes. Por favor, espera e inténtalo de nuevo.</value>
+  </data>
+
+  <!-- ══ Validation ══ -->
+  <data name="AmountMustBePositive" xml:space="preserve">
+    <value>El monto debe ser mayor que cero.</value>
+  </data>
+  <data name="CannotMixSplitTypes" xml:space="preserve">
+    <value>No se pueden mezclar tipos de división 'percentage' y 'fixed' en la misma transacción.</value>
+  </data>
+  <data name="DateRequired" xml:space="preserve">
+    <value>La fecha es requerida.</value>
+  </data>
+  <data name="FixedSplitsMustSumTotal" xml:space="preserve">
+    <value>Las divisiones por monto fijo deben sumar el monto total original.</value>
+  </data>
+  <data name="InvalidAmount" xml:space="preserve">
+    <value>El monto especificado no es válido.</value>
+  </data>
+  <data name="InvalidDateRange" xml:space="preserve">
+    <value>Rango de fechas inválido: 'from' no puede ser mayor que 'to'.</value>
+  </data>
+  <data name="InvalidMonth" xml:space="preserve">
+    <value>El mes debe usar el formato YYYY-MM</value>
+  </data>
+  <data name="PercentageSplitsMustSum100" xml:space="preserve">
+    <value>Las divisiones por porcentaje deben sumar 100.</value>
+  </data>
+  <data name="TitleRequired" xml:space="preserve">
+    <value>El título es requerido.</value>
+  </data>
+  <data name="TransactionReferenceExists" xml:space="preserve">
+    <value>Ya existe una transacción con la misma referencia interna.</value>
+  </data>
+  <data name="TransactionReferenceExistsDeleted" xml:space="preserve">
+    <value>Ya existe una transacción eliminada con la misma referencia interna.</value>
+  </data>
+
+  <!-- ══ Projects ══ -->
+  <data name="CannotChangeBaseProject" xml:space="preserve">
+    <value>No se puede cambiar el proyecto base de un proyecto de pago.</value>
+  </data>
+  <data name="ProjectAccessDenied" xml:space="preserve">
+    <value>No tienes acceso a este proyecto.</value>
+  </data>
+  <data name="ProjectIdRequired" xml:space="preserve">
+    <value>El parámetro project_id es requerido.</value>
+  </data>
+  <data name="ProjectNotFound" xml:space="preserve">
+    <value>Proyecto no encontrado.</value>
+  </data>
+  <data name="ProjectPartnersDisabledHasSplits" xml:space="preserve">
+    <value>No se puede deshabilitar la división por socios: el proyecto tiene transacciones con divisiones. Elimina todas las transacciones con divisiones antes de deshabilitar esta función.</value>
+  </data>
+  <data name="ProjectPartnersEnabledRequiresMinPartners" xml:space="preserve">
+    <value>No se puede habilitar la división por socios: el proyecto necesita al menos 2 socios activos.</value>
+  </data>
+  <data name="SubprojectsNotEnabled" xml:space="preserve">
+    <value>El proyecto no tiene habilitados los subproyectos de pago.</value>
+  </data>
+
+  <!-- ══ Workspaces ══ -->
+  <data name="WorkspaceAccessDenied" xml:space="preserve">
+    <value>No tienes acceso a este espacio de trabajo.</value>
+  </data>
+  <data name="WorkspaceCannotDeleteActiveProjects" xml:space="preserve">
+    <value>No se puede eliminar un espacio de trabajo que tiene proyectos activos.</value>
+  </data>
+  <data name="WorkspaceNotFound" xml:space="preserve">
+    <value>Espacio de trabajo no encontrado.</value>
+  </data>
+
+  <!-- ══ Members ══ -->
+  <data name="InvalidRole" xml:space="preserve">
+    <value>Rol inválido. Permitidos: editor, viewer.</value>
+  </data>
+  <data name="MemberAlreadyExists" xml:space="preserve">
+    <value>El usuario ya es miembro de este proyecto.</value>
+  </data>
+  <data name="MemberCannotChangeOwnerRole" xml:space="preserve">
+    <value>No se puede cambiar el rol del propietario del proyecto.</value>
+  </data>
+  <data name="MemberCannotRemoveOwner" xml:space="preserve">
+    <value>No se puede eliminar al propietario del proyecto.</value>
+  </data>
+  <data name="MemberNotFound" xml:space="preserve">
+    <value>Miembro del proyecto no encontrado.</value>
+  </data>
+
+  <!-- ══ Categories ══ -->
+  <data name="CategoryCannotDeleteDefault" xml:space="preserve">
+    <value>No se puede eliminar la categoría por defecto 'General'. Puedes renombrarla o crear otras categorías.</value>
+  </data>
+  <data name="CategoryHasActiveTransactions" xml:space="preserve">
+    <value>No se puede eliminar la categoría porque tiene gastos o ingresos activos relacionados.</value>
+  </data>
+  <data name="CategoryNotFound" xml:space="preserve">
+    <value>Categoría no encontrada en este proyecto.</value>
+  </data>
+
+  <!-- ══ Expenses ══ -->
+  <data name="ExpenseNotFound" xml:space="preserve">
+    <value>Gasto no encontrado en este proyecto.</value>
+  </data>
+  <data name="ExpenseNotTemplate" xml:space="preserve">
+    <value>El gasto especificado no es una plantilla.</value>
+  </data>
+  <data name="TemplateNotFound" xml:space="preserve">
+    <value>Plantilla no encontrada en este proyecto.</value>
+  </data>
+
+  <!-- ══ Incomes ══ -->
+  <data name="IncomeNotFound" xml:space="preserve">
+    <value>Ingreso no encontrado en este proyecto.</value>
+  </data>
+
+  <!-- ══ Obligations ══ -->
+  <data name="EquivalentAmountRequiredForCrossCurrency" xml:space="preserve">
+    <value>Se requiere el equivalente monetario para este pago cuando difieren las monedas.</value>
+  </data>
+  <data name="InsufficientFunds" xml:space="preserve">
+    <value>Fondos insuficientes para completar la operación.</value>
+  </data>
+  <data name="ObligationAlreadyDeleted" xml:space="preserve">
+    <value>Esta obligación ya fue eliminada.</value>
+  </data>
+  <data name="ObligationAlreadyPaid" xml:space="preserve">
+    <value>Esta obligación ya está completamente pagada. No se permiten pagos adicionales.</value>
+  </data>
+  <data name="ObligationHasActiveExpenses" xml:space="preserve">
+    <value>No se puede eliminar la obligación porque tiene pagos de gastos activos vinculados.</value>
+  </data>
+  <data name="ObligationNotFound" xml:space="preserve">
+    <value>Obligación no encontrada en este proyecto.</value>
+  </data>
+  <data name="ObligationProjectMismatch" xml:space="preserve">
+    <value>La obligación no pertenece al mismo proyecto que el gasto.</value>
+  </data>
+  <data name="PaymentExceedsObligationTotal" xml:space="preserve">
+    <value>El pago excedería el total de la obligación.</value>
+  </data>
+  <data name="PaymentSuccess" xml:space="preserve">
+    <value>Pago procesado exitosamente.</value>
+  </data>
+
+  <!-- ══ Budgets ══ -->
+  <data name="BudgetAlreadyExists" xml:space="preserve">
+    <value>Ya existe un presupuesto activo para este proyecto. Actualiza o elimina el existente primero.</value>
+  </data>
+  <data name="BudgetNotFound" xml:space="preserve">
+    <value>No se encontró presupuesto activo para este proyecto.</value>
+  </data>
+
+  <!-- ══ Partners ══ -->
+  <data name="DuplicatePartnerInSplits" xml:space="preserve">
+    <value>Se encontró un socio duplicado en las divisiones.</value>
+  </data>
+  <data name="PartnerAlreadyAssignedToProject" xml:space="preserve">
+    <value>Este socio ya está asignado al proyecto.</value>
+  </data>
+  <data name="PartnerHasActivePaymentMethodsInProjects" xml:space="preserve">
+    <value>No se puede eliminar un socio cuyos métodos de pago están vinculados a proyectos activos.</value>
+  </data>
+  <data name="PartnerHasPaymentMethods" xml:space="preserve">
+    <value>No se puede eliminar un socio que aún tiene métodos de pago activos. Elimínalos primero.</value>
+  </data>
+  <data name="PartnerHasProjects" xml:space="preserve">
+    <value>No se puede eliminar un socio que aún está asignado a uno o más proyectos. Desasígnalo primero.</value>
+  </data>
+  <data name="PartnerHasLinkedPaymentMethods" xml:space="preserve">
+    <value>No se puede eliminar al socio del proyecto mientras tenga métodos de pago vinculados. Desvincula esos métodos de pago primero.</value>
+  </data>
+  <data name="PartnerHasSettlements" xml:space="preserve">
+    <value>No se puede eliminar al socio del proyecto mientras tenga liquidaciones registradas.</value>
+  </data>
+  <data name="PartnerHasSplits" xml:space="preserve">
+    <value>No se puede eliminar al socio del proyecto mientras tenga divisiones de gastos o ingresos registradas.</value>
+  </data>
+  <data name="PartnerNotAssignedToProject" xml:space="preserve">
+    <value>El socio no está asignado a este proyecto.</value>
+  </data>
+  <data name="PartnerNotFound" xml:space="preserve">
+    <value>Socio no encontrado.</value>
+  </data>
+  <data name="PartnerNotOwnedByUser" xml:space="preserve">
+    <value>Solo puedes asignar tus propios socios a los proyectos.</value>
+  </data>
+  <data name="PartnersMustBeDifferent" xml:space="preserve">
+    <value>Los socios de origen y destino deben ser diferentes.</value>
+  </data>
+  <data name="PartnersNotEnabled" xml:space="preserve">
+    <value>Los socios no están habilitados para este proyecto.</value>
+  </data>
+
+  <!-- ══ Settlements ══ -->
+  <data name="SettlementNotFound" xml:space="preserve">
+    <value>Liquidación no encontrada en este proyecto.</value>
+  </data>
+
+  <!-- ══ Payment Methods ══ -->
+  <data name="AccountAmountRequiredForDistinctCurrencies" xml:space="preserve">
+    <value>El monto de cuenta es requerido cuando la moneda del método de pago difiere tanto de la moneda original como de la del proyecto.</value>
+  </data>
+  <data name="PaymentMethodAlreadyLinked" xml:space="preserve">
+    <value>El método de pago ya está vinculado a este socio.</value>
+  </data>
+  <data name="PaymentMethodAlreadyLinkedToProject" xml:space="preserve">
+    <value>Este método de pago ya está vinculado al proyecto.</value>
+  </data>
+  <data name="PaymentMethodCannotUnlinkPartner" xml:space="preserve">
+    <value>No se puede desvincular el socio: este método de pago está vinculado a uno o más proyectos. Elimínelo de todos los proyectos primero.</value>
+  </data>
+  <data name="PaymentMethodHasActiveTransactions" xml:space="preserve">
+    <value>No se puede eliminar el método de pago porque tiene gastos o ingresos activos relacionados.</value>
+  </data>
+  <data name="PaymentMethodNoPartnerLinked" xml:space="preserve">
+    <value>El método de pago no tiene un socio vinculado.</value>
+  </data>
+  <data name="PaymentMethodNotFound" xml:space="preserve">
+    <value>Método de pago no encontrado.</value>
+  </data>
+  <data name="PaymentMethodNotLinkedToProject" xml:space="preserve">
+    <value>El método de pago no está vinculado al proyecto especificado.</value>
+  </data>
+  <data name="ProjectPaymentMethodHasActiveTransactions" xml:space="preserve">
+    <value>No se puede desvincular el método de pago del proyecto porque tiene gastos o ingresos activos relacionados en este proyecto.</value>
+  </data>
+
+  <!-- ══ Currencies ══ -->
+  <data name="AlternativeCurrencyAlreadyExists" xml:space="preserve">
+    <value>Esta moneda ya está configurada como alternativa para este proyecto.</value>
+  </data>
+  <data name="AlternativeCurrencyCannotBeBaseCurrency" xml:space="preserve">
+    <value>No se puede agregar la moneda base del proyecto como moneda alternativa.</value>
+  </data>
+  <data name="AlternativeCurrencyHasActiveTransactions" xml:space="preserve">
+    <value>No se puede eliminar la moneda alternativa porque hay gastos o ingresos activos que la usan en este proyecto.</value>
+  </data>
+  <data name="AlternativeCurrencyNotFound" xml:space="preserve">
+    <value>Moneda alternativa no encontrada para este proyecto.</value>
+  </data>
+  <data name="CurrencyNotActive" xml:space="preserve">
+    <value>La moneda especificada no está activa.</value>
+  </data>
+  <data name="CurrencyNotFound" xml:space="preserve">
+    <value>Moneda no encontrada.</value>
+  </data>
+  <data name="ExchangeRateMustBePositive" xml:space="preserve">
+    <value>El tipo de cambio debe ser mayor que cero.</value>
+  </data>
+  <data name="ExchangeRateNotAvailable" xml:space="preserve">
+    <value>El tipo de cambio no está disponible para el par de monedas solicitado.</value>
+  </data>
+  <data name="ExchangeRateParamsRequired" xml:space="preserve">
+    <value>Los parámetros 'from' y 'to' son requeridos.</value>
+  </data>
+  <data name="ExchangeRateServiceDisabled" xml:space="preserve">
+    <value>La API de tipos de cambio está deshabilitada por configuración.</value>
+  </data>
+  <data name="ExchangeRateServiceMissingApiKey" xml:space="preserve">
+    <value>Falta la clave de la API de tipos de cambio. Configura ExchangeRateApi:ApiKey.</value>
+  </data>
+  <data name="ExchangeRateServiceUnavailable" xml:space="preserve">
+    <value>El servicio de tipos de cambio no está disponible temporalmente. Inténtalo más tarde o ingresa el tipo de cambio manualmente.</value>
+  </data>
+  <data name="InvalidCurrencyCode" xml:space="preserve">
+    <value>La moneda original debe ser un código ISO válido de 3 letras.</value>
+  </data>
+
+  <!-- ══ Plans & Billing ══ -->
+  <data name="InvalidPlanPrice" xml:space="preserve">
+    <value>El plan tiene un precio mensual inválido.</value>
+  </data>
+  <data name="NoActivePlansForSync" xml:space="preserve">
+    <value>No se encontraron planes activos para sincronizar con Stripe.</value>
+  </data>
+  <data name="NoDefaultPlanAvailable" xml:space="preserve">
+    <value>No se encontraron planes activos. Inicializa la base de datos con al menos un plan.</value>
+  </data>
+  <data name="PlanIsFree" xml:space="preserve">
+    <value>El plan es gratuito y no requiere checkout.</value>
+  </data>
+  <data name="PlanMissingStripePriceId" xml:space="preserve">
+    <value>El plan no tiene un Stripe Price ID. Ejecuta sync-plans primero.</value>
+  </data>
+  <data name="PlanNotActive" xml:space="preserve">
+    <value>El plan no está activo.</value>
+  </data>
+  <data name="PlanNotFound" xml:space="preserve">
+    <value>Plan no encontrado.</value>
+  </data>
+  <data name="PlanNotFoundOrInactive" xml:space="preserve">
+    <value>El plan del usuario no fue encontrado o está inactivo.</value>
+  </data>
+  <data name="StripeDisabled" xml:space="preserve">
+    <value>La facturación de Stripe está deshabilitada por configuración.</value>
+  </data>
+  <data name="StripeMissingSecretKey" xml:space="preserve">
+    <value>Falta la clave secreta de Stripe. Configura Stripe:SecretKey.</value>
+  </data>
+  <data name="StripeMissingWebhookSecret" xml:space="preserve">
+    <value>Falta el secreto del webhook de Stripe. Configura Stripe:WebhookSecret.</value>
+  </data>
+
+  <!-- ══ Plan Denied ══ -->
+  <data name="PlanDenied" xml:space="preserve">
+    <value>Tu plan actual '{0}' no incluye la función '{1}'. Por favor, actualiza tu plan.</value>
+  </data>
+  <data name="PlanLimitExceeded" xml:space="preserve">
+    <value>Has alcanzado el límite para '{0}' en tu plan actual. Por favor, actualiza tu plan.</value>
+  </data>
+
+  <!-- ══ Subscriptions ══ -->
+  <data name="SubscriptionAlreadyActive" xml:space="preserve">
+    <value>El usuario ya tiene una suscripción activa. Usa cambiar plan en lugar de crear una segunda suscripción.</value>
+  </data>
+  <data name="SubscriptionAlreadyCanceled" xml:space="preserve">
+    <value>La suscripción actual ya está cancelada.</value>
+  </data>
+  <data name="SubscriptionAlreadyOnPlan" xml:space="preserve">
+    <value>La suscripción ya está en el plan solicitado.</value>
+  </data>
+  <data name="SubscriptionCanceledButNotLoaded" xml:space="preserve">
+    <value>La suscripción fue cancelada en Stripe pero no pudo ser cargada localmente.</value>
+  </data>
+  <data name="SubscriptionCannotBeManagedAutomatically" xml:space="preserve">
+    <value>La suscripción se encuentra en un estado que no puede ser gestionado automáticamente.</value>
+  </data>
+  <data name="SubscriptionMissingBillableItem" xml:space="preserve">
+    <value>La suscripción de Stripe no tiene un ítem facturable para actualizar.</value>
+  </data>
+  <data name="SubscriptionNotFound" xml:space="preserve">
+    <value>No se encontró suscripción para el usuario actual.</value>
+  </data>
+  <data name="SubscriptionUpdatedButNotLoaded" xml:space="preserve">
+    <value>La suscripción fue actualizada en Stripe pero no pudo ser cargada localmente.</value>
+  </data>
+
+  <!-- ══ Document Intelligence ══ -->
+  <data name="DocumentIntelligenceDisabled" xml:space="preserve">
+    <value>Azure Document Intelligence está deshabilitado por configuración.</value>
+  </data>
+  <data name="DocumentIntelligenceMissingApiKey" xml:space="preserve">
+    <value>Falta la clave de API de Azure Document Intelligence.</value>
+  </data>
+  <data name="DocumentIntelligenceMissingEndpoint" xml:space="preserve">
+    <value>Falta el endpoint de Azure Document Intelligence.</value>
+  </data>
+  <data name="DocumentIntelligenceNoAnalyzeResult" xml:space="preserve">
+    <value>Azure Document Intelligence no devolvió un resultado de análisis.</value>
+  </data>
+  <data name="DocumentIntelligenceNoDocumentFields" xml:space="preserve">
+    <value>No se encontraron campos del documento en el resultado del análisis.</value>
+  </data>
+  <data name="DocumentIntelligenceNoOperationLocation" xml:space="preserve">
+    <value>Azure Document Intelligence no devolvió una ubicación de operación válida.</value>
+  </data>
+  <data name="DocumentIntelligencePollFailed" xml:space="preserve">
+    <value>La consulta a Azure Document Intelligence falló.</value>
+  </data>
+  <data name="DocumentIntelligenceTimeout" xml:space="preserve">
+    <value>Azure Document Intelligence agotó el tiempo de espera al procesar el documento.</value>
+  </data>
+  <data name="FileRequired" xml:space="preserve">
+    <value>Se requiere un archivo no vacío.</value>
+  </data>
+  <data name="FileTooLarge" xml:space="preserve">
+    <value>El archivo es demasiado grande. El tamaño máximo permitido es {0} MB.</value>
+  </data>
+  <data name="UnsupportedContentType" xml:space="preserve">
+    <value>Tipo de contenido no soportado. Permitidos: PDF, JPG, PNG, WEBP, BMP, TIFF, HEIF.</value>
+  </data>
+
+  <!-- ══ Chatbot ══ -->
+  <data name="ChatbotAllProvidersUnavailable" xml:space="preserve">
+    <value>Todos los proveedores de chatbot no están disponibles en este momento.</value>
+  </data>
+  <data name="ChatbotNoProvidersEnabled" xml:space="preserve">
+    <value>No hay proveedores de chatbot habilitados. Configura al menos una API key.</value>
+  </data>
+  <data name="ChatbotProviderEmptyBody" xml:space="preserve">
+    <value>El proveedor de IA devolvió un cuerpo de respuesta vacío.</value>
+  </data>
+  <data name="ChatbotProviderEmptyMessage" xml:space="preserve">
+    <value>El proveedor de IA devolvió un mensaje vacío.</value>
+  </data>
+
+  <!-- ══ Dashboard ══ -->
+
+</root>

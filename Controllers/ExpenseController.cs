@@ -1,6 +1,8 @@
+﻿using Microsoft.Extensions.Localization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.Common;
+using ProjectLedger.API.Resources;
 using ProjectLedger.API.DTOs.Expense;
 using ProjectLedger.API.Extensions.Mappings;
 using ProjectLedger.API.Models;
@@ -36,6 +38,7 @@ public class ExpenseController : ControllerBase
     private readonly IAuditLogService _auditLogService;
     private readonly ITransactionCurrencyExchangeService _exchangeService;
     private readonly IExpenseDocumentIntelligenceService _expenseDocumentAiService;
+    private readonly IStringLocalizer<Messages> _localizer;
 
     public ExpenseController(
         IExpenseService expenseService,
@@ -44,7 +47,8 @@ public class ExpenseController : ControllerBase
         IPlanAuthorizationService planAuth,
         IAuditLogService auditLogService,
         ITransactionCurrencyExchangeService exchangeService,
-        IExpenseDocumentIntelligenceService expenseDocumentAiService)
+        IExpenseDocumentIntelligenceService expenseDocumentAiService,
+        IStringLocalizer<Messages> localizer)
     {
         _expenseService = expenseService;
         _accessService = accessService;
@@ -53,6 +57,7 @@ public class ExpenseController : ControllerBase
         _auditLogService = auditLogService;
         _exchangeService = exchangeService;
         _expenseDocumentAiService = expenseDocumentAiService;
+        _localizer = localizer;
     }
 
     // ── GET /api/projects/{projectId}/expenses ──────────────
@@ -132,10 +137,10 @@ public class ExpenseController : ControllerBase
 
         var template = await _expenseService.GetByIdAsync(templateId, ct);
         if (template is null || template.ExpProjectId != projectId)
-            return NotFound(new { message = "Template not found in this project." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["TemplateNotFound"]));
 
         if (!template.ExpIsTemplate)
-            return BadRequest(new { message = "The specified expense is not a template." });
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["ExpenseNotTemplate"]));
 
         var userId = User.GetRequiredUserId();
         var expense = template.ToEntityFromTemplate(projectId, userId, request);
@@ -179,7 +184,7 @@ public class ExpenseController : ControllerBase
     {
         var expense = await _expenseService.GetByIdAsync(expenseId, ct);
         if (expense == null || expense.ExpProjectId != projectId)
-            return NotFound(new { message = "Expense not found in this project." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["ExpenseNotFound"]));
 
         return Ok(expense.ToResponse());
     }
@@ -356,7 +361,7 @@ public class ExpenseController : ControllerBase
 
         var expense = await _expenseService.GetByIdAsync(expenseId, ct);
         if (expense == null || expense.ExpProjectId != projectId)
-            return NotFound(new { message = "Expense not found in this project." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["ExpenseNotFound"]));
 
         expense.ApplyUpdate(request);
         var updateSplits = request.Splits?.Select(s => new SplitInput(
@@ -397,7 +402,7 @@ public class ExpenseController : ControllerBase
 
         var expense = await _expenseService.GetByIdAsync(expenseId, ct);
         if (expense == null || expense.ExpProjectId != projectId)
-            return NotFound(new { message = "Expense not found in this project." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["ExpenseNotFound"]));
 
         expense.ExpIsActive = request.IsActive;
         await _expenseService.UpdateAsync(expense, ct: ct);
@@ -429,7 +434,7 @@ public class ExpenseController : ControllerBase
 
         var expense = await _expenseService.GetByIdAsync(expenseId, ct);
         if (expense == null || expense.ExpProjectId != projectId)
-            return NotFound(new { message = "Expense not found in this project." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["ExpenseNotFound"]));
 
         await _expenseService.SoftDeleteAsync(expenseId, userId, ct);
 
@@ -439,10 +444,10 @@ public class ExpenseController : ControllerBase
     private async Task<DocumentReadQuotaResponse> BuildDocumentReadQuotaAsync(Guid projectId, CancellationToken ct)
     {
         var project = await _projectService.GetByIdAsync(projectId, ct)
-            ?? throw new KeyNotFoundException($"Project '{projectId}' not found.");
+            ?? throw new KeyNotFoundException("ProjectNotFound");
 
         if (project.PrjIsDeleted)
-            throw new KeyNotFoundException($"Project '{projectId}' not found.");
+            throw new KeyNotFoundException("ProjectNotFound");
 
         var ownerUserId = project.PrjOwnerUserId;
         var capabilities = await _planAuth.GetCapabilitiesAsync(ownerUserId, ct);

@@ -1,4 +1,4 @@
-using ProjectLedger.API.Models;
+﻿using ProjectLedger.API.Models;
 using ProjectLedger.API.Repositories;
 
 namespace ProjectLedger.API.Services;
@@ -42,7 +42,7 @@ public class CategoryService : ICategoryService
     {
         // Validar límite de categorías por proyecto
         var project = await _projectRepo.GetByIdAsync(category.CatProjectId, ct)
-            ?? throw new KeyNotFoundException($"Project '{category.CatProjectId}' not found.");
+            ?? throw new KeyNotFoundException("ProjectNotFound");
 
         var existingCategories = await _categoryRepo.GetByProjectIdAsync(category.CatProjectId, ct);
         await _planAuth.ValidateLimitAsync(
@@ -73,15 +73,13 @@ public class CategoryService : ICategoryService
     public async Task SoftDeleteAsync(Guid id, Guid deletedByUserId, CancellationToken ct = default)
     {
         var category = await _categoryRepo.GetByIdAsync(id, ct)
-            ?? throw new KeyNotFoundException($"Category '{id}' not found.");
+            ?? throw new KeyNotFoundException("CategoryNotFound");
 
         if (category.CatIsDeleted)
-            throw new KeyNotFoundException($"Category '{id}' not found.");
+            throw new KeyNotFoundException("CategoryNotFound");
 
         if (category.CatIsDefault)
-            throw new InvalidOperationException(
-                "No se puede eliminar la categoría por defecto 'General'. " +
-                "Puedes renombrarla o crear otras categorías.");
+            throw new InvalidOperationException("CategoryCannotDeleteDefault");
 
         await _transactionReferenceGuard.EnsureCategoryCanBeDeletedAsync(id, ct);
 

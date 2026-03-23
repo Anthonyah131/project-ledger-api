@@ -69,8 +69,7 @@ public class AuthService : IAuthService
         // 2. Obtener el plan gratuito por defecto
         var defaultPlan = await _planRepo.GetBySlugAsync("free", ct)
                           ?? (await _planRepo.GetActiveAsync(ct)).FirstOrDefault()
-                          ?? throw new InvalidOperationException(
-                              "No active plans found. Seed the database with at least one plan.");
+                          ?? throw new InvalidOperationException("NoDefaultPlanAvailable");
 
         // 3. Crear usuario con password hasheado
         var user = new User
@@ -221,8 +220,7 @@ public class AuthService : IAuthService
             {
                 var defaultPlan = await _planRepo.GetBySlugAsync("free", ct)
                                   ?? (await _planRepo.GetActiveAsync(ct)).FirstOrDefault()
-                                  ?? throw new InvalidOperationException(
-                                      "No active plans found. Seed the database with at least one plan.");
+                                  ?? throw new InvalidOperationException("NoDefaultPlanAvailable");
 
                 user = new User
                 {

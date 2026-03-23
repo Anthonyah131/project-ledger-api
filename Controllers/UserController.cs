@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
+using ProjectLedger.API.DTOs.Common;
 using ProjectLedger.API.DTOs.User;
 using ProjectLedger.API.Extensions.Mappings;
+using ProjectLedger.API.Resources;
 using ProjectLedger.API.Services;
 
 namespace ProjectLedger.API.Controllers;
@@ -24,15 +27,18 @@ public class UserController : ControllerBase
     private readonly IUserService _userService;
     private readonly IAuthService _authService;
     private readonly IEmailService _emailService;
+    private readonly IStringLocalizer<Messages> _localizer;
 
     public UserController(
         IUserService userService,
         IAuthService authService,
-        IEmailService emailService)
+        IEmailService emailService,
+        IStringLocalizer<Messages> localizer)
     {
         _userService = userService;
         _authService = authService;
         _emailService = emailService;
+        _localizer = localizer;
     }
 
     // ── GET /api/users/profile ──────────────────────────────
@@ -51,7 +57,7 @@ public class UserController : ControllerBase
         var user = await _userService.GetByIdAsync(userId, ct);
 
         if (user is null)
-            return NotFound(new { message = "User not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["UserNotFound"]));
 
         return Ok(user.ToProfileResponse());
     }
@@ -81,7 +87,7 @@ public class UserController : ControllerBase
         var user = await _userService.GetByIdAsync(userId, ct);
 
         if (user is null)
-            return NotFound(new { message = "User not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["UserNotFound"]));
 
         user.ApplyUpdate(request);
         await _userService.UpdateAsync(user, ct);
@@ -117,11 +123,11 @@ public class UserController : ControllerBase
         var user = await _userService.GetByIdAsync(userId, ct);
 
         if (user is null)
-            return NotFound(new { message = "User not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["UserNotFound"]));
 
         // Verificar contraseña actual
         if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.UsrPasswordHash))
-            return BadRequest(new { message = "Current password is incorrect." });
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["CurrentPasswordIncorrect"]));
 
         // Hashear y actualizar
         user.UsrPasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword, workFactor: 12);

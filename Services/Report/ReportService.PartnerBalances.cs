@@ -10,10 +10,10 @@ public partial class ReportService
         Guid projectId, DateOnly? from, DateOnly? to, CancellationToken ct = default)
     {
         var project = await _projectService.GetByIdAsync(projectId, ct)
-            ?? throw new KeyNotFoundException("Project not found.");
+            ?? throw new KeyNotFoundException("ProjectNotFound");
 
         if (!project.PrjPartnersEnabled)
-            throw new InvalidOperationException("Partners are not enabled for this project.");
+            throw new InvalidOperationException("PartnersNotEnabled");
 
         // Delegar al mismo servicio que usa el endpoint /partners/balance
         // Garantiza consistencia total con lo que ve el frontend

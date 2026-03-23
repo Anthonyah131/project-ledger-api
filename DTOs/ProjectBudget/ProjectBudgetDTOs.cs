@@ -12,10 +12,10 @@ namespace ProjectLedger.API.DTOs.ProjectBudget;
 public class SetProjectBudgetRequest
 {
     [Required]
-    [Range(0.01, 99999999999999.99, ErrorMessage = "TotalBudget must be greater than 0.")]
+    [Range(0.01, 999999999999.99, ErrorMessage = "Total budget must be between 0.01 and 999,999,999,999.99.")]
     public decimal TotalBudget { get; set; }
 
-    [Range(1.00, 100.00, ErrorMessage = "AlertPercentage must be between 1 and 100.")]
+    [Range(1.00, 100.00, ErrorMessage = "Alert percentage must be between 1 and 100.")]
     public decimal AlertPercentage { get; set; } = 80.00m;
 }
 

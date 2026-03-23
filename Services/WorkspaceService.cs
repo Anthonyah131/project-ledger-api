@@ -63,12 +63,11 @@ public class WorkspaceService : IWorkspaceService
     public async Task SoftDeleteAsync(Guid id, Guid deletedByUserId, CancellationToken ct = default)
     {
         var workspace = await _workspaceRepo.GetByIdAsync(id, ct)
-            ?? throw new KeyNotFoundException($"Workspace '{id}' not found.");
+            ?? throw new KeyNotFoundException("WorkspaceNotFound");
 
         var hasProjects = await _workspaceRepo.HasActiveProjectsAsync(id, ct);
         if (hasProjects)
-            throw new InvalidOperationException(
-                "Cannot delete a workspace that has active projects.");
+            throw new InvalidOperationException("WorkspaceCannotDeleteActiveProjects");
 
         workspace.WksIsDeleted = true;
         workspace.WksDeletedAt = DateTime.UtcNow;

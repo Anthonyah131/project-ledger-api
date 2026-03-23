@@ -23,10 +23,10 @@ public class CreatePaymentMethodRequest
     [RegularExpression(@"^[A-Z]{3}$", ErrorMessage = "Currency must be uppercase ISO 4217 (e.g. USD, EUR, CRC).")]
     public string Currency { get; set; } = null!;
 
-    [StringLength(255, ErrorMessage = "BankName cannot exceed 255 characters.")]
+    [StringLength(255, ErrorMessage = "Bank name cannot exceed 255 characters.")]
     public string? BankName { get; set; }
 
-    [StringLength(100, ErrorMessage = "AccountNumber cannot exceed 100 characters.")]
+    [StringLength(100, ErrorMessage = "Account number cannot exceed 100 characters.")]
     public string? AccountNumber { get; set; }
 
     public string? Description { get; set; }
@@ -48,10 +48,10 @@ public class UpdatePaymentMethodRequest
     [RegularExpression(@"^(bank|cash|card)$", ErrorMessage = "Type must be 'bank', 'cash', or 'card'.")]
     public string Type { get; set; } = null!;
 
-    [StringLength(255, ErrorMessage = "BankName cannot exceed 255 characters.")]
+    [StringLength(255, ErrorMessage = "Bank name cannot exceed 255 characters.")]
     public string? BankName { get; set; }
 
-    [StringLength(100, ErrorMessage = "AccountNumber cannot exceed 100 characters.")]
+    [StringLength(100, ErrorMessage = "Account number cannot exceed 100 characters.")]
     public string? AccountNumber { get; set; }
 
     public string? Description { get; set; }

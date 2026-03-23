@@ -18,7 +18,7 @@ public class SplitCurrencyExchangeConfiguration : IEntityTypeConfiguration<Split
         builder.Property(e => e.SceSettlementId).HasColumnName("sce_settlement_id");
         builder.Property(e => e.SceCurrencyCode).HasColumnName("sce_currency_code").HasMaxLength(3).IsRequired();
         builder.Property(e => e.SceExchangeRate).HasColumnName("sce_exchange_rate").HasColumnType("numeric(18,6)").IsRequired();
-        builder.Property(e => e.SceConvertedAmount).HasColumnName("sce_converted_amount").HasColumnType("numeric(14,2)").IsRequired();
+        builder.Property(e => e.SceConvertedAmount).HasColumnName("sce_converted_amount").HasColumnType("numeric(18,4)").IsRequired();
         builder.Property(e => e.SceCreatedAt).HasColumnName("sce_created_at").HasDefaultValueSql("now()");
 
         // Índices únicos filtrados — evita duplicados de moneda por fuente

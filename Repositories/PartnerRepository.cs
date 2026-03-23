@@ -84,6 +84,14 @@ public class PartnerRepository : Repository<Partner>, IPartnerRepository
         return (items, totalCount);
     }
 
+    public async Task<bool> HasActivePaymentMethodsAsync(Guid partnerId, CancellationToken ct = default)
+        => await Context.Set<PaymentMethod>()
+            .AnyAsync(pm => pm.PmtOwnerPartnerId == partnerId && !pm.PmtIsDeleted, ct);
+
+    public async Task<bool> IsAssignedToAnyProjectAsync(Guid partnerId, CancellationToken ct = default)
+        => await Context.Set<ProjectPartner>()
+            .AnyAsync(pp => pp.PtpPartnerId == partnerId, ct);
+
     public async Task<bool> HasActivePaymentMethodsInProjectsAsync(Guid partnerId, CancellationToken ct = default)
         => await Context.Set<ProjectPaymentMethod>()
             .AnyAsync(ppm =>

@@ -15,6 +15,10 @@ BEGIN;
 TRUNCATE TABLE
     public.audit_logs,
     public.transaction_currency_exchanges,
+    public.expense_splits,
+    public.income_splits,
+    public.split_currency_exchanges,
+    public.partner_settlements,
     public.incomes,
     public.expenses,
     public.obligations,

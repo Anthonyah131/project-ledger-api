@@ -8,10 +8,10 @@ namespace ProjectLedger.API.DTOs.Admin;
 public class AdminUpdateUserRequest
 {
     [Required]
-    [StringLength(255, MinimumLength = 1, ErrorMessage = "FullName must be between 1 and 255 characters.")]
+    [StringLength(255, MinimumLength = 1, ErrorMessage = "Full name must be between 1 and 255 characters.")]
     public string FullName { get; set; } = null!;
 
-    [Url(ErrorMessage = "AvatarUrl must be a valid URL.")]
+    [Url(ErrorMessage = "Avatar URL must be a valid URL.")]
     public string? AvatarUrl { get; set; }
 
     public Guid? PlanId { get; set; }

@@ -16,7 +16,7 @@ public class CreateCategoryRequest
 
     public string? Description { get; set; }
 
-    [Range(0.01, 99999999999999.99, ErrorMessage = "BudgetAmount must be greater than 0.")]
+    [Range(0.01, 999999999999.99, ErrorMessage = "Budget amount must be between 0.01 and 999,999,999,999.99.")]
     public decimal? BudgetAmount { get; set; }
 }
 
@@ -29,7 +29,7 @@ public class UpdateCategoryRequest
 
     public string? Description { get; set; }
 
-    [Range(0.01, 99999999999999.99, ErrorMessage = "BudgetAmount must be greater than 0.")]
+    [Range(0.01, 999999999999.99, ErrorMessage = "Budget amount must be between 0.01 and 999,999,999,999.99.")]
     public decimal? BudgetAmount { get; set; }
 }
 

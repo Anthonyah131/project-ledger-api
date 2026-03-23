@@ -33,7 +33,7 @@ public class UserReportService : IUserReportService
             var userPmIds = userPaymentMethods.Select(pm => pm.PmtId).ToHashSet();
             var invalid = paymentMethodIds.Where(id => !userPmIds.Contains(id)).ToList();
             if (invalid.Count > 0)
-                throw new KeyNotFoundException("One or more payment methods not found.");
+                throw new KeyNotFoundException("PaymentMethodNotFound");
 
             userPaymentMethods = userPaymentMethods
                 .Where(pm => paymentMethodIds.Contains(pm.PmtId))

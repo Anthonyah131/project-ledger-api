@@ -1,3 +1,4 @@
+﻿using Microsoft.Extensions.Localization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.Common;
@@ -5,6 +6,7 @@ using ProjectLedger.API.DTOs.Partner;
 using ProjectLedger.API.Extensions;
 using ProjectLedger.API.Extensions.Mappings;
 using ProjectLedger.API.Models;
+using ProjectLedger.API.Resources;
 using ProjectLedger.API.Services;
 
 namespace ProjectLedger.API.Controllers;
@@ -25,17 +27,20 @@ public class ProjectPartnersController : ControllerBase
     private readonly IProjectAccessService _accessService;
     private readonly IPartnerBalanceService _balanceService;
     private readonly IPartnerSettlementService _settlementService;
+    private readonly IStringLocalizer<Messages> _localizer;
 
     public ProjectPartnersController(
         IProjectService projectService,
         IProjectAccessService accessService,
         IPartnerBalanceService balanceService,
-        IPartnerSettlementService settlementService)
+        IPartnerSettlementService settlementService,
+        IStringLocalizer<Messages> localizer)
     {
         _projectService = projectService;
         _accessService = accessService;
         _balanceService = balanceService;
         _settlementService = settlementService;
+        _localizer = localizer;
     }
 
     // ── Helper ───────────────────────────────────────────────
@@ -46,10 +51,10 @@ public class ProjectPartnersController : ControllerBase
         await _accessService.ValidateAccessAsync(userId, projectId, role, ct);
 
         var project = await _projectService.GetByIdAsync(projectId, ct)
-            ?? throw new KeyNotFoundException($"Project {projectId} not found.");
+            ?? throw new KeyNotFoundException("ProjectNotFound");
 
         if (!project.PrjPartnersEnabled)
-            throw new InvalidOperationException("Partners module is not enabled for this project.");
+            throw new InvalidOperationException("PartnersNotEnabled");
 
         return project;
     }
@@ -147,13 +152,13 @@ public class ProjectPartnersController : ControllerBase
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
         if (request.Amount <= 0)
-            return BadRequest(new { message = "Amount must be greater than zero." });
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["AmountMustBePositive"]));
 
         if (request.ExchangeRate <= 0)
-            return BadRequest(new { message = "ExchangeRate must be greater than zero." });
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["ExchangeRateMustBePositive"]));
 
         if (request.FromPartnerId == request.ToPartnerId)
-            return BadRequest(new { message = "From and To partners must be different." });
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["PartnersMustBeDifferent"]));
 
         await GetProjectWithPartnersEnabledAsync(projectId, "editor", ct);
 
@@ -189,10 +194,10 @@ public class ProjectPartnersController : ControllerBase
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
         if (request.Amount.HasValue && request.Amount.Value <= 0)
-            return BadRequest(new { message = "Amount must be greater than zero." });
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["AmountMustBePositive"]));
 
         if (request.ExchangeRate.HasValue && request.ExchangeRate.Value <= 0)
-            return BadRequest(new { message = "ExchangeRate must be greater than zero." });
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["ExchangeRateMustBePositive"]));
 
         await GetProjectWithPartnersEnabledAsync(projectId, "editor", ct);
 

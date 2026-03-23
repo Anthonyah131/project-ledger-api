@@ -10,7 +10,7 @@ public class PlanDeniedException : Exception
     public string PlanName { get; } = string.Empty;
 
     public PlanDeniedException(PlanPermission permission, string planName)
-        : base($"Your current plan '{planName}' does not include the '{permission}' feature. Please upgrade your plan.")
+        : base("PlanDenied")
     {
         Permission = permission;
         PlanName = planName;

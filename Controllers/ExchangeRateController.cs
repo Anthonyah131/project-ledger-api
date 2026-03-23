@@ -1,3 +1,6 @@
+﻿using Microsoft.Extensions.Localization;
+using ProjectLedger.API.DTOs.Common;
+using ProjectLedger.API.Resources;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.Currency;
@@ -17,10 +20,13 @@ namespace ProjectLedger.API.Controllers;
 public class ExchangeRateController : ControllerBase
 {
     private readonly IExchangeRateService _exchangeRateService;
+    private readonly IStringLocalizer<Messages> _localizer;
 
-    public ExchangeRateController(IExchangeRateService exchangeRateService)
+    public ExchangeRateController(IExchangeRateService exchangeRateService,
+    IStringLocalizer<Messages> localizer)
     {
         _exchangeRateService = exchangeRateService;
+        _localizer = localizer;
     }
 
     // ── GET /api/exchange-rates?from=CRC&to=USD&amount=100000 ──
@@ -42,7 +48,7 @@ public class ExchangeRateController : ControllerBase
         CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(from) || string.IsNullOrWhiteSpace(to))
-            return BadRequest(new { message = "Both 'from' and 'to' query parameters are required." });
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["ExchangeRateParamsRequired"]));
 
         var result = await _exchangeRateService.GetExchangeRateAsync(from, to, amount, ct);
         return Ok(result);

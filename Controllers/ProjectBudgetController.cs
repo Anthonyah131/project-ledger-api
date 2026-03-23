@@ -1,3 +1,6 @@
+﻿using Microsoft.Extensions.Localization;
+using ProjectLedger.API.DTOs.Common;
+using ProjectLedger.API.Resources;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.ProjectBudget;
@@ -26,17 +29,20 @@ public class ProjectBudgetController : ControllerBase
     private readonly IExpenseRepository _expenseRepo;
     private readonly IProjectAccessService _accessService;
     private readonly IPlanAuthorizationService _planAuth;
+    private readonly IStringLocalizer<Messages> _localizer;
 
     public ProjectBudgetController(
         IProjectBudgetService budgetService,
         IExpenseRepository expenseRepo,
         IProjectAccessService accessService,
-        IPlanAuthorizationService planAuth)
+        IPlanAuthorizationService planAuth,
+        IStringLocalizer<Messages> localizer)
     {
         _budgetService = budgetService;
         _expenseRepo = expenseRepo;
         _accessService = accessService;
         _planAuth = planAuth;
+        _localizer = localizer;
     }
 
     // ── GET /api/projects/{projectId}/budget ────────────────
@@ -54,7 +60,7 @@ public class ProjectBudgetController : ControllerBase
     {
         var budget = await _budgetService.GetActiveByProjectIdAsync(projectId, ct);
         if (budget is null)
-            return NotFound(new { message = "No active budget found for this project." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["BudgetNotFound"]));
 
         var spent = await CalculateSpentAmountAsync(projectId, ct);
         return Ok(budget.ToResponse(spent));
@@ -125,7 +131,7 @@ public class ProjectBudgetController : ControllerBase
 
         var budget = await _budgetService.GetActiveByProjectIdAsync(projectId, ct);
         if (budget is null)
-            return NotFound(new { message = "No active budget found for this project." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["BudgetNotFound"]));
 
         await _budgetService.SoftDeleteAsync(budget.PjbId, userId, ct);
         return NoContent();

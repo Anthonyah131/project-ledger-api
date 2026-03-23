@@ -34,6 +34,30 @@ public class ProjectPartnerRepository : Repository<ProjectPartner>, IProjectPart
                 && ppm.PaymentMethod.PmtOwnerPartnerId == partnerId
                 && !ppm.PaymentMethod.PmtIsDeleted, ct);
 
+    public async Task<bool> HasPartnerSplitsInProjectAsync(Guid projectId, Guid partnerId, CancellationToken ct = default)
+    {
+        var hasExpenseSplits = await Context.Set<ExpenseSplit>()
+            .AnyAsync(exs =>
+                exs.ExsPartnerId == partnerId
+                && exs.Expense.ExpProjectId == projectId
+                && !exs.Expense.ExpIsDeleted, ct);
+
+        if (hasExpenseSplits) return true;
+
+        return await Context.Set<IncomeSplit>()
+            .AnyAsync(ins =>
+                ins.InsPartnerId == partnerId
+                && ins.Income.IncProjectId == projectId
+                && !ins.Income.IncIsDeleted, ct);
+    }
+
+    public async Task<bool> HasPartnerSettlementsInProjectAsync(Guid projectId, Guid partnerId, CancellationToken ct = default)
+        => await Context.Set<PartnerSettlement>()
+            .AnyAsync(pst =>
+                pst.PstProjectId == projectId
+                && (pst.PstFromPartnerId == partnerId || pst.PstToPartnerId == partnerId)
+                && !pst.PstIsDeleted, ct);
+
     public async Task<IEnumerable<PaymentMethod>> GetLinkablePaymentMethodsAsync(Guid projectId, Guid userId, CancellationToken ct = default)
         => await Context.Set<PaymentMethod>()
             .Where(pm => !pm.PmtIsDeleted

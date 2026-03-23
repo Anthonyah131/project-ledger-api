@@ -1,3 +1,6 @@
+﻿using Microsoft.Extensions.Localization;
+using ProjectLedger.API.DTOs.Common;
+using ProjectLedger.API.Resources;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.Report;
@@ -24,19 +27,22 @@ public class ReportController : ControllerBase
     private readonly IPlanAuthorizationService _planAuth;
     private readonly IReportExportService _exportService;
     private readonly IReportService _reportService;
+    private readonly IStringLocalizer<Messages> _localizer;
 
     public ReportController(
         IProjectService projectService,
         IProjectAccessService accessService,
         IPlanAuthorizationService planAuth,
         IReportExportService exportService,
-        IReportService reportService)
+        IReportService reportService,
+        IStringLocalizer<Messages> localizer)
     {
         _projectService = projectService;
         _accessService = accessService;
         _planAuth = planAuth;
         _exportService = exportService;
         _reportService = reportService;
+        _localizer = localizer;
     }
 
     // ── GET /api/projects/{projectId}/reports/summary ───────
@@ -58,7 +64,7 @@ public class ReportController : ControllerBase
     {
         var project = await _projectService.GetByIdAsync(projectId, ct);
         if (project is null)
-            return NotFound(new { message = "Project not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["ProjectNotFound"]));
 
         var response = await _reportService.GetSummaryAsync(projectId, project.PrjOwnerUserId, from, to, ct);
         return Ok(response);
@@ -79,7 +85,7 @@ public class ReportController : ControllerBase
     {
         var project = await _projectService.GetByIdAsync(projectId, ct);
         if (project is null)
-            return NotFound(new { message = "Project not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["ProjectNotFound"]));
 
         await _planAuth.ValidatePermissionAsync(
             project.PrjOwnerUserId, PlanPermission.CanUseAdvancedReports, ct);
@@ -104,7 +110,7 @@ public class ReportController : ControllerBase
     {
         var project = await _projectService.GetByIdAsync(projectId, ct);
         if (project is null)
-            return NotFound(new { message = "Project not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["ProjectNotFound"]));
 
         await _planAuth.ValidatePermissionAsync(
             project.PrjOwnerUserId, PlanPermission.CanUseAdvancedReports, ct);
@@ -138,7 +144,7 @@ public class ReportController : ControllerBase
     {
         var project = await _projectService.GetByIdAsync(projectId, ct);
         if (project is null)
-            return NotFound(new { message = "Project not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["ProjectNotFound"]));
 
         var userId = User.GetRequiredUserId();
         var ownerId = project.PrjOwnerUserId;
@@ -190,7 +196,7 @@ public class ReportController : ControllerBase
     {
         var project = await _projectService.GetByIdAsync(projectId, ct);
         if (project is null)
-            return NotFound(new { message = "Project not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["ProjectNotFound"]));
 
         var userId = User.GetRequiredUserId();
         var ownerId = project.PrjOwnerUserId;
@@ -240,10 +246,10 @@ public class ReportController : ControllerBase
     {
         var project = await _projectService.GetByIdAsync(projectId, ct);
         if (project is null)
-            return NotFound(new { message = "Project not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["ProjectNotFound"]));
 
         if (!project.PrjPartnersEnabled)
-            return BadRequest(new { message = "Partners are not enabled for this project." });
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["PartnersNotEnabled"]));
 
         await _planAuth.ValidatePermissionAsync(
             project.PrjOwnerUserId, PlanPermission.CanUseAdvancedReports, ct);

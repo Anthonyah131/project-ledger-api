@@ -38,8 +38,7 @@ public class ProjectAccessService : IProjectAccessService
         CancellationToken ct = default)
     {
         if (!await HasAccessAsync(userId, projectId, minimumRole, ct))
-            throw new ForbiddenAccessException(
-                $"User does not have '{minimumRole}' access to project '{projectId}'.");
+            throw new ForbiddenAccessException("ProjectAccessDenied");
     }
 
     /// <inheritdoc />

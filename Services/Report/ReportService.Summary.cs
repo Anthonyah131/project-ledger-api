@@ -1,4 +1,4 @@
-using ProjectLedger.API.DTOs.Report;
+﻿using ProjectLedger.API.DTOs.Report;
 
 namespace ProjectLedger.API.Services;
 
@@ -8,7 +8,7 @@ public partial class ReportService
         Guid projectId, Guid ownerUserId, DateOnly? from, DateOnly? to, CancellationToken ct = default)
     {
         var project = await _projectService.GetByIdAsync(projectId, ct)
-            ?? throw new KeyNotFoundException("Project not found.");
+            ?? throw new KeyNotFoundException("ProjectNotFound");
 
         var expenses = (await _expenseRepo.GetByProjectIdWithDetailsAsync(projectId, ct))
             .Where(e => !e.ExpIsTemplate)

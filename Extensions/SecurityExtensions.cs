@@ -1,11 +1,13 @@
-using System.Text;
+﻿using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Localization;
 using Microsoft.IdentityModel.Tokens;
+using ProjectLedger.API.Resources;
 using ProjectLedger.API.Services;
 
 namespace ProjectLedger.API.Extensions;
@@ -95,10 +97,12 @@ public static class SecurityExtensions
                         context.HandleResponse();
                         context.Response.StatusCode = 401;
                         context.Response.ContentType = "application/json";
+                        var localizer = context.HttpContext.RequestServices
+                            .GetRequiredService<IStringLocalizer<Messages>>();
                         var result = System.Text.Json.JsonSerializer.Serialize(new
                         {
                             status  = 401,
-                            message = "Unauthorized. A valid JWT token is required."
+                            code = "UNAUTHORIZED", message = localizer["UnauthorizedJwt"].Value
                         });
                         return context.Response.WriteAsync(result);
                     },
@@ -107,10 +111,12 @@ public static class SecurityExtensions
                         // Respuesta 403 personalizada en JSON
                         context.Response.StatusCode = 403;
                         context.Response.ContentType = "application/json";
+                        var localizer = context.HttpContext.RequestServices
+                            .GetRequiredService<IStringLocalizer<Messages>>();
                         var result = System.Text.Json.JsonSerializer.Serialize(new
                         {
                             status  = 403,
-                            message = "Forbidden. You don't have permission to access this resource."
+                            code = "FORBIDDEN", message = localizer["ForbiddenResource"].Value
                         });
                         return context.Response.WriteAsync(result);
                     }
@@ -249,10 +255,12 @@ public static class SecurityExtensions
             {
                 context.HttpContext.Response.StatusCode = 429;
                 context.HttpContext.Response.ContentType = "application/json";
+                var localizer = context.HttpContext.RequestServices
+                    .GetRequiredService<IStringLocalizer<Messages>>();
                 await context.HttpContext.Response.WriteAsJsonAsync(new
                 {
                     status  = 429,
-                    message = "Too many requests. Please wait and try again."
+                    code = "TOO_MANY_REQUESTS", message = localizer["TooManyRequests"].Value
                 }, ct);
             };
         });

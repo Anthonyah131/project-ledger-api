@@ -1,8 +1,11 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
 using ProjectLedger.API.DTOs.Project;
 using ProjectLedger.API.Extensions.Mappings;
 using ProjectLedger.API.Models;
+using ProjectLedger.API.DTOs.Common;
+using ProjectLedger.API.Resources;
 using ProjectLedger.API.Services;
 
 namespace ProjectLedger.API.Controllers;
@@ -27,19 +30,22 @@ public class ProjectMemberController : ControllerBase
     private readonly IProjectAccessService _accessService;
     private readonly IProjectService _projectService;
     private readonly IEmailService _emailService;
+    private readonly IStringLocalizer<Messages> _localizer;
 
     public ProjectMemberController(
         IProjectMemberService memberService,
         IUserService userService,
         IProjectAccessService accessService,
         IProjectService projectService,
-        IEmailService emailService)
+        IEmailService emailService,
+        IStringLocalizer<Messages> localizer)
     {
         _memberService = memberService;
         _userService = userService;
         _accessService = accessService;
         _projectService = projectService;
         _emailService = emailService;
+        _localizer = localizer;
     }
 
     // ── GET /api/projects/{projectId}/members ───────────────
@@ -84,12 +90,12 @@ public class ProjectMemberController : ControllerBase
         // Buscar usuario por email
         var targetUser = await _userService.GetByEmailAsync(request.Email, ct);
         if (targetUser is null)
-            return NotFound(new { message = $"User with email '{request.Email}' not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["UserEmailNotFound"]));
 
         // Validar que el rol sea válido (solo editor/viewer, no owner)
         var role = request.Role.ToLowerInvariant();
         if (role is not (ProjectRoles.Editor or ProjectRoles.Viewer))
-            return BadRequest(new { message = $"Invalid role '{request.Role}'. Allowed: editor, viewer." });
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["InvalidRole"]));
 
         var member = new ProjectMember
         {
@@ -144,7 +150,7 @@ public class ProjectMemberController : ControllerBase
 
         var role = request.Role.ToLowerInvariant();
         if (role is not (ProjectRoles.Editor or ProjectRoles.Viewer))
-            return BadRequest(new { message = $"Invalid role '{request.Role}'. Allowed: editor, viewer." });
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["InvalidRole"]));
 
         await _memberService.UpdateRoleAsync(memberId, role, ct);
         return NoContent();

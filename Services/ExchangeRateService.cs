@@ -53,8 +53,7 @@ public class ExchangeRateService : IExchangeRateService
         var latestRates = await GetLatestRatesAsync(from, ct);
 
         if (!latestRates.Rates.TryGetValue(to, out var rate))
-            throw new InvalidOperationException(
-                $"Exchange rate from '{from}' to '{to}' is not available.");
+            throw new InvalidOperationException("ExchangeRateNotAvailable");
 
         // Applies amount conversion when requested.
         if (amount.HasValue)
@@ -97,16 +96,13 @@ public class ExchangeRateService : IExchangeRateService
         var providerResponse = await FetchFromApiAsync<ExchangeRateApiLatestResponse>(url, ct);
 
         if (providerResponse is null)
-            throw new InvalidOperationException(
-                $"Exchange rates for base currency '{baseCurrency}' are not available.");
+            throw new InvalidOperationException("ExchangeRateNotAvailable");
 
         if (!string.Equals(providerResponse.Result, "success", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException(
-                $"Exchange rates for base currency '{baseCurrency}' are not available. Provider error: {providerResponse.ErrorType ?? "unknown"}.");
+            throw new InvalidOperationException("ExchangeRateNotAvailable");
 
         if (providerResponse.ConversionRates is null || providerResponse.ConversionRates.Count == 0)
-            throw new InvalidOperationException(
-                $"Exchange rates for base currency '{baseCurrency}' are not available.");
+            throw new InvalidOperationException("ExchangeRateNotAvailable");
 
         var result = new ExchangeRateLatestResponse
         {
@@ -130,18 +126,17 @@ public class ExchangeRateService : IExchangeRateService
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex, "Failed to fetch exchange rate from ExchangeRate-API: {Url}", relativeUrl);
-            throw new InvalidOperationException(
-                "Exchange rate service is temporarily unavailable. Please try again later or enter the rate manually.");
+            throw new InvalidOperationException("ExchangeRateServiceUnavailable");
         }
     }
 
     private void EnsureExchangeRateApiConfigured()
     {
         if (!_settings.Enabled)
-            throw new InvalidOperationException("Exchange rate API is disabled by configuration.");
+            throw new InvalidOperationException("ExchangeRateServiceDisabled");
 
         if (string.IsNullOrWhiteSpace(_settings.ApiKey))
-            throw new InvalidOperationException("Exchange rate API key is missing. Configure ExchangeRateApi:ApiKey.");
+            throw new InvalidOperationException("ExchangeRateServiceMissingApiKey");
     }
 
     private static DateOnly ParseProviderDate(string? utcDate)

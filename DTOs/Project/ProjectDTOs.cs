@@ -13,8 +13,8 @@ public class CreateProjectRequest
     public string Name { get; set; } = null!;
 
     [Required]
-    [StringLength(3, MinimumLength = 3, ErrorMessage = "CurrencyCode must be a 3-character ISO 4217 code.")]
-    [RegularExpression(@"^[A-Z]{3}$", ErrorMessage = "CurrencyCode must be uppercase ISO 4217 (e.g. USD, EUR, CRC).")]
+    [StringLength(3, MinimumLength = 3, ErrorMessage = "Currency code must be a 3-character ISO 4217 code.")]
+    [RegularExpression(@"^[A-Z]{3}$", ErrorMessage = "Currency code must be uppercase ISO 4217 (e.g. USD, EUR, CRC).")]
     public string CurrencyCode { get; set; } = null!;
 
     public string? Description { get; set; }

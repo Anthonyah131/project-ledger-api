@@ -1,10 +1,12 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
 using ProjectLedger.API.DTOs.Common;
 using ProjectLedger.API.DTOs.Expense;
 using ProjectLedger.API.DTOs.Income;
 using ProjectLedger.API.DTOs.PaymentMethod;
 using ProjectLedger.API.Extensions.Mappings;
+using ProjectLedger.API.Resources;
 using ProjectLedger.API.Services;
 
 namespace ProjectLedger.API.Controllers;
@@ -28,17 +30,20 @@ public class PaymentMethodController : ControllerBase
     private readonly IExpenseService _expenseService;
     private readonly IIncomeService _incomeService;
     private readonly IProjectPaymentMethodService _projectPaymentMethodService;
+    private readonly IStringLocalizer<Messages> _localizer;
 
     public PaymentMethodController(
         IPaymentMethodService paymentMethodService,
         IExpenseService expenseService,
         IIncomeService incomeService,
-        IProjectPaymentMethodService projectPaymentMethodService)
+        IProjectPaymentMethodService projectPaymentMethodService,
+        IStringLocalizer<Messages> localizer)
     {
         _paymentMethodService = paymentMethodService;
         _expenseService = expenseService;
         _incomeService = incomeService;
         _projectPaymentMethodService = projectPaymentMethodService;
+        _localizer = localizer;
     }
 
     // ── GET /api/payment-methods ────────────────────────────
@@ -72,7 +77,7 @@ public class PaymentMethodController : ControllerBase
         var pm = await _paymentMethodService.GetByIdAsync(id, ct);
 
         if (pm is null || pm.PmtOwnerUserId != userId)
-            return NotFound(new { message = "Payment method not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["PaymentMethodNotFound"]));
 
         return Ok(pm.ToResponse());
     }
@@ -131,7 +136,7 @@ public class PaymentMethodController : ControllerBase
         var pm = await _paymentMethodService.GetByIdAsync(id, ct);
 
         if (pm is null || pm.PmtOwnerUserId != userId)
-            return NotFound(new { message = "Payment method not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["PaymentMethodNotFound"]));
 
         pm.ApplyUpdate(request);
         await _paymentMethodService.UpdateAsync(pm, ct);
@@ -169,11 +174,11 @@ public class PaymentMethodController : ControllerBase
         }
         catch (KeyNotFoundException ex)
         {
-            return NotFound(new { message = ex.Message });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer[ex.Message]));
         }
         catch (InvalidOperationException ex)
         {
-            return Conflict(new { message = ex.Message });
+            return Conflict(LocalizedResponse.Create("CONFLICT", _localizer[ex.Message]));
         }
     }
 
@@ -200,11 +205,11 @@ public class PaymentMethodController : ControllerBase
         }
         catch (KeyNotFoundException ex)
         {
-            return NotFound(new { message = ex.Message });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer[ex.Message]));
         }
         catch (InvalidOperationException ex)
         {
-            return Conflict(new { message = ex.Message });
+            return Conflict(LocalizedResponse.Create("CONFLICT", _localizer[ex.Message]));
         }
     }
 
@@ -226,7 +231,7 @@ public class PaymentMethodController : ControllerBase
         var pm = await _paymentMethodService.GetByIdAsync(id, ct);
 
         if (pm is null || pm.PmtOwnerUserId != userId)
-            return NotFound(new { message = "Payment method not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["PaymentMethodNotFound"]));
 
         await _paymentMethodService.SoftDeleteAsync(id, userId, ct);
         return NoContent();
@@ -253,13 +258,13 @@ public class PaymentMethodController : ControllerBase
         CancellationToken ct)
     {
         if (from.HasValue && to.HasValue && from > to)
-            return BadRequest(new { message = "Invalid date range: 'from' cannot be greater than 'to'." });
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["InvalidDateRange"]));
 
         var userId = User.GetRequiredUserId();
         var pm = await _paymentMethodService.GetByIdAsync(id, ct);
 
         if (pm is null || pm.PmtOwnerUserId != userId)
-            return NotFound(new { message = "Payment method not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["PaymentMethodNotFound"]));
 
         var (items, totalCount, totalActiveAmount) = await _expenseService.GetByPaymentMethodIdPagedAsync(
             id, isActive, pagination.Skip, pagination.PageSize,
@@ -293,13 +298,13 @@ public class PaymentMethodController : ControllerBase
         CancellationToken ct)
     {
         if (from.HasValue && to.HasValue && from > to)
-            return BadRequest(new { message = "Invalid date range: 'from' cannot be greater than 'to'." });
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["InvalidDateRange"]));
 
         var userId = User.GetRequiredUserId();
         var pm = await _paymentMethodService.GetByIdAsync(id, ct);
 
         if (pm is null || pm.PmtOwnerUserId != userId)
-            return NotFound(new { message = "Payment method not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["PaymentMethodNotFound"]));
 
         var (items, totalCount, totalActiveAmount) = await _incomeService.GetByPaymentMethodIdPagedAsync(
             id, isActive, pagination.Skip, pagination.PageSize,
@@ -328,7 +333,7 @@ public class PaymentMethodController : ControllerBase
         var pm = await _paymentMethodService.GetByIdAsync(id, ct);
 
         if (pm is null || pm.PmtOwnerUserId != userId)
-            return NotFound(new { message = "Payment method not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["PaymentMethodNotFound"]));
 
         var links = await _projectPaymentMethodService.GetByPaymentMethodIdAsync(id, ct);
         var items = links
@@ -371,7 +376,7 @@ public class PaymentMethodController : ControllerBase
         var pm = await _paymentMethodService.GetByIdAsync(id, ct);
 
         if (pm is null || pm.PmtOwnerUserId != userId)
-            return NotFound(new { message = "Payment method not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["PaymentMethodNotFound"]));
 
         var expenses = await _expenseService.GetByPaymentMethodIdAsync(id, ct);
         var incomes = await _incomeService.GetByPaymentMethodIdAsync(id, ct);
@@ -415,17 +420,17 @@ public class PaymentMethodController : ControllerBase
         CancellationToken ct)
     {
         if (!projectId.HasValue)
-            return BadRequest(new { error = new { code = "PROJECT_ID_REQUIRED", message = "project_id query parameter is required." } });
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["ProjectIdRequired"]));
 
         var userId = User.GetRequiredUserId();
         var pm = await _paymentMethodService.GetByIdAsync(id, ct);
 
         if (pm is null || pm.PmtOwnerUserId != userId)
-            return NotFound(new { message = "Payment method not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["PaymentMethodNotFound"]));
 
         var isLinked = await _projectPaymentMethodService.IsLinkedAsync(projectId.Value, id, ct);
         if (!isLinked)
-            return NotFound(new { message = "Payment method is not linked to the specified project." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["PaymentMethodNotLinkedToProject"]));
 
         var balance = await _paymentMethodService.GetProjectBalanceAsync(id, projectId.Value, ct);
         return Ok(balance);

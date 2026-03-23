@@ -1,4 +1,4 @@
-using ProjectLedger.API.Models;
+﻿using ProjectLedger.API.Models;
 using ProjectLedger.API.Repositories;
 
 namespace ProjectLedger.API.Services;
@@ -57,16 +57,16 @@ public class PartnerService : IPartnerService
     public async Task SoftDeleteAsync(Guid id, Guid deletedByUserId, CancellationToken ct = default)
     {
         var partner = await _partnerRepo.GetByIdAsync(id, ct)
-            ?? throw new KeyNotFoundException($"Partner '{id}' not found.");
+            ?? throw new KeyNotFoundException("PartnerNotFound");
 
         if (partner.PtrIsDeleted)
-            throw new KeyNotFoundException($"Partner '{id}' not found.");
+            throw new KeyNotFoundException("PartnerNotFound");
 
-        // Verificar que no tenga métodos de pago vinculados a proyectos activos
-        var hasActive = await _partnerRepo.HasActivePaymentMethodsInProjectsAsync(id, ct);
-        if (hasActive)
-            throw new InvalidOperationException(
-                "Cannot delete a partner whose payment methods are linked to active projects.");
+        if (await _partnerRepo.HasActivePaymentMethodsAsync(id, ct))
+            throw new InvalidOperationException("PartnerHasPaymentMethods");
+
+        if (await _partnerRepo.IsAssignedToAnyProjectAsync(id, ct))
+            throw new InvalidOperationException("PartnerHasProjects");
 
         partner.PtrIsDeleted = true;
         partner.PtrDeletedAt = DateTime.UtcNow;

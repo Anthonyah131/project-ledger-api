@@ -1,6 +1,8 @@
+﻿using Microsoft.Extensions.Localization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.Common;
+using ProjectLedger.API.Resources;
 using ProjectLedger.API.DTOs.Expense;
 using ProjectLedger.API.DTOs.Income;
 using ProjectLedger.API.Extensions.Mappings;
@@ -34,6 +36,7 @@ public class IncomeController : ControllerBase
     private readonly IAuditLogService _auditLogService;
     private readonly ITransactionCurrencyExchangeService _exchangeService;
     private readonly IExpenseDocumentIntelligenceService _expenseDocumentAiService;
+    private readonly IStringLocalizer<Messages> _localizer;
 
     public IncomeController(
         IIncomeService incomeService,
@@ -42,7 +45,8 @@ public class IncomeController : ControllerBase
         IPlanAuthorizationService planAuth,
         IAuditLogService auditLogService,
         ITransactionCurrencyExchangeService exchangeService,
-        IExpenseDocumentIntelligenceService expenseDocumentAiService)
+        IExpenseDocumentIntelligenceService expenseDocumentAiService,
+        IStringLocalizer<Messages> localizer)
     {
         _incomeService = incomeService;
         _accessService = accessService;
@@ -51,6 +55,7 @@ public class IncomeController : ControllerBase
         _auditLogService = auditLogService;
         _exchangeService = exchangeService;
         _expenseDocumentAiService = expenseDocumentAiService;
+        _localizer = localizer;
     }
 
     // ── GET /api/projects/{projectId}/incomes ───────────────
@@ -98,7 +103,7 @@ public class IncomeController : ControllerBase
     {
         var income = await _incomeService.GetByIdAsync(incomeId, ct);
         if (income == null || income.IncProjectId != projectId)
-            return NotFound(new { message = "Income not found in this project." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["IncomeNotFound"]));
 
         return Ok(income.ToResponse());
     }
@@ -324,7 +329,7 @@ public class IncomeController : ControllerBase
 
         var income = await _incomeService.GetByIdAsync(incomeId, ct);
         if (income == null || income.IncProjectId != projectId)
-            return NotFound(new { message = "Income not found in this project." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["IncomeNotFound"]));
 
         income.ApplyUpdate(request);
         var updateSplits = request.Splits?.Select(s => new SplitInput(
@@ -363,7 +368,7 @@ public class IncomeController : ControllerBase
 
         var income = await _incomeService.GetByIdAsync(incomeId, ct);
         if (income == null || income.IncProjectId != projectId)
-            return NotFound(new { message = "Income not found in this project." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["IncomeNotFound"]));
 
         income.IncIsActive = request.IsActive;
         await _incomeService.UpdateAsync(income, ct: ct);
@@ -392,7 +397,7 @@ public class IncomeController : ControllerBase
 
         var income = await _incomeService.GetByIdAsync(incomeId, ct);
         if (income == null || income.IncProjectId != projectId)
-            return NotFound(new { message = "Income not found in this project." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["IncomeNotFound"]));
 
         await _incomeService.SoftDeleteAsync(incomeId, userId, ct);
         return NoContent();
@@ -401,10 +406,10 @@ public class IncomeController : ControllerBase
     private async Task<DocumentReadQuotaResponse> BuildDocumentReadQuotaAsync(Guid projectId, CancellationToken ct)
     {
         var project = await _projectService.GetByIdAsync(projectId, ct)
-            ?? throw new KeyNotFoundException($"Project '{projectId}' not found.");
+            ?? throw new KeyNotFoundException("ProjectNotFound");
 
         if (project.PrjIsDeleted)
-            throw new KeyNotFoundException($"Project '{projectId}' not found.");
+            throw new KeyNotFoundException("ProjectNotFound");
 
         var ownerUserId = project.PrjOwnerUserId;
         var capabilities = await _planAuth.GetCapabilitiesAsync(ownerUserId, ct);

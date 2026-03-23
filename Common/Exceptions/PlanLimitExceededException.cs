@@ -11,7 +11,7 @@ public class PlanLimitExceededException : Exception
     public string PlanName { get; }
 
     public PlanLimitExceededException(string limitName, int limitValue, string planName)
-        : base($"You have reached the limit of {limitValue} for '{limitName}' on your '{planName}' plan. Please upgrade your plan.")
+        : base("PlanLimitExceeded")
     {
         LimitName = limitName;
         LimitValue = limitValue;

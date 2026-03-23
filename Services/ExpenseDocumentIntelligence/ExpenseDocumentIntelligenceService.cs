@@ -1,4 +1,4 @@
-using System.Net.Http.Headers;
+﻿using System.Net.Http.Headers;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
@@ -59,7 +59,7 @@ public class ExpenseDocumentIntelligenceService : IExpenseDocumentIntelligenceSe
         ValidateFile(file);
 
         var project = await _projectService.GetByIdAsync(projectId, ct)
-            ?? throw new KeyNotFoundException($"Project '{projectId}' not found.");
+            ?? throw new KeyNotFoundException("ProjectNotFound");
 
         var normalizedKind = string.Equals(documentKind, "invoice", StringComparison.OrdinalIgnoreCase)
             ? "invoice"
@@ -75,20 +75,20 @@ public class ExpenseDocumentIntelligenceService : IExpenseDocumentIntelligenceSe
         var root = resultDoc.RootElement;
 
         if (!root.TryGetProperty("analyzeResult", out var analyzeResult))
-            throw new InvalidOperationException("Azure Document Intelligence did not return analyzeResult.");
+            throw new InvalidOperationException("DocumentIntelligenceNoAnalyzeResult");
 
         if (!analyzeResult.TryGetProperty("documents", out var documents)
             || documents.ValueKind != JsonValueKind.Array
             || documents.GetArrayLength() == 0)
         {
-            throw new InvalidOperationException("No document data could be extracted from the file.");
+            throw new InvalidOperationException("UnexpectedError");
         }
 
         var firstDocument = documents[0];
         if (!firstDocument.TryGetProperty("fields", out var fields)
             || fields.ValueKind != JsonValueKind.Object)
         {
-            throw new InvalidOperationException("Document fields were not found in the analysis result.");
+            throw new InvalidOperationException("DocumentIntelligenceNoDocumentFields");
         }
 
         var fullContent = ExpenseDocumentFieldExtractor.GetOptionalString(analyzeResult, "content") ?? string.Empty;
@@ -167,29 +167,28 @@ public class ExpenseDocumentIntelligenceService : IExpenseDocumentIntelligenceSe
     private void EnsureConfigured()
     {
         if (!_settings.Enabled)
-            throw new InvalidOperationException("Azure Document Intelligence is disabled by configuration.");
+            throw new InvalidOperationException("DocumentIntelligenceDisabled");
 
         if (string.IsNullOrWhiteSpace(_settings.Endpoint))
-            throw new InvalidOperationException("Azure Document Intelligence endpoint is missing.");
+            throw new InvalidOperationException("DocumentIntelligenceMissingEndpoint");
 
         if (string.IsNullOrWhiteSpace(_settings.ApiKey))
-            throw new InvalidOperationException("Azure Document Intelligence API key is missing.");
+            throw new InvalidOperationException("DocumentIntelligenceMissingApiKey");
     }
 
     private void ValidateFile(IFormFile file)
     {
         if (file is null || file.Length == 0)
-            throw new InvalidOperationException("A non-empty file is required.");
+            throw new InvalidOperationException("FileRequired");
 
         var maxBytes = Math.Clamp(_settings.MaxFileSizeMb, 1, 50) * 1024L * 1024L;
         if (file.Length > maxBytes)
-            throw new InvalidOperationException($"File is too large. Max allowed size is {_settings.MaxFileSizeMb} MB.");
+            throw new InvalidOperationException("FileTooLarge");
 
         if (!string.IsNullOrWhiteSpace(file.ContentType)
             && !SupportedContentTypes.Contains(file.ContentType.ToLowerInvariant()))
         {
-            throw new InvalidOperationException(
-                "Unsupported content type. Allowed: PDF, JPG, PNG, WEBP, BMP, TIFF, HEIF.");
+            throw new InvalidOperationException("UnsupportedContentType");
         }
     }
 
@@ -218,15 +217,15 @@ public class ExpenseDocumentIntelligenceService : IExpenseDocumentIntelligenceSe
             {
                 var body = await response.Content.ReadAsStringAsync(ct);
                 _logger.LogWarning("Azure Document Intelligence start analyze failed: {StatusCode} - {Body}", (int)response.StatusCode, body);
-                throw new InvalidOperationException("Unable to analyze document with Azure Document Intelligence.");
+                throw new InvalidOperationException("UnexpectedError");
             }
 
             if (!response.Headers.TryGetValues("Operation-Location", out var values))
-                throw new InvalidOperationException("Azure Document Intelligence did not return an operation location.");
+                throw new InvalidOperationException("DocumentIntelligenceNoOperationLocation");
 
             var operationLocation = values.FirstOrDefault();
             if (string.IsNullOrWhiteSpace(operationLocation))
-                throw new InvalidOperationException("Azure Document Intelligence operation location is empty.");
+                throw new InvalidOperationException("DocumentIntelligenceNoOperationLocation");
 
             return operationLocation;
         }
@@ -277,7 +276,7 @@ public class ExpenseDocumentIntelligenceService : IExpenseDocumentIntelligenceSe
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Azure Document Intelligence poll failed: {StatusCode} - {Body}", (int)response.StatusCode, body);
-                throw new InvalidOperationException("Azure Document Intelligence polling failed.");
+                throw new InvalidOperationException("DocumentIntelligencePollFailed");
             }
 
             using var pollDoc = JsonDocument.Parse(body);
@@ -287,12 +286,12 @@ public class ExpenseDocumentIntelligenceService : IExpenseDocumentIntelligenceSe
                 return body;
 
             if (status == "failed" || status == "partiallysucceeded")
-                throw new InvalidOperationException("Azure Document Intelligence could not extract data from the document.");
+                throw new InvalidOperationException("UnexpectedError");
 
             await Task.Delay(pollInterval, ct);
         }
 
-        throw new InvalidOperationException("Azure Document Intelligence timed out while processing the document.");
+        throw new InvalidOperationException("DocumentIntelligenceTimeout");
     }
 
     private static string ResolveContentType(IFormFile file)

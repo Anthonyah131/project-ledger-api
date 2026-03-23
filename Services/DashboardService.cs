@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using ProjectLedger.API.DTOs.Dashboard;
 using ProjectLedger.API.Models;
 using ProjectLedger.API.Repositories;
@@ -38,7 +38,7 @@ public class DashboardService : IDashboardService
         var scope = await GetVisibleProjectScopeAsync(userId, ct);
 
         if (!scope.VisibleProjectIds.Contains(projectId))
-            throw new ForbiddenAccessException("No access to project.");
+            throw new ForbiddenAccessException("ProjectAccessDenied");
 
         var selectedProjectIds = new List<Guid> { projectId };
         var scopedProjects = scope.VisibleProjects
@@ -96,7 +96,7 @@ public class DashboardService : IDashboardService
     {
         var scope = await GetVisibleProjectScopeAsync(userId, ct);
         if (!scope.VisibleProjectIds.Contains(projectId))
-            throw new ForbiddenAccessException("No access to project.");
+            throw new ForbiddenAccessException("ProjectAccessDenied");
 
         var selectedProjectIds = new List<Guid> { projectId };
         var monthEnd = monthStart.AddMonths(1).AddDays(-1);
@@ -118,7 +118,7 @@ public class DashboardService : IDashboardService
     {
         var scope = await GetVisibleProjectScopeAsync(userId, ct);
         if (!scope.VisibleProjectIds.Contains(projectId))
-            throw new ForbiddenAccessException("No access to project.");
+            throw new ForbiddenAccessException("ProjectAccessDenied");
 
         var selectedProjectIds = new List<Guid> { projectId };
         var monthEnd = monthStart.AddMonths(1).AddDays(-1);
@@ -140,7 +140,7 @@ public class DashboardService : IDashboardService
     {
         var scope = await GetVisibleProjectScopeAsync(userId, ct);
         if (!scope.VisibleProjectIds.Contains(projectId))
-            throw new ForbiddenAccessException("No access to project.");
+            throw new ForbiddenAccessException("ProjectAccessDenied");
 
         var selectedProjectIds = new List<Guid> { projectId };
         var monthEnd = monthStart.AddMonths(1).AddDays(-1);

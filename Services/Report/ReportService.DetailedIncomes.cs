@@ -1,4 +1,4 @@
-using ProjectLedger.API.DTOs.Report;
+﻿using ProjectLedger.API.DTOs.Report;
 using ProjectLedger.API.Extensions.Mappings;
 
 namespace ProjectLedger.API.Services;
@@ -9,7 +9,7 @@ public partial class ReportService
         Guid projectId, Guid userId, DateOnly? from, DateOnly? to, CancellationToken ct = default)
     {
         var project = await _projectService.GetByIdAsync(projectId, ct)
-            ?? throw new KeyNotFoundException("Project not found.");
+            ?? throw new KeyNotFoundException("ProjectNotFound");
 
         var incomes = (await _incomeRepo.GetDetailedByProjectIdAsync(projectId, from, to, ct)).ToList();
 

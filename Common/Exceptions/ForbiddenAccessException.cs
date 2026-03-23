@@ -1,4 +1,4 @@
-namespace ProjectLedger.API.Common.Exceptions;
+﻿namespace ProjectLedger.API.Common.Exceptions;
 
 /// <summary>
 /// Excepción lanzada cuando un usuario intenta acceder a un recurso
@@ -8,7 +8,7 @@ namespace ProjectLedger.API.Common.Exceptions;
 public class ForbiddenAccessException : Exception
 {
     public ForbiddenAccessException()
-        : base("You don't have permission to access this resource.") { }
+        : base("ForbiddenResource") { }
 
     public ForbiddenAccessException(string message)
         : base(message) { }

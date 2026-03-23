@@ -9,16 +9,16 @@ namespace ProjectLedger.API.DTOs.Common;
 public class CurrencyExchangeRequest
 {
     [Required]
-    [StringLength(3, MinimumLength = 3, ErrorMessage = "CurrencyCode must be a 3-character ISO 4217 code.")]
-    [RegularExpression(@"^[A-Z]{3}$", ErrorMessage = "CurrencyCode must be uppercase ISO 4217 (e.g. USD, EUR, CRC).")]
+    [StringLength(3, MinimumLength = 3, ErrorMessage = "Currency code must be a 3-character ISO 4217 code.")]
+    [RegularExpression(@"^[A-Z]{3}$", ErrorMessage = "Currency code must be uppercase ISO 4217 (e.g. USD, EUR, CRC).")]
     public string CurrencyCode { get; set; } = null!;
 
     [Required]
-    [Range(0.000001, 999999999999.999999, ErrorMessage = "ExchangeRate must be greater than 0.")]
+    [Range(0.000001, 999999999999.999999, ErrorMessage = "Exchange rate must be greater than 0.")]
     public decimal ExchangeRate { get; set; }
 
     [Required]
-    [Range(0.01, 99999999999999.99, ErrorMessage = "ConvertedAmount must be greater than 0.")]
+    [Range(0.0001, 99999999999999.9999, ErrorMessage = "Converted amount must be between 0.0001 and 99,999,999,999,999.9999.")]
     public decimal ConvertedAmount { get; set; }
 }
 

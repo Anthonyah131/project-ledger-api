@@ -1,4 +1,4 @@
-using ProjectLedger.API.Models;
+﻿using ProjectLedger.API.Models;
 using ProjectLedger.API.Repositories;
 
 namespace ProjectLedger.API.Services;
@@ -47,10 +47,10 @@ public class UserService : IUserService
     public async Task SoftDeleteAsync(Guid id, Guid deletedByUserId, CancellationToken ct = default)
     {
         var user = await _userRepo.GetByIdAsync(id, ct)
-            ?? throw new KeyNotFoundException($"User '{id}' not found.");
+            ?? throw new KeyNotFoundException("UserNotFound");
 
         if (user.UsrIsDeleted)
-            throw new InvalidOperationException("User is already deleted.");
+            throw new InvalidOperationException("El usuario ya está eliminado.");
 
         user.UsrIsDeleted = true;
         user.UsrDeletedAt = DateTime.UtcNow;

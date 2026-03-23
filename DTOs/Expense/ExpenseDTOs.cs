@@ -27,21 +27,21 @@ public class CreateExpenseRequest
     /// Monto equivalente en la moneda de la obligación.
     /// Se usa cuando ObligationId está presente y OriginalCurrency difiere de la moneda de la obligación.
     /// </summary>
-    [Range(0.01, 99999999999999.99, ErrorMessage = "ObligationEquivalentAmount must be greater than 0.")]
+    [Range(0.01, 999999999999.99, ErrorMessage = "Obligation equivalent amount must be between 0.01 and 999,999,999,999.99.")]
     public decimal? ObligationEquivalentAmount { get; set; }
 
     // ── Montos ──────────────────────────────────────────────
 
     [Required]
-    [Range(0.01, 99999999999999.99, ErrorMessage = "OriginalAmount must be greater than 0.")]
+    [Range(0.01, 999999999999.99, ErrorMessage = "Original amount must be between 0.01 and 999,999,999,999.99.")]
     public decimal OriginalAmount { get; set; }
 
     [Required]
-    [StringLength(3, MinimumLength = 3, ErrorMessage = "OriginalCurrency must be a 3-character ISO 4217 code.")]
-    [RegularExpression(@"^[A-Z]{3}$", ErrorMessage = "OriginalCurrency must be uppercase ISO 4217 (e.g. USD, EUR, CRC).")]
+    [StringLength(3, MinimumLength = 3, ErrorMessage = "Original currency must be a 3-character ISO 4217 code.")]
+    [RegularExpression(@"^[A-Z]{3}$", ErrorMessage = "Original currency must be uppercase ISO 4217 (e.g. USD, EUR, CRC).")]
     public string OriginalCurrency { get; set; } = null!;
 
-    [Range(0.000001, 999999999999.999999, ErrorMessage = "ExchangeRate must be greater than 0.")]
+    [Range(0.000001, 999999999999.999999, ErrorMessage = "Exchange rate must be greater than 0.")]
     public decimal ExchangeRate { get; set; } = 1.000000m;
 
     /// <summary>
@@ -49,10 +49,10 @@ public class CreateExpenseRequest
     /// El front es responsable de enviarlo calculado.
     /// </summary>
     [Required]
-    [Range(0.01, 99999999999999.99, ErrorMessage = "ConvertedAmount must be greater than 0.")]
+    [Range(0.01, 999999999999.99, ErrorMessage = "Converted amount must be between 0.01 and 999,999,999,999.99.")]
     public decimal ConvertedAmount { get; set; }
 
-    [Range(0.01, 99999999999999.99, ErrorMessage = "AccountAmount must be greater than 0.")]
+    [Range(0.01, 999999999999.99, ErrorMessage = "Account amount must be between 0.01 and 999,999,999,999.99.")]
     public decimal? AccountAmount { get; set; }
 
     // ── Datos descriptivos ──────────────────────────────────
@@ -66,7 +66,7 @@ public class CreateExpenseRequest
     [Required]
     public DateOnly ExpenseDate { get; set; }
 
-    [StringLength(100, ErrorMessage = "ReceiptNumber cannot exceed 100 characters.")]
+    [StringLength(100, ErrorMessage = "Receipt number cannot exceed 100 characters.")]
     public string? ReceiptNumber { get; set; }
 
     public string? Notes { get; set; }
@@ -103,19 +103,19 @@ public class UpdateExpenseRequest
     /// Monto equivalente en la moneda de la obligación.
     /// Se usa cuando el gasto está vinculado a obligación y la moneda original difiere.
     /// </summary>
-    [Range(0.01, 99999999999999.99, ErrorMessage = "ObligationEquivalentAmount must be greater than 0.")]
+    [Range(0.01, 999999999999.99, ErrorMessage = "Obligation equivalent amount must be between 0.01 and 999,999,999,999.99.")]
     public decimal? ObligationEquivalentAmount { get; set; }
 
     [Required]
-    [Range(0.01, 99999999999999.99, ErrorMessage = "OriginalAmount must be greater than 0.")]
+    [Range(0.01, 999999999999.99, ErrorMessage = "Original amount must be between 0.01 and 999,999,999,999.99.")]
     public decimal OriginalAmount { get; set; }
 
     [Required]
-    [StringLength(3, MinimumLength = 3, ErrorMessage = "OriginalCurrency must be a 3-character ISO 4217 code.")]
-    [RegularExpression(@"^[A-Z]{3}$", ErrorMessage = "OriginalCurrency must be uppercase ISO 4217 (e.g. USD, EUR, CRC).")]
+    [StringLength(3, MinimumLength = 3, ErrorMessage = "Original currency must be a 3-character ISO 4217 code.")]
+    [RegularExpression(@"^[A-Z]{3}$", ErrorMessage = "Original currency must be uppercase ISO 4217 (e.g. USD, EUR, CRC).")]
     public string OriginalCurrency { get; set; } = null!;
 
-    [Range(0.000001, 999999999999.999999, ErrorMessage = "ExchangeRate must be greater than 0.")]
+    [Range(0.000001, 999999999999.999999, ErrorMessage = "Exchange rate must be greater than 0.")]
     public decimal ExchangeRate { get; set; } = 1.000000m;
 
     /// <summary>
@@ -123,10 +123,10 @@ public class UpdateExpenseRequest
     /// El front es responsable de enviarlo calculado.
     /// </summary>
     [Required]
-    [Range(0.01, 99999999999999.99, ErrorMessage = "ConvertedAmount must be greater than 0.")]
+    [Range(0.01, 999999999999.99, ErrorMessage = "Converted amount must be between 0.01 and 999,999,999,999.99.")]
     public decimal ConvertedAmount { get; set; }
 
-    [Range(0.01, 99999999999999.99, ErrorMessage = "AccountAmount must be greater than 0.")]
+    [Range(0.01, 999999999999.99, ErrorMessage = "Account amount must be between 0.01 and 999,999,999,999.99.")]
     public decimal? AccountAmount { get; set; }
 
     [Required]
@@ -138,7 +138,7 @@ public class UpdateExpenseRequest
     [Required]
     public DateOnly ExpenseDate { get; set; }
 
-    [StringLength(100, ErrorMessage = "ReceiptNumber cannot exceed 100 characters.")]
+    [StringLength(100, ErrorMessage = "Receipt number cannot exceed 100 characters.")]
     public string? ReceiptNumber { get; set; }
 
     public string? Notes { get; set; }
@@ -178,15 +178,15 @@ public class UpdateExpenseRequest
 /// </summary>
 public class CreateFromTemplateRequest
 {
-    [Range(0.01, 99999999999999.99, ErrorMessage = "OriginalAmount must be greater than 0.")]
+    [Range(0.01, 999999999999.99, ErrorMessage = "Original amount must be between 0.01 and 999,999,999,999.99.")]
     public decimal? OriginalAmount { get; set; }
 
-    [Range(0.01, 99999999999999.99, ErrorMessage = "ConvertedAmount must be greater than 0.")]
+    [Range(0.01, 999999999999.99, ErrorMessage = "Converted amount must be between 0.01 and 999,999,999,999.99.")]
     public decimal? ConvertedAmount { get; set; }
 
     public DateOnly? ExpenseDate { get; set; }
     public Guid? ObligationId { get; set; }
-    [Range(0.01, 99999999999999.99, ErrorMessage = "ObligationEquivalentAmount must be greater than 0.")]
+    [Range(0.01, 999999999999.99, ErrorMessage = "Obligation equivalent amount must be between 0.01 and 999,999,999,999.99.")]
     public decimal? ObligationEquivalentAmount { get; set; }
     public string? Notes { get; set; }
 }
@@ -207,7 +207,7 @@ public class ExtractExpenseFromDocumentRequest
     [Required]
     public IFormFile File { get; set; } = null!;
 
-    [RegularExpression("^(receipt|invoice)$", ErrorMessage = "DocumentKind must be 'receipt' or 'invoice'.")]
+    [RegularExpression("^(receipt|invoice)$", ErrorMessage = "Document type must be 'receipt' or 'invoice'.")]
     public string DocumentKind { get; set; } = "receipt";
 }
 

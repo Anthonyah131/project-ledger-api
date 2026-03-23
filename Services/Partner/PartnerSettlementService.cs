@@ -28,12 +28,12 @@ public class PartnerSettlementService : IPartnerSettlementService
         CancellationToken ct = default)
     {
         _ = await _projectPartnerRepo.GetActiveAsync(settlement.PstProjectId, settlement.PstFromPartnerId, ct)
-            ?? throw new KeyNotFoundException($"Partner {settlement.PstFromPartnerId} is not an active member of this project.");
+            ?? throw new KeyNotFoundException("PartnerNotAssignedToProject");
 
         _ = await _projectPartnerRepo.GetActiveAsync(settlement.PstProjectId, settlement.PstToPartnerId, ct)
-            ?? throw new KeyNotFoundException($"Partner {settlement.PstToPartnerId} is not an active member of this project.");
+            ?? throw new KeyNotFoundException("PartnerNotAssignedToProject");
 
-        settlement.PstConvertedAmount = Math.Round(settlement.PstAmount * settlement.PstExchangeRate, 2);
+        settlement.PstConvertedAmount = Math.Round(settlement.PstAmount * settlement.PstExchangeRate, 2, MidpointRounding.AwayFromZero);
         settlement.PstCreatedAt = DateTime.UtcNow;
         settlement.PstUpdatedAt = DateTime.UtcNow;
 
@@ -55,7 +55,7 @@ public class PartnerSettlementService : IPartnerSettlementService
         CancellationToken ct = default)
     {
         var settlement = await _settlementRepo.GetActiveByIdAsync(settlementId, projectId, ct)
-            ?? throw new KeyNotFoundException($"Settlement {settlementId} not found in this project.");
+            ?? throw new KeyNotFoundException("SettlementNotFound");
 
         if (request.Amount.HasValue)
             settlement.PstAmount = request.Amount.Value;
@@ -80,7 +80,7 @@ public class PartnerSettlementService : IPartnerSettlementService
         }
 
         // Recalculate converted amount whenever amount or exchange rate changes
-        settlement.PstConvertedAmount = Math.Round(settlement.PstAmount * settlement.PstExchangeRate, 2);
+        settlement.PstConvertedAmount = Math.Round(settlement.PstAmount * settlement.PstExchangeRate, 2, MidpointRounding.AwayFromZero);
         settlement.PstUpdatedAt = DateTime.UtcNow;
 
         await _settlementRepo.ExecuteInTransactionAsync(async (ct) =>
@@ -97,7 +97,7 @@ public class PartnerSettlementService : IPartnerSettlementService
     public async Task SoftDeleteAsync(Guid settlementId, Guid projectId, Guid deletedByUserId, CancellationToken ct = default)
     {
         var settlement = await _settlementRepo.GetActiveByIdAsync(settlementId, projectId, ct)
-            ?? throw new KeyNotFoundException($"Settlement {settlementId} not found in this project.");
+            ?? throw new KeyNotFoundException("SettlementNotFound");
 
         settlement.PstIsDeleted = true;
         settlement.PstDeletedAt = DateTime.UtcNow;

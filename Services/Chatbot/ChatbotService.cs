@@ -33,8 +33,7 @@ public class ChatbotService : IChatbotService
         var enabled = _providers.Where(p => p.IsEnabled).ToList();
 
         if (enabled.Count == 0)
-            throw new InvalidOperationException(
-                "No hay proveedores de chatbot habilitados. Configura al menos una API key.");
+            throw new InvalidOperationException("ChatbotNoProvidersEnabled");
 
         // Índice de inicio de esta petición (avanza con cada llamada)
         var startIndex = _rotator.GetNext(enabled.Count);
@@ -71,7 +70,6 @@ public class ChatbotService : IChatbotService
             }
         }
 
-        throw new InvalidOperationException(
-            "Todos los proveedores de chatbot están no disponibles en este momento.");
+        throw new InvalidOperationException("ChatbotAllProvidersUnavailable");
     }
 }

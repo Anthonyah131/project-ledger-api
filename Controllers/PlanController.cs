@@ -1,7 +1,10 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
 using ProjectLedger.API.DTOs.Plan;
 using ProjectLedger.API.Extensions.Mappings;
+using ProjectLedger.API.DTOs.Common;
+using ProjectLedger.API.Resources;
 using ProjectLedger.API.Services;
 
 namespace ProjectLedger.API.Controllers;
@@ -18,10 +21,13 @@ namespace ProjectLedger.API.Controllers;
 public class PlanController : ControllerBase
 {
     private readonly IPlanService _planService;
+    private readonly IStringLocalizer<Messages> _localizer;
 
-    public PlanController(IPlanService planService)
+    public PlanController(IPlanService planService,
+    IStringLocalizer<Messages> localizer)
     {
         _planService = planService;
+        _localizer = localizer;
     }
 
     // ── GET /api/plans ──────────────────────────────────────
@@ -59,7 +65,7 @@ public class PlanController : ControllerBase
             plan = await _planService.GetBySlugAsync(idOrSlug, ct);
 
         if (plan is null)
-            return NotFound(new { message = $"Plan '{idOrSlug}' not found." });
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["PlanNotFound"]));
 
         return Ok(plan.ToResponse());
     }

@@ -29,7 +29,7 @@ public class RegisterRequest
     public string Password { get; set; } = null!;
 
     [Required]
-    [StringLength(255, MinimumLength = 1, ErrorMessage = "FullName must be between 1 and 255 characters.")]
+    [StringLength(255, MinimumLength = 1, ErrorMessage = "Full name must be between 1 and 255 characters.")]
     public string FullName { get; set; } = null!;
 }
 
