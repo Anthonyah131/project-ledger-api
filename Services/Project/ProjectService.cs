@@ -92,7 +92,7 @@ public class ProjectService : IProjectService
             CatId = Guid.NewGuid(),
             CatProjectId = project.PrjId,
             CatName = "General",
-            CatDescription = "Categoría por defecto del proyecto.",
+            CatDescription = "Default project category.",
             CatIsDefault = true,
             CatCreatedAt = DateTime.UtcNow,
             CatUpdatedAt = DateTime.UtcNow

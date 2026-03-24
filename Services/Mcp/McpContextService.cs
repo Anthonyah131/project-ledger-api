@@ -95,7 +95,7 @@ public partial class McpService : IMcpService
             await _accessService.ValidateAccessAsync(userId, projectId.Value, ProjectRoles.Viewer, ct);
 
             if (visible.All(p => p.PrjId != projectId.Value))
-                throw new ForbiddenAccessException("El usuario no tiene acceso al proyecto seleccionado.");
+                throw new ForbiddenAccessException("ProjectAccessDenied");
 
             var selectedById = visible.Where(p => p.PrjId == projectId.Value).ToList();
             return new McpScope(visible, selectedById, null);
@@ -135,7 +135,7 @@ public partial class McpService : IMcpService
 
             var role = await _accessService.GetUserRoleAsync(userId, project.PrjId, ct);
             if (string.IsNullOrWhiteSpace(role))
-                throw new ForbiddenAccessException("El usuario no tiene acceso a uno o más proyectos en el ámbito.");
+                throw new ForbiddenAccessException("ProjectAccessDenied");
 
             roles[project.PrjId] = role;
         }
@@ -225,7 +225,7 @@ public partial class McpService : IMcpService
     private static void EnsureValidDateRange(DateOnly? from, DateOnly? to)
     {
         if (from.HasValue && to.HasValue && from.Value > to.Value)
-            throw new ArgumentException("Rango de fechas inválido: 'from' no puede ser mayor que 'to'.");
+            throw new ArgumentException("InvalidDateRange");
     }
 
     private static (DateOnly? From, DateOnly? To) ResolveRangeOrDefaults(
@@ -258,7 +258,7 @@ public partial class McpService : IMcpService
                 DateTimeStyles.None,
                 out var parsed))
         {
-            throw new ArgumentException("El mes debe usar el formato AAAA-MM.");
+            throw new ArgumentException("InvalidMonth");
         }
 
         return parsed;

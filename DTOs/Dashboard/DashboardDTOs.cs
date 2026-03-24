@@ -134,7 +134,6 @@ public class DashboardAlertResponse
 {
     public string Type { get; set; } = null!;
     public string Code { get; set; } = null!;
-    public string Message { get; set; } = null!;
     public Guid? ProjectId { get; set; }
     public Guid? PaymentMethodId { get; set; }
     public int Priority { get; set; }

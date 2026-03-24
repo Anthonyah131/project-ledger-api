@@ -135,15 +135,10 @@ public class PartnerBalanceService : IPartnerBalanceService
             if (debtorBals[di]   <= 0.01m) di++;
         }
 
-        var note = suggestions.Count == 0
-            ? "Todos los balances están saldados."
-            : $"Con {suggestions.Count} transferencia{(suggestions.Count == 1 ? "" : "s")} todos los balances quedan en cero.";
-
         return new SettlementSuggestionsResponse(
             ProjectId: projectId,
             Currency: projectCurrency,
-            Suggestions: suggestions,
-            Note: note
+            Suggestions: suggestions
         );
     }
 

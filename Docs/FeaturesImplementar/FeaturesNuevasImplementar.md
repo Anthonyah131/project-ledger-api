@@ -9,12 +9,11 @@ Se detectó que `GlobalExceptionHandlerMiddleware` responde en el idioma incorre
 
 **Corregido (2025-03-22):** se movió `UseRequestLocalization` antes de `UseGlobalExceptionHandler` en `Program.cs`.
 
-**Qué revisar aún:**
-Hacer un grep de todos los `throw new` en la capa de servicios y verificar que el string que se pasa como mensaje sea una clave válida en `Resources/Messages.resx` (inglés). Si el string es texto libre en cualquier idioma, el middleware lo devolverá tal cual sin traducir.
+**Corregido (2026-03-23):** se hizo grep completo de todos los `throw new` en `Services/`. Se encontraron 11 strings libres en español en los siguientes archivos y se reemplazaron por claves resx:
 
-```bash
-# Buscar throws con texto libre (no una clave PascalCase sin espacios)
-grep -rn "throw new.*Exception(\"" Services/ --include="*.cs"
-```
+- `Services/User/UserService.cs` → `UserAlreadyDeleted` (clave nueva agregada al resx)
+- `Services/Mcp/McpContextService.cs` → `ProjectAccessDenied`, `InvalidDateRange`, `InvalidMonth`
+- `Services/Transaction/IncomeService.cs` → `DuplicatePartnerInSplits`, `PartnerNotAssignedToProject`, `CannotMixSplitTypes`
+- `Services/Transaction/ExpenseService.cs` → `InvalidCurrencyCode`, `TitleRequired`, `DuplicatePartnerInSplits`, `PartnerNotAssignedToProject`, `CannotMixSplitTypes`
 
-Criterio: el mensaje debe ser una clave PascalCase sin espacios (ej. `"ProjectNotFound"`), no una frase (ej. `"Project not found"` o `"Proyecto no encontrado"`).
+Todos los demás throws ya usaban claves PascalCase correctas. El bug queda completamente cerrado.

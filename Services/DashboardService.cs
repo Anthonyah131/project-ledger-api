@@ -503,7 +503,6 @@ public class DashboardService : IDashboardService
             {
                 Type = "warning",
                 Code = "BUDGET_OVER_80",
-                Message = $"{projectsOver80.Count} proyectos estan sobre 80% de presupuesto",
                 ProjectId = target.ProjectId,
                 Priority = 80,
                 Count = projectsOver80.Count
@@ -516,7 +515,6 @@ public class DashboardService : IDashboardService
             {
                 Type = "warning",
                 Code = "OVERDUE_OBLIGATION",
-                Message = $"Hay {obligationSummary.OverdueCount} obligaciones vencidas",
                 ProjectId = obligationSummary.TopOverdueProjectId,
                 Priority = 90,
                 Count = obligationSummary.OverdueCount

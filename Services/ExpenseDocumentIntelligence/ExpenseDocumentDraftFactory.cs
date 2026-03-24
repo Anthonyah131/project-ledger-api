@@ -76,23 +76,23 @@ internal static class ExpenseDocumentDraftFactory
         var movementTitle = ResolveMovementTitle(transactionKind);
 
         if (!string.IsNullOrWhiteSpace(merchantName) && !string.IsNullOrWhiteSpace(primaryItemDescription))
-            return ExpenseDocumentTextUtils.Truncate($"{movementTitle} por {primaryItemDescription} en {merchantName}", 255);
+            return ExpenseDocumentTextUtils.Truncate($"{movementTitle} for {primaryItemDescription} at {merchantName}", 255);
 
         if (!string.IsNullOrWhiteSpace(merchantName))
-            return ExpenseDocumentTextUtils.Truncate($"{movementTitle} en {merchantName}", 255);
+            return ExpenseDocumentTextUtils.Truncate($"{movementTitle} at {merchantName}", 255);
 
         if (!string.IsNullOrWhiteSpace(primaryItemDescription))
-            return ExpenseDocumentTextUtils.Truncate($"{movementTitle} por {primaryItemDescription}", 255);
+            return ExpenseDocumentTextUtils.Truncate($"{movementTitle} for {primaryItemDescription}", 255);
 
         var prettyReceiptType = HumanizeReceiptType(receiptType);
         if (!string.IsNullOrWhiteSpace(prettyReceiptType))
             return documentKind == "invoice"
-                ? $"{movementTitle} ({prettyReceiptType}) desde factura"
-                : $"{movementTitle} ({prettyReceiptType}) desde recibo";
+                ? $"{movementTitle} ({prettyReceiptType}) from invoice"
+                : $"{movementTitle} ({prettyReceiptType}) from receipt";
 
         return documentKind == "invoice"
-            ? $"{movementNoun} desde factura"
-            : $"{movementNoun} desde recibo";
+            ? $"{movementNoun} from invoice"
+            : $"{movementNoun} from receipt";
     }
 
     private static string BuildDescription(
@@ -104,26 +104,26 @@ internal static class ExpenseDocumentDraftFactory
         string documentKind)
     {
         var movementNoun = ResolveMovementNoun(transactionKind);
-        var docTypeLabel = documentKind == "invoice" ? "factura" : "recibo";
+        var docTypeLabel = documentKind == "invoice" ? "invoice" : "receipt";
         var parts = new List<string>();
 
         if (!string.IsNullOrWhiteSpace(merchantName))
-            parts.Add($"Comercio: {merchantName}");
+            parts.Add($"Merchant: {merchantName}");
 
         if (!string.IsNullOrWhiteSpace(primaryItemDescription))
-            parts.Add($"Concepto: {primaryItemDescription}");
+            parts.Add($"Item: {primaryItemDescription}");
 
         var prettyReceiptType = HumanizeReceiptType(receiptType);
         if (!string.IsNullOrWhiteSpace(prettyReceiptType))
-            parts.Add($"Tipo: {prettyReceiptType}");
+            parts.Add($"Type: {prettyReceiptType}");
 
         if (!string.IsNullOrWhiteSpace(detectedPaymentMethod))
-            parts.Add($"Pago detectado: {detectedPaymentMethod}");
+            parts.Add($"Payment detected: {detectedPaymentMethod}");
 
         if (parts.Count == 0)
-            return $"{movementNoun} detectado desde {docTypeLabel}.";
+            return $"{movementNoun} detected from {docTypeLabel}.";
 
-        var description = $"{movementNoun} detectado desde {docTypeLabel}. {string.Join(". ", parts)}.";
+        var description = $"{movementNoun} detected from {docTypeLabel}. {string.Join(". ", parts)}.";
         return ExpenseDocumentTextUtils.Truncate(description, 1000);
     }
 
@@ -132,8 +132,8 @@ internal static class ExpenseDocumentDraftFactory
         var normalized = ExpenseDocumentTextUtils.Normalize(transactionKind);
         return normalized switch
         {
-            "income" or "ingreso" => "ingreso",
-            _ => "gasto"
+            "income" or "ingreso" => "income",
+            _ => "expense"
         };
     }
 
@@ -142,8 +142,8 @@ internal static class ExpenseDocumentDraftFactory
         var normalized = ExpenseDocumentTextUtils.Normalize(transactionKind);
         return normalized switch
         {
-            "income" or "ingreso" => "Ingreso",
-            _ => "Gasto"
+            "income" or "ingreso" => "Income",
+            _ => "Expense"
         };
     }
 
@@ -152,11 +152,11 @@ internal static class ExpenseDocumentDraftFactory
         var normalizedType = ExpenseDocumentTextUtils.Normalize(receiptType);
         return normalizedType switch
         {
-            "retailmeal" => "Retail/Comida",
-            "creditcard" => "Tarjeta",
+            "retailmeal" => "Retail/Food",
+            "creditcard" => "Card",
             "hotel" => "Hotel",
-            "transportationparking" => "Parqueo",
-            "fuelenergygas" => "Combustible",
+            "transportationparking" => "Parking",
+            "fuelenergygas" => "Fuel",
             _ => string.IsNullOrWhiteSpace(receiptType)
                 ? null
                 : ExpenseDocumentTextUtils.NormalizeWhitespace(receiptType).Replace(".", "/", StringComparison.Ordinal)

@@ -49,8 +49,7 @@ public record PairwiseCurrencyTotal(
 public record SettlementSuggestionsResponse(
     Guid ProjectId,
     string Currency,
-    IReadOnlyList<SettlementSuggestionItem> Suggestions,
-    string Note
+    IReadOnlyList<SettlementSuggestionItem> Suggestions
 );
 
 public record SettlementSuggestionItem(

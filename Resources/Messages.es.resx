@@ -108,6 +108,9 @@
   <data name="UserNotFoundOrDeleted" xml:space="preserve">
     <value>Usuario no encontrado o eliminado.</value>
   </data>
+  <data name="UserAlreadyDeleted" xml:space="preserve">
+    <value>El usuario ya está eliminado.</value>
+  </data>
 
   <!-- ══ Filters / Security ══ -->
   <data name="AccountDeactivated" xml:space="preserve">

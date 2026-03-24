@@ -278,19 +278,19 @@ public class IncomeService : IIncomeService
         // No duplicate partners
         var partnerIds = splits.Select(s => s.PartnerId).ToList();
         if (partnerIds.Distinct().Count() != partnerIds.Count)
-            throw new InvalidOperationException("Se encontró un socio duplicado en las divisiones.");
+            throw new InvalidOperationException("DuplicatePartnerInSplits");
 
         // All partners must be active in project
         var projectPartners = await _projectPartnerRepo.GetByProjectIdAsync(projectId, ct);
         var validPartnerIds = projectPartners.Select(pp => pp.PtpPartnerId).ToHashSet();
         var invalid = partnerIds.FirstOrDefault(id => !validPartnerIds.Contains(id));
         if (invalid != default)
-            throw new InvalidOperationException($"El socio '{invalid}' no está asignado a este proyecto.");
+            throw new InvalidOperationException("PartnerNotAssignedToProject");
 
         // No mixed types
         var types = splits.Select(s => s.SplitType).Distinct().ToList();
         if (types.Count > 1)
-            throw new InvalidOperationException("No se pueden mezclar tipos de división 'percentage' y 'fixed' en el mismo ingreso.");
+            throw new InvalidOperationException("CannotMixSplitTypes");
 
         var splitType = types[0];
 

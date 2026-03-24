@@ -50,7 +50,7 @@ public class UserService : IUserService
             ?? throw new KeyNotFoundException("UserNotFound");
 
         if (user.UsrIsDeleted)
-            throw new InvalidOperationException("El usuario ya está eliminado.");
+            throw new InvalidOperationException("UserAlreadyDeleted");
 
         user.UsrIsDeleted = true;
         user.UsrDeletedAt = DateTime.UtcNow;

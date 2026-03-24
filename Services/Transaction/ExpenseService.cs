@@ -93,13 +93,11 @@ public class ExpenseService : IExpenseService
             expense.ExpProjectId, expense.ExpPaymentMethodId, ct);
 
         if (!isLinked)
-            throw new InvalidOperationException(
-                "El método de pago no está vinculado a este proyecto. " +
-                "Vincúlalo primero en /api/projects/{projectId}/payment-methods.");
+            throw new InvalidOperationException("PaymentMethodNotLinkedToProject");
 
         // Resolver monto y moneda en la moneda del método de pago
         var paymentMethod = await _paymentMethodRepo.GetByIdAsync(expense.ExpPaymentMethodId, ct)
-            ?? throw new KeyNotFoundException($"Método de pago '{expense.ExpPaymentMethodId}' no encontrado.");
+            ?? throw new KeyNotFoundException("PaymentMethodNotFound");
 
         expense.ExpAccountCurrency = paymentMethod.PmtCurrency;
         expense.ExpAccountAmount = ResolveAccountAmount(
@@ -110,16 +108,13 @@ public class ExpenseService : IExpenseService
         if (expense.ExpObligationId.HasValue && expense.ExpIsActive)
         {
             var obligation = await _obligationRepo.GetByIdAsync(expense.ExpObligationId.Value, ct)
-                ?? throw new KeyNotFoundException(
-                    $"Obligación '{expense.ExpObligationId}' no encontrada.");
+                ?? throw new KeyNotFoundException("ObligationNotFound");
 
             if (obligation.OblIsDeleted)
-                throw new KeyNotFoundException(
-                    $"Obligación '{expense.ExpObligationId}' no encontrada.");
+                throw new KeyNotFoundException("ObligationNotFound");
 
             if (obligation.OblProjectId != expense.ExpProjectId)
-                throw new InvalidOperationException(
-                    "La obligación no pertenece al mismo proyecto que el gasto.");
+                throw new InvalidOperationException("ObligationProjectMismatch");
 
             // Convertir montos a la moneda de la obligación para comparar correctamente
             var existingPayments = await _expenseRepo.GetByObligationIdAsync(obligation.OblId, ct);
@@ -141,14 +136,10 @@ public class ExpenseService : IExpenseService
                 requireEquivalentForCrossCurrency: true);
 
             if (currentPaid >= obligation.OblTotalAmount)
-                throw new InvalidOperationException(
-                    "Esta obligación ya está completamente pagada. No se permiten pagos adicionales.");
+                throw new InvalidOperationException("ObligationAlreadyPaid");
 
             if (currentPaid + newPaymentAmount > obligation.OblTotalAmount)
-                throw new InvalidOperationException(
-                    $"El pago excedería el total de la obligación. " +
-                    $"Restante: {obligation.OblTotalAmount - currentPaid:F2} {obligation.OblCurrency}, " +
-                    $"Intento: {newPaymentAmount:F2} {obligation.OblCurrency}.");
+                throw new InvalidOperationException("PaymentExceedsObligationTotal");
         }
 
         expense.ExpCreatedAt = DateTime.UtcNow;
@@ -207,7 +198,7 @@ public class ExpenseService : IExpenseService
             ?? throw new KeyNotFoundException("ProjectNotFound");
 
         var paymentMethod = await _paymentMethodRepo.GetByIdAsync(expense.ExpPaymentMethodId, ct)
-            ?? throw new KeyNotFoundException($"Método de pago '{expense.ExpPaymentMethodId}' no encontrado.");
+            ?? throw new KeyNotFoundException("PaymentMethodNotFound");
 
         expense.ExpAccountCurrency = paymentMethod.PmtCurrency;
         expense.ExpAccountAmount = ResolveAccountAmount(
@@ -239,10 +230,7 @@ public class ExpenseService : IExpenseService
                     requireEquivalentForCrossCurrency: true);
 
                 if (othersPaid + updatedAmount > obligation.OblTotalAmount)
-                    throw new InvalidOperationException(
-                        $"El pago excedería el total de la obligación. " +
-                        $"Restante (excluyendo este gasto): {obligation.OblTotalAmount - othersPaid:F2} {obligation.OblCurrency}, " +
-                        $"Intento: {updatedAmount:F2} {obligation.OblCurrency}.");
+                    throw new InvalidOperationException("PaymentExceedsObligationTotal");
             }
         }
 
@@ -359,8 +347,7 @@ public class ExpenseService : IExpenseService
         if (string.Equals(paymentMethodCurrency, projectCurrency, StringComparison.OrdinalIgnoreCase))
             return expense.ExpConvertedAmount;
 
-        throw new InvalidOperationException(
-            "El monto de cuenta es requerido cuando la moneda del método de pago difiere tanto de la moneda original como de la del proyecto.");
+        throw new InvalidOperationException("AccountAmountRequiredForDistinctCurrencies");
     }
 
     private static void ValidateAccountingReadinessForActivation(Expense expense)
@@ -375,10 +362,10 @@ public class ExpenseService : IExpenseService
             throw new InvalidOperationException("ExchangeRateMustBePositive");
 
         if (string.IsNullOrWhiteSpace(expense.ExpOriginalCurrency) || expense.ExpOriginalCurrency.Length != 3)
-            throw new InvalidOperationException("No se puede activar el gasto: la moneda original debe ser un código ISO válido de 3 letras.");
+            throw new InvalidOperationException("InvalidCurrencyCode");
 
         if (string.IsNullOrWhiteSpace(expense.ExpTitle))
-            throw new InvalidOperationException("No se puede activar el gasto: el título es requerido.");
+            throw new InvalidOperationException("TitleRequired");
 
         if (expense.ExpExpenseDate == default)
             throw new InvalidOperationException("DateRequired");
@@ -394,19 +381,19 @@ public class ExpenseService : IExpenseService
         // No duplicate partners
         var partnerIds = splits.Select(s => s.PartnerId).ToList();
         if (partnerIds.Distinct().Count() != partnerIds.Count)
-            throw new InvalidOperationException("Se encontró un socio duplicado en las divisiones.");
+            throw new InvalidOperationException("DuplicatePartnerInSplits");
 
         // All partners must be active in project
         var projectPartners = await _projectPartnerRepo.GetByProjectIdAsync(projectId, ct);
         var validPartnerIds = projectPartners.Select(pp => pp.PtpPartnerId).ToHashSet();
         var invalid = partnerIds.FirstOrDefault(id => !validPartnerIds.Contains(id));
         if (invalid != default)
-            throw new InvalidOperationException($"El socio '{invalid}' no está asignado a este proyecto.");
+            throw new InvalidOperationException("PartnerNotAssignedToProject");
 
         // No mixed types
         var types = splits.Select(s => s.SplitType).Distinct().ToList();
         if (types.Count > 1)
-            throw new InvalidOperationException("No se pueden mezclar tipos de división 'percentage' y 'fixed' en el mismo gasto.");
+            throw new InvalidOperationException("CannotMixSplitTypes");
 
         var splitType = types[0];
 
