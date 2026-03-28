@@ -6,6 +6,8 @@ public class McpFinancialHealthResponse
     public DateOnly? From { get; set; }
     public DateOnly? To { get; set; }
     public int Score { get; set; }
+    public int? PreviousScore { get; set; }
+    public string? TrendDirection { get; set; }
     public decimal TotalIncome { get; set; }
     public decimal TotalSpent { get; set; }
     public decimal NetBalance { get; set; }
@@ -59,6 +61,7 @@ public class McpAlertResponse
     public string Code { get; set; } = null!;
     public string Type { get; set; } = null!;
     public string Message { get; set; } = null!;
+    public string? RecommendedAction { get; set; }
     public int Priority { get; set; }
     public Guid? ProjectId { get; set; }
     public Guid? ObligationId { get; set; }

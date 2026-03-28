@@ -40,4 +40,11 @@ public class ChatbotProviderSettings
 
     /// <summary>Timeout en segundos para las llamadas HTTP.</summary>
     public int TimeoutSeconds { get; set; } = 30;
+
+    /// <summary>
+    /// Indica si este proveedor soporta tool calling (function calling) de OpenAI.
+    /// Habilitar solo en proveedores/modelos que lo soporten de forma confiable.
+    /// Cuando es false, el proveedor solo usa inyección de contexto (Fase 2).
+    /// </summary>
+    public bool SupportsToolCalling { get; set; }
 }

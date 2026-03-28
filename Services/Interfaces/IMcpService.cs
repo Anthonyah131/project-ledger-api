@@ -95,4 +95,19 @@ public interface IMcpService
         Guid userId,
         McpAlertsQuery query,
         CancellationToken ct = default);
+
+    Task<McpPartnerBalancesResponse> GetPartnerBalancesAsync(
+        Guid userId,
+        McpPartnerBalancesQuery query,
+        CancellationToken ct = default);
+
+    Task<McpPagedResponse<McpPartnerSettlementItemResponse>> GetPartnerSettlementsAsync(
+        Guid userId,
+        McpPartnerSettlementsQuery query,
+        CancellationToken ct = default);
+
+    Task<McpRecentMovementsResponse> GetRecentMovementsAsync(
+        Guid userId,
+        McpRecentMovementsQuery query,
+        CancellationToken ct = default);
 }

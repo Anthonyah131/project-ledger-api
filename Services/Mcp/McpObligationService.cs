@@ -31,6 +31,7 @@ public partial class McpService
                         ProjectId = o.OblProjectId,
                         ProjectName = o.Project.PrjName,
                         Title = o.OblTitle,
+                        Description = o.OblDescription,
                         DueDate = o.OblDueDate,
                         TotalAmount = o.OblTotalAmount,
                         PaidAmount = paid,
@@ -81,6 +82,7 @@ public partial class McpService
                         ProjectId = o.OblProjectId,
                         ProjectName = o.Project.PrjName,
                         Title = o.OblTitle,
+                        Description = o.OblDescription,
                         DueDate = o.OblDueDate,
                         TotalAmount = o.OblTotalAmount,
                         PaidAmount = paid,
@@ -97,7 +99,7 @@ public partial class McpService
                 };
             })
             .Where(x => x.Item.RemainingAmount > 0)
-            .Where(x => string.IsNullOrWhiteSpace(query.Status) || x.Item.Status.Equals(query.Status, StringComparison.OrdinalIgnoreCase))
+            .Where(x => string.IsNullOrWhiteSpace(query.Status) || x.Item.Status == Normalize(query.Status))
             .Where(x => string.IsNullOrWhiteSpace(query.Search)
                 || ContainsText(x.Obligation.OblTitle, query.Search)
                 || ContainsText(x.Obligation.OblDescription, query.Search))

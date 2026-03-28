@@ -5,8 +5,8 @@ using ProjectLedger.API.DTOs.Common;
 using ProjectLedger.API.Resources;
 using ProjectLedger.API.DTOs.Expense;
 using ProjectLedger.API.DTOs.Income;
-using ProjectLedger.API.Extensions.Mappings;
 using ProjectLedger.API.Models;
+using ProjectLedger.API.Extensions.Mappings;
 using ProjectLedger.API.Services;
 
 namespace ProjectLedger.API.Controllers;
@@ -150,6 +150,88 @@ public class IncomeController : ControllerBase
             nameof(GetById),
             new { projectId, incomeId = income.IncId },
             income.ToResponse());
+    }
+
+    // ── POST /api/projects/{projectId}/incomes/bulk ─────────
+
+    /// <summary>
+    /// Importación rápida: crea hasta 100 ingresos en un solo request.
+    /// Los campos comunes (categoría, método de pago, moneda, tipo de cambio) se envían
+    /// una vez a nivel del lote. El converted_amount se calcula como amount × exchangeRate.
+    /// Operación all-or-nothing: si algún item falla validación, no se crea ninguno.
+    /// </summary>
+    /// <response code="201">Ingresos creados.</response>
+    /// <response code="400">Datos inválidos.</response>
+    /// <response code="403">Sin acceso o plan no permite más ingresos.</response>
+    [HttpPost("bulk")]
+    [Authorize(Policy = "ProjectEditor")]
+    [ProducesResponseType(typeof(BulkCreateIncomeResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> BulkCreate(
+        Guid projectId,
+        [FromBody] BulkCreateIncomeRequest request,
+        CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var userId = User.GetRequiredUserId();
+        await _planAuth.ValidateProjectWriteAccessAsync(projectId, userId, ct);
+        await _accessService.ValidateAccessAsync(userId, projectId, ProjectRoles.Editor, ct);
+
+        var items = request.Items.Select(item =>
+        {
+            var income = new Income
+            {
+                IncId = Guid.NewGuid(),
+                IncProjectId = projectId,
+                IncCreatedByUserId = userId,
+                IncCategoryId = item.CategoryId,
+                IncPaymentMethodId = item.PaymentMethodId,
+                IncOriginalAmount = item.OriginalAmount,
+                IncOriginalCurrency = item.OriginalCurrency,
+                IncExchangeRate = item.ExchangeRate,
+                IncConvertedAmount = item.ConvertedAmount,
+                IncAccountAmount = item.AccountAmount,
+                IncTitle = item.Title,
+                IncDescription = item.Description,
+                IncIncomeDate = item.Date,
+                IncNotes = item.Notes,
+                IncIsActive = true
+            };
+            var splits = item.Splits?.Select(s => new SplitInput(
+                s.PartnerId, s.SplitType, s.SplitValue, s.ResolvedAmount,
+                s.CurrencyExchanges?.Select(ce => new SplitCurrencyExchangeInput(
+                    ce.CurrencyCode, ce.ExchangeRate, ce.ConvertedAmount)).ToList()
+            )).ToList();
+            return (income, (IReadOnlyList<SplitInput>?)splits);
+        }).ToList();
+
+        var created = await _incomeService.BulkCreateAsync(items, ct);
+
+        // Guardar conversiones a monedas alternativas por item
+        for (var i = 0; i < created.Count; i++)
+        {
+            var exchanges = request.Items[i].CurrencyExchanges;
+            if (exchanges?.Count > 0)
+                await _exchangeService.SaveExchangesAsync("income", created[i].IncId, exchanges, ct);
+        }
+
+        var response = new BulkCreateIncomeResponse
+        {
+            Created = created.Count,
+            Items = created.Select(i => new BulkCreatedIncomeItemResponse
+            {
+                Id = i.IncId,
+                Title = i.IncTitle,
+                OriginalAmount = i.IncOriginalAmount,
+                ConvertedAmount = i.IncConvertedAmount,
+                Date = i.IncIncomeDate
+            }).ToList()
+        };
+
+        return StatusCode(StatusCodes.Status201Created, response);
     }
 
     // ── POST /api/projects/{projectId}/incomes/extract-from-image ──────────

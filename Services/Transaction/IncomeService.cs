@@ -268,6 +268,96 @@ public class IncomeService : IIncomeService
             throw new InvalidOperationException("DateRequired");
     }
 
+    public async Task<IReadOnlyList<Income>> BulkCreateAsync(
+        IReadOnlyList<(Income Income, IReadOnlyList<SplitInput>? Splits)> items,
+        CancellationToken ct = default)
+    {
+        if (items.Count == 0)
+            return [];
+
+        var projectId = items[0].Income.IncProjectId;
+
+        var project = await _projectRepo.GetByIdAsync(projectId, ct)
+            ?? throw new KeyNotFoundException("ProjectNotFound");
+
+        // Validar límite de plan para el lote completo de una vez
+        var projectIncomes = await _incomeRepo.GetByProjectIdAsync(projectId, ct);
+        var thisMonthCount = projectIncomes
+            .Count(i => i.IncCreatedAt.Year == DateTime.UtcNow.Year
+                     && i.IncCreatedAt.Month == DateTime.UtcNow.Month);
+
+        await _planAuth.ValidateLimitAsync(
+            project.PrjOwnerUserId, PlanLimits.MaxIncomesPerMonth, thisMonthCount + items.Count - 1, ct);
+
+        // Caché de métodos de pago para evitar consultas duplicadas dentro del lote
+        var paymentMethodCache = new Dictionary<Guid, PaymentMethod>();
+
+        var now = DateTime.UtcNow;
+        foreach (var (income, _) in items)
+        {
+            ValidateAccountingReadinessForActivation(income);
+
+            if (!paymentMethodCache.TryGetValue(income.IncPaymentMethodId, out var paymentMethod))
+            {
+                paymentMethod = await GetLinkedPaymentMethodAsync(projectId, income.IncPaymentMethodId, ct);
+                paymentMethodCache[income.IncPaymentMethodId] = paymentMethod;
+            }
+
+            income.IncAccountCurrency = paymentMethod.PmtCurrency;
+            income.IncAccountAmount = ResolveAccountAmount(income, paymentMethod.PmtCurrency, project.PrjCurrencyCode);
+            income.IncCreatedAt = now;
+            income.IncUpdatedAt = now;
+        }
+
+        await _incomeRepo.ExecuteInTransactionAsync(async (ct) =>
+        {
+            foreach (var (income, splits) in items)
+            {
+                await _incomeRepo.AddAsync(income, ct);
+                await _incomeRepo.SaveChangesAsync(ct);
+
+                var paymentMethod = paymentMethodCache[income.IncPaymentMethodId];
+
+                if (splits is { Count: > 0 } && project.PrjPartnersEnabled)
+                {
+                    var splitEntities = await BuildIncomeSplitsAsync(
+                        income.IncId, income.IncOriginalAmount, projectId, splits, ct);
+                    foreach (var s in splitEntities)
+                        await _incomeSplitRepo.AddAsync(s, ct);
+                    await _incomeSplitRepo.SaveChangesAsync(ct);
+                }
+                else if (paymentMethod.PmtOwnerPartnerId.HasValue)
+                {
+                    var autoSplit = new IncomeSplit
+                    {
+                        InsId = Guid.NewGuid(),
+                        InsIncomeId = income.IncId,
+                        InsPartnerId = paymentMethod.PmtOwnerPartnerId.Value,
+                        InsSplitType = "percentage",
+                        InsSplitValue = 100m,
+                        InsResolvedAmount = income.IncOriginalAmount
+                    };
+                    await _incomeSplitRepo.AddAsync(autoSplit, ct);
+                    await _incomeSplitRepo.SaveChangesAsync(ct);
+                }
+
+                await _auditLog.LogAsync("Income", income.IncId, "create", income.IncCreatedByUserId,
+                    newValues: new
+                    {
+                        income.IncId,
+                        income.IncTitle,
+                        income.IncConvertedAmount,
+                        income.IncProjectId,
+                        income.IncAccountAmount,
+                        income.IncAccountCurrency
+                    },
+                    ct: ct);
+            }
+        }, ct);
+
+        return items.Select(i => i.Income).ToList();
+    }
+
     private async Task<IReadOnlyList<IncomeSplit>> BuildIncomeSplitsAsync(
         Guid incomeId,
         decimal originalAmount,

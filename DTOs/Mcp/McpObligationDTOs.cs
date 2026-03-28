@@ -6,6 +6,7 @@ public class McpObligationItemResponse
     public Guid ProjectId { get; set; }
     public string ProjectName { get; set; } = null!;
     public string Title { get; set; } = null!;
+    public string? Description { get; set; }
     public DateOnly? DueDate { get; set; }
     public decimal TotalAmount { get; set; }
     public decimal PaidAmount { get; set; }

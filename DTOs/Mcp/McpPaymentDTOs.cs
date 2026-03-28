@@ -6,6 +6,7 @@ public class McpPaymentObligationItemResponse
     public Guid ProjectId { get; set; }
     public string ProjectName { get; set; } = null!;
     public string Title { get; set; } = null!;
+    public string? Description { get; set; }
     public DateOnly? DueDate { get; set; }
     public int? DaysUntilDue { get; set; }
     public int? DaysOverdue { get; set; }
@@ -30,7 +31,6 @@ public class McpReceivedPaymentItemResponse
     public decimal OriginalAmount { get; set; }
     public string OriginalCurrency { get; set; } = null!;
     public decimal ConvertedAmount { get; set; }
-    public bool IsActive { get; set; }
 }
 
 public class McpPaymentMethodUsageResponse

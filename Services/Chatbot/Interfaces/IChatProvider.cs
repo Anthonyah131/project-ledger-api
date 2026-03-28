@@ -19,8 +19,15 @@ public interface IChatProvider
     bool IsEnabled { get; }
 
     /// <summary>
-    /// Envía un mensaje al proveedor y devuelve la respuesta en texto plano.
+    /// Indica si el proveedor/modelo soporta tool calling (function calling).
+    /// Cuando es false, el proveedor solo puede recibir conversaciones planas.
+    /// </summary>
+    bool SupportsToolCalling { get; }
+
+    /// <summary>
+    /// Envía la conversación al proveedor y devuelve la respuesta en texto plano.
+    /// El array debe incluir el system message, el historial y el mensaje actual.
     /// Lanza excepción si el proveedor no está disponible o hay un error de red/API.
     /// </summary>
-    Task<string> SendMessageAsync(string message, CancellationToken ct);
+    Task<string> SendMessageAsync(IReadOnlyList<TcMessage> messages, CancellationToken ct);
 }

@@ -330,6 +330,89 @@ public class ExpenseController : ControllerBase
             expense.ToResponse());
     }
 
+    // ── POST /api/projects/{projectId}/expenses/bulk ────────
+
+    /// <summary>
+    /// Importación rápida: crea hasta 100 gastos en un solo request.
+    /// Los campos comunes (categoría, método de pago, moneda, tipo de cambio) se envían
+    /// una vez a nivel del lote. El converted_amount se calcula como amount × exchangeRate.
+    /// Operación all-or-nothing: si algún item falla validación, no se crea ninguno.
+    /// </summary>
+    /// <response code="201">Gastos creados.</response>
+    /// <response code="400">Datos inválidos.</response>
+    /// <response code="403">Sin acceso o plan no permite más gastos.</response>
+    [HttpPost("bulk")]
+    [Authorize(Policy = "ProjectEditor")]
+    [ProducesResponseType(typeof(BulkCreateExpenseResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> BulkCreate(
+        Guid projectId,
+        [FromBody] BulkCreateExpenseRequest request,
+        CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var userId = User.GetRequiredUserId();
+        await _planAuth.ValidateProjectWriteAccessAsync(projectId, userId, ct);
+        await _accessService.ValidateAccessAsync(userId, projectId, ProjectRoles.Editor, ct);
+
+        var items = request.Items.Select(item =>
+        {
+            var expense = new Expense
+            {
+                ExpId = Guid.NewGuid(),
+                ExpProjectId = projectId,
+                ExpCreatedByUserId = userId,
+                ExpCategoryId = item.CategoryId,
+                ExpPaymentMethodId = item.PaymentMethodId,
+                ExpOriginalAmount = item.OriginalAmount,
+                ExpOriginalCurrency = item.OriginalCurrency,
+                ExpExchangeRate = item.ExchangeRate,
+                ExpConvertedAmount = item.ConvertedAmount,
+                ExpAccountAmount = item.AccountAmount,
+                ExpTitle = item.Title,
+                ExpDescription = item.Description,
+                ExpExpenseDate = item.Date,
+                ExpNotes = item.Notes,
+                ExpIsTemplate = false,
+                ExpIsActive = true
+            };
+            var splits = item.Splits?.Select(s => new SplitInput(
+                s.PartnerId, s.SplitType, s.SplitValue, s.ResolvedAmount,
+                s.CurrencyExchanges?.Select(ce => new SplitCurrencyExchangeInput(
+                    ce.CurrencyCode, ce.ExchangeRate, ce.ConvertedAmount)).ToList()
+            )).ToList();
+            return (expense, (IReadOnlyList<SplitInput>?)splits);
+        }).ToList();
+
+        var created = await _expenseService.BulkCreateAsync(items, ct);
+
+        // Guardar conversiones a monedas alternativas por item
+        for (var i = 0; i < created.Count; i++)
+        {
+            var exchanges = request.Items[i].CurrencyExchanges;
+            if (exchanges?.Count > 0)
+                await _exchangeService.SaveExchangesAsync("expense", created[i].ExpId, exchanges, ct);
+        }
+
+        var response = new BulkCreateExpenseResponse
+        {
+            Created = created.Count,
+            Items = created.Select(e => new BulkCreatedItemResponse
+            {
+                Id = e.ExpId,
+                Title = e.ExpTitle,
+                OriginalAmount = e.ExpOriginalAmount,
+                ConvertedAmount = e.ExpConvertedAmount,
+                Date = e.ExpExpenseDate
+            }).ToList()
+        };
+
+        return StatusCode(StatusCodes.Status201Created, response);
+    }
+
     // ── PUT /api/projects/{projectId}/expenses/{expenseId} ──
 
     /// <summary>

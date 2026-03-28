@@ -3,6 +3,28 @@ using ProjectLedger.API.DTOs.Common;
 
 namespace ProjectLedger.API.DTOs.Mcp;
 
+public class McpRecentMovementsQuery : PagedRequest
+{
+    public Guid? ProjectId { get; set; }
+    public string? ProjectName { get; set; }
+
+    /// <summary>"expense", "income", or null/empty for both.</summary>
+    public string? Type { get; set; }
+
+    public DateOnly? From { get; set; }
+    public DateOnly? To { get; set; }
+    public string? CategoryName { get; set; }
+    public string? PaymentMethodName { get; set; }
+
+    /// <summary>Filter transactions that include a split with this partner name.</summary>
+    public string? PartnerName { get; set; }
+
+    public string? Search { get; set; }
+
+    [Range(1, 50)]
+    public int? Top { get; set; }
+}
+
 public class McpProjectPortfolioQuery : PagedRequest
 {
     public Guid? ProjectId { get; set; }
@@ -45,8 +67,6 @@ public class McpReceivedPaymentsQuery : PagedRequest
 
     [Range(0, 99999999999999.99)]
     public decimal? MinAmount { get; set; }
-
-    public bool? IsActive { get; set; }
 
     public string? Search { get; set; }
 }
@@ -100,6 +120,7 @@ public class McpExpenseTotalsQuery
     public bool? ComparePreviousPeriod { get; set; }
     public Guid? CategoryId { get; set; }
     public string? CategoryName { get; set; }
+    public bool? IncludeTopCategories { get; set; }
 }
 
 public class McpExpenseByCategoryQuery
@@ -213,4 +234,21 @@ public class McpAlertsQuery
 
     [Range(0, 100)]
     public int? MinPriority { get; set; }
+}
+
+public class McpPartnerBalancesQuery
+{
+    public Guid? ProjectId { get; set; }
+    public string? ProjectName { get; set; }
+}
+
+public class McpPartnerSettlementsQuery : PagedRequest
+{
+    public Guid? ProjectId { get; set; }
+    public string? ProjectName { get; set; }
+    public DateOnly? From { get; set; }
+    public DateOnly? To { get; set; }
+
+    /// <summary>Filtra por nombre del partner origen o destino.</summary>
+    public string? PartnerName { get; set; }
 }

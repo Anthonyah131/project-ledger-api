@@ -35,6 +35,7 @@ public partial class McpService
                 ProjectId = x.Obligation.OblProjectId,
                 ProjectName = x.Obligation.Project.PrjName,
                 Title = x.Obligation.OblTitle,
+                Description = x.Obligation.OblDescription,
                 DueDate = x.Obligation.OblDueDate,
                 DaysUntilDue = x.Obligation.OblDueDate.HasValue && x.Obligation.OblDueDate.Value >= today
                     ? x.Obligation.OblDueDate.Value.DayNumber - today.DayNumber
@@ -91,7 +92,6 @@ public partial class McpService
         }
 
         var filtered = incomes
-            .Where(i => !query.IsActive.HasValue || i.IncIsActive == query.IsActive.Value)
             .Where(i => !query.PaymentMethodId.HasValue || i.IncPaymentMethodId == query.PaymentMethodId.Value)
             .Where(i => paymentMethodIdsFromName is null || paymentMethodIdsFromName.Contains(i.IncPaymentMethodId))
             .Where(i => !query.CategoryId.HasValue || i.IncCategoryId == query.CategoryId.Value)
@@ -113,8 +113,7 @@ public partial class McpService
                 Title = i.IncTitle,
                 OriginalAmount = i.IncOriginalAmount,
                 OriginalCurrency = i.IncOriginalCurrency,
-                ConvertedAmount = i.IncConvertedAmount,
-                IsActive = i.IncIsActive
+                ConvertedAmount = i.IncConvertedAmount
             })
             .ToList();
 
@@ -154,6 +153,7 @@ public partial class McpService
                 ProjectId = x.Obligation.OblProjectId,
                 ProjectName = x.Obligation.Project.PrjName,
                 Title = x.Obligation.OblTitle,
+                Description = x.Obligation.OblDescription,
                 DueDate = x.Obligation.OblDueDate,
                 DaysOverdue = x.DaysOverdue,
                 TotalAmount = x.Obligation.OblTotalAmount,

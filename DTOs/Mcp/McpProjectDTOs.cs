@@ -6,6 +6,8 @@ public class McpProjectPortfolioItemResponse
     public string ProjectName { get; set; } = null!;
     public string UserRole { get; set; } = null!;
     public string CurrencyCode { get; set; } = null!;
+    public string? Description { get; set; }
+    public DateTime CreatedAtUtc { get; set; }
     public DateTime? LastActivityAtUtc { get; set; }
     public DateOnly? NextDeadline { get; set; }
     public string Status { get; set; } = null!;

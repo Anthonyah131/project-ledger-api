@@ -16,8 +16,9 @@ public partial class McpService
 
         if (!string.IsNullOrWhiteSpace(query.Status))
         {
+            var statusFilter = Normalize(query.Status)!;
             items = items
-                .Where(i => i.Status.Equals(query.Status, StringComparison.OrdinalIgnoreCase))
+                .Where(i => i.Status == statusFilter)
                 .ToList();
         }
 
@@ -206,6 +207,8 @@ public partial class McpService
                 ProjectName = project.PrjName,
                 UserRole = roleMap.GetValueOrDefault(project.PrjId, ProjectRoles.Viewer),
                 CurrencyCode = project.PrjCurrencyCode,
+                Description = project.PrjDescription,
+                CreatedAtUtc = project.PrjCreatedAt,
                 LastActivityAtUtc = lastActivity,
                 NextDeadline = nextDeadline == default ? null : nextDeadline,
                 Status = status,

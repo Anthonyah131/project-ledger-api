@@ -20,7 +20,9 @@ public class ChatbotController : ControllerBase
     }
 
     /// <summary>
-    /// Envía un mensaje al chatbot de IA.
+    /// Envía un mensaje al chatbot de IA con contexto financiero real inyectado.
+    /// Incluye el resumen mensual actual y los pagos vencidos en el system prompt.
+    /// Soporta historial de conversación para respuestas de seguimiento coherentes.
     /// Cada petición usa el siguiente proveedor en la rotación (OpenRouter → Groq → Cerebras → BytePlus).
     /// Si el proveedor asignado no está disponible, se pasa automáticamente al siguiente.
     /// </summary>
@@ -37,7 +39,13 @@ public class ChatbotController : ControllerBase
 
         try
         {
-            var response = await _chatbotService.SendMessageAsync(request.Message, ct);
+            var userId   = User.GetRequiredUserId();
+            var response = await _chatbotService.SendMessageAsync(
+                userId,
+                request.Message,
+                request.History,
+                ct);
+
             return Ok(response);
         }
         catch (InvalidOperationException ex)

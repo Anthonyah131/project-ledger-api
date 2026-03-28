@@ -25,11 +25,10 @@ public class OpenRouterChatProvider : OpenAiCompatibleChatProvider
         _settings = options.Value.OpenRouter;
     }
 
-    public override string ProviderName    => "OpenRouter";
-    public override string Model           => string.IsNullOrWhiteSpace(_settings.Model) ? DefaultModel : _settings.Model;
+    public override string ProviderName      => "OpenRouter";
+    public override string Model             => string.IsNullOrWhiteSpace(_settings.Model) ? DefaultModel : _settings.Model;
     protected override string HttpClientName => "Chatbot.OpenRouter";
 
-    // Habilitado si tiene key válida y no fue desactivado explícitamente
-    public override bool IsEnabled =>
-        _settings.Enabled && !string.IsNullOrWhiteSpace(_settings.ApiKey);
+    public override bool IsEnabled           => _settings.Enabled && !string.IsNullOrWhiteSpace(_settings.ApiKey);
+    public override bool SupportsToolCalling => _settings.SupportsToolCalling;
 }

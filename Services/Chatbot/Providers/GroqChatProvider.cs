@@ -29,6 +29,6 @@ public class GroqChatProvider : OpenAiCompatibleChatProvider
     public override string Model             => string.IsNullOrWhiteSpace(_settings.Model) ? DefaultModel : _settings.Model;
     protected override string HttpClientName => "Chatbot.Groq";
 
-    public override bool IsEnabled =>
-        _settings.Enabled && !string.IsNullOrWhiteSpace(_settings.ApiKey);
+    public override bool IsEnabled           => _settings.Enabled && !string.IsNullOrWhiteSpace(_settings.ApiKey);
+    public override bool SupportsToolCalling => _settings.SupportsToolCalling;
 }

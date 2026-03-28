@@ -371,6 +371,94 @@ public class ExpenseService : IExpenseService
             throw new InvalidOperationException("DateRequired");
     }
 
+    public async Task<IReadOnlyList<Expense>> BulkCreateAsync(
+        IReadOnlyList<(Expense Expense, IReadOnlyList<SplitInput>? Splits)> items,
+        CancellationToken ct = default)
+    {
+        if (items.Count == 0)
+            return [];
+
+        var projectId = items[0].Expense.ExpProjectId;
+
+        var project = await _projectRepo.GetByIdAsync(projectId, ct)
+            ?? throw new KeyNotFoundException("ProjectNotFound");
+
+        // Validar límite de plan para el lote completo de una vez
+        var projectExpenses = await _expenseRepo.GetByProjectIdAsync(projectId, ct);
+        var thisMonthCount = projectExpenses
+            .Count(e => !e.ExpIsTemplate
+                && e.ExpCreatedAt.Year == DateTime.UtcNow.Year
+                && e.ExpCreatedAt.Month == DateTime.UtcNow.Month);
+
+        await _planAuth.ValidateLimitAsync(
+            project.PrjOwnerUserId, PlanLimits.MaxExpensesPerMonth, thisMonthCount + items.Count - 1, ct);
+
+        // Caché de métodos de pago para evitar consultas duplicadas dentro del lote
+        var paymentMethodCache = new Dictionary<Guid, PaymentMethod>();
+
+        var now = DateTime.UtcNow;
+        foreach (var (expense, _) in items)
+        {
+            ValidateAccountingReadinessForActivation(expense);
+
+            if (!paymentMethodCache.TryGetValue(expense.ExpPaymentMethodId, out var paymentMethod))
+            {
+                var isLinked = await _ppmRepo.IsPaymentMethodLinkedToProjectAsync(
+                    projectId, expense.ExpPaymentMethodId, ct);
+                if (!isLinked)
+                    throw new InvalidOperationException("PaymentMethodNotLinkedToProject");
+
+                paymentMethod = await _paymentMethodRepo.GetByIdAsync(expense.ExpPaymentMethodId, ct)
+                    ?? throw new KeyNotFoundException("PaymentMethodNotFound");
+                paymentMethodCache[expense.ExpPaymentMethodId] = paymentMethod;
+            }
+
+            expense.ExpAccountCurrency = paymentMethod.PmtCurrency;
+            expense.ExpAccountAmount = ResolveAccountAmount(expense, paymentMethod.PmtCurrency, project.PrjCurrencyCode);
+            expense.ExpCreatedAt = now;
+            expense.ExpUpdatedAt = now;
+        }
+
+        await _expenseRepo.ExecuteInTransactionAsync(async (ct) =>
+        {
+            foreach (var (expense, splits) in items)
+            {
+                await _expenseRepo.AddAsync(expense, ct);
+                await _expenseRepo.SaveChangesAsync(ct);
+
+                var paymentMethod = paymentMethodCache[expense.ExpPaymentMethodId];
+
+                if (splits is { Count: > 0 } && project.PrjPartnersEnabled)
+                {
+                    var splitEntities = await BuildExpenseSplitsAsync(
+                        expense.ExpId, expense.ExpOriginalAmount, projectId, splits, ct);
+                    foreach (var s in splitEntities)
+                        await _expenseSplitRepo.AddAsync(s, ct);
+                    await _expenseSplitRepo.SaveChangesAsync(ct);
+                }
+                else if (paymentMethod.PmtOwnerPartnerId.HasValue)
+                {
+                    var autoSplit = new ExpenseSplit
+                    {
+                        ExsId = Guid.NewGuid(),
+                        ExsExpenseId = expense.ExpId,
+                        ExsPartnerId = paymentMethod.PmtOwnerPartnerId.Value,
+                        ExsSplitType = "percentage",
+                        ExsSplitValue = 100m,
+                        ExsResolvedAmount = expense.ExpOriginalAmount
+                    };
+                    await _expenseSplitRepo.AddAsync(autoSplit, ct);
+                    await _expenseSplitRepo.SaveChangesAsync(ct);
+                }
+
+                await _auditLog.LogAsync("Expense", expense.ExpId, "create", expense.ExpCreatedByUserId,
+                    newValues: new { expense.ExpId, expense.ExpTitle, expense.ExpConvertedAmount, expense.ExpProjectId }, ct: ct);
+            }
+        }, ct);
+
+        return items.Select(i => i.Expense).ToList();
+    }
+
     private async Task<IReadOnlyList<ExpenseSplit>> BuildExpenseSplitsAsync(
         Guid expenseId,
         decimal originalAmount,

@@ -50,12 +50,38 @@ public partial class McpService
                 budgetRiskProjects++;
         }
 
-        var score = 50;
-        score += net >= 0 ? 20 : -20;
-        score += overdueCount == 0 ? 10 : -Math.Min(20, overdueCount * 5);
-        score += budgetRiskProjects == 0 ? 10 : -Math.Min(20, budgetRiskProjects * 5);
-        score += totalIncome > 0 && totalSpent <= totalIncome ? 10 : -10;
-        score = Math.Clamp(score, 0, 100);
+        var score = ComputeHealthScore(net, overdueCount, budgetRiskProjects, totalIncome, totalSpent);
+
+        // ── Previous period comparison ────────────────────────────────────
+        int? previousScore = null;
+        string? trendDirection = null;
+        if (from.HasValue && to.HasValue)
+        {
+            var length = to.Value.DayNumber - from.Value.DayNumber + 1;
+            var prevFrom = from.Value.AddDays(-length);
+            var prevTo = from.Value.AddDays(-1);
+
+            var prevExpenses = await LoadExpensesAsync(scope.SelectedProjects, prevFrom, prevTo, ct);
+            var prevIncomes = await LoadIncomesAsync(scope.SelectedProjects, prevFrom, prevTo, ct);
+
+            var prevNet = prevIncomes.Sum(i => i.IncConvertedAmount) - prevExpenses.Sum(e => e.ExpConvertedAmount);
+            var prevBudgetRisk = 0;
+            foreach (var project in scope.SelectedProjects)
+            {
+                var budget = await _budgetRepo.GetActiveByProjectIdAsync(project.PrjId, ct);
+                if (budget is null || budget.PjbTotalBudget <= 0) continue;
+                var spent = prevExpenses.Where(e => e.ExpProjectId == project.PrjId).Sum(e => e.ExpConvertedAmount);
+                if (spent / budget.PjbTotalBudget * 100m >= 80m) prevBudgetRisk++;
+            }
+
+            previousScore = ComputeHealthScore(prevNet, overdueCount, prevBudgetRisk,
+                prevIncomes.Sum(i => i.IncConvertedAmount),
+                prevExpenses.Sum(e => e.ExpConvertedAmount));
+
+            trendDirection = score > previousScore + 5 ? "improving"
+                : score < previousScore - 5 ? "declining"
+                : "stable";
+        }
 
         var signals = new List<string>();
         if (net < 0) signals.Add("Net balance is negative in the selected period.");
@@ -69,6 +95,8 @@ public partial class McpService
             From = from,
             To = to,
             Score = score,
+            PreviousScore = previousScore,
+            TrendDirection = trendDirection,
             TotalIncome = totalIncome,
             TotalSpent = totalSpent,
             NetBalance = net,
@@ -245,6 +273,9 @@ public partial class McpService
                         Code = "BUDGET_OVER_80",
                         Type = "warning",
                         Message = $"Project '{project.PrjName}' is at {Math.Round(used, 2)}% of budget.",
+                        RecommendedAction = used >= 100m
+                            ? $"Project '{project.PrjName}' has exceeded its budget. Review or pause discretionary expenses immediately."
+                            : $"Project '{project.PrjName}' is approaching its budget limit. Review upcoming expenses and consider adjusting the budget.",
                         Priority = used >= 100m ? 95 : 80,
                         ProjectId = project.PrjId
                     });
@@ -275,6 +306,7 @@ public partial class McpService
                 Code = "OVERDUE_OBLIGATIONS",
                 Type = "warning",
                 Message = $"There are {overdueRows.Count} overdue obligations.",
+                RecommendedAction = "Review overdue obligations and prioritize payment. Check 'payments/overdue' for details on which are most urgent.",
                 Priority = 90,
                 ProjectId = top.Key
             });
@@ -289,6 +321,7 @@ public partial class McpService
                 Code = "NEGATIVE_NET",
                 Type = "info",
                 Message = "Net balance is negative for the selected period.",
+                RecommendedAction = "Expenses exceed income for this period. Review your largest expense categories and check for any pending income entries.",
                 Priority = 60
             });
         }
@@ -297,5 +330,15 @@ public partial class McpService
             .Where(a => a.Priority >= minPriority)
             .OrderByDescending(a => a.Priority)
             .ToList();
+    }
+
+    private static int ComputeHealthScore(decimal net, int overdueCount, int budgetRiskProjects, decimal totalIncome, decimal totalSpent)
+    {
+        var score = 50;
+        score += net >= 0 ? 20 : -20;
+        score += overdueCount == 0 ? 10 : -Math.Min(20, overdueCount * 5);
+        score += budgetRiskProjects == 0 ? 10 : -Math.Min(20, budgetRiskProjects * 5);
+        score += totalIncome > 0 && totalSpent <= totalIncome ? 10 : -10;
+        return Math.Clamp(score, 0, 100);
     }
 }

@@ -164,6 +164,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IChatProvider, CerebrasChatProvider>();
         services.AddScoped<IChatProvider, BytePlusChatProvider>();
         services.AddScoped<IChatbotService, ChatbotService>();
+        services.AddScoped<IIntentRouter, IntentRouter>();
 
         return services;
     }

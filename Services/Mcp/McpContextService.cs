@@ -16,6 +16,8 @@ public partial class McpService : IMcpService
     private readonly IProjectBudgetRepository _budgetRepo;
     private readonly IPaymentMethodRepository _paymentMethodRepo;
     private readonly IPlanAuthorizationService _planAuth;
+    private readonly IPartnerBalanceService _partnerBalanceService;
+    private readonly IPartnerSettlementRepository _settlementRepo;
 
     public McpService(
         IProjectService projectService,
@@ -25,7 +27,9 @@ public partial class McpService : IMcpService
         IObligationRepository obligationRepo,
         IProjectBudgetRepository budgetRepo,
         IPaymentMethodRepository paymentMethodRepo,
-        IPlanAuthorizationService planAuth)
+        IPlanAuthorizationService planAuth,
+        IPartnerBalanceService partnerBalanceService,
+        IPartnerSettlementRepository settlementRepo)
     {
         _projectService = projectService;
         _accessService = accessService;
@@ -35,6 +39,8 @@ public partial class McpService : IMcpService
         _budgetRepo = budgetRepo;
         _paymentMethodRepo = paymentMethodRepo;
         _planAuth = planAuth;
+        _partnerBalanceService = partnerBalanceService;
+        _settlementRepo = settlementRepo;
     }
 
     public async Task<McpContextResponse> GetContextAsync(Guid userId, CancellationToken ct = default)
@@ -103,7 +109,7 @@ public partial class McpService : IMcpService
 
         if (!string.IsNullOrWhiteSpace(projectName))
         {
-            var term = projectName.Trim();
+            var term = Normalize(projectName)!;
             var selectedByName = FilterByNameWithPriority(visible, p => p.PrjName, term)
                 .OrderBy(p => p.PrjName)
                 .ToList();
@@ -320,12 +326,15 @@ public partial class McpService : IMcpService
         return left > right ? left : right;
     }
 
+    private static string? Normalize(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim().ToLowerInvariant();
+
     private static bool ContainsText(string? source, string? term)
     {
         if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(term))
             return false;
 
-        return source.Contains(term, StringComparison.OrdinalIgnoreCase);
+        return source.ToLowerInvariant().Contains(term.ToLowerInvariant(), StringComparison.Ordinal);
     }
 
     private static List<T> FilterByNameWithPriority<T>(
@@ -333,16 +342,20 @@ public partial class McpService : IMcpService
         Func<T, string?> selector,
         string term)
     {
-        var normalized = term.Trim();
+        var normalized = term.Trim().ToLowerInvariant();
 
         var exact = source
-            .Where(item => string.Equals(selector(item)?.Trim(), normalized, StringComparison.OrdinalIgnoreCase))
+            .Where(item => string.Equals(
+                selector(item)?.Trim().ToLowerInvariant(),
+                normalized,
+                StringComparison.Ordinal))
             .ToList();
         if (exact.Count > 0)
             return exact;
 
         var startsWith = source
-            .Where(item => (selector(item) ?? string.Empty).StartsWith(normalized, StringComparison.OrdinalIgnoreCase))
+            .Where(item => (selector(item) ?? string.Empty).ToLowerInvariant()
+                .StartsWith(normalized, StringComparison.Ordinal))
             .ToList();
         if (startsWith.Count > 0)
             return startsWith;

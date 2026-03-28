@@ -41,6 +41,27 @@ public partial class McpService
             SearchNote = CombineSearchNotes(scope.SearchNote, categorySearchNote)
         };
 
+        if (query.IncludeTopCategories == true && expenses.Count > 0)
+        {
+            response.TopCategories = expenses
+                .GroupBy(e => new { e.ExpCategoryId, Name = e.Category?.CatName ?? "Unknown" })
+                .Select(g =>
+                {
+                    var amount = g.Sum(x => x.ExpConvertedAmount);
+                    return new McpExpenseByCategoryItemResponse
+                    {
+                        CategoryId = g.Key.ExpCategoryId,
+                        CategoryName = g.Key.Name,
+                        TotalAmount = amount,
+                        ExpenseCount = g.Count(),
+                        Percentage = total > 0 ? Math.Round(amount / total * 100m, 2) : 0m
+                    };
+                })
+                .OrderByDescending(x => x.TotalAmount)
+                .Take(5)
+                .ToList();
+        }
+
         if (query.ComparePreviousPeriod == true && query.From.HasValue && query.To.HasValue)
         {
             var length = query.To.Value.DayNumber - query.From.Value.DayNumber + 1;

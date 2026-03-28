@@ -244,4 +244,40 @@ public class McpController : ControllerBase
         var response = await _mcpService.GetAlertsAsync(userId, query, ct);
         return Ok(response);
     }
+
+    [HttpGet("partners/balances")]
+    [ProducesResponseType(typeof(McpPartnerBalancesResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPartnerBalances([FromQuery] McpPartnerBalancesQuery query, CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var userId = User.GetRequiredUserId();
+        var response = await _mcpService.GetPartnerBalancesAsync(userId, query, ct);
+        return Ok(response);
+    }
+
+    [HttpGet("partners/settlements")]
+    [ProducesResponseType(typeof(McpPagedResponse<McpPartnerSettlementItemResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPartnerSettlements([FromQuery] McpPartnerSettlementsQuery query, CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var userId = User.GetRequiredUserId();
+        var response = await _mcpService.GetPartnerSettlementsAsync(userId, query, ct);
+        return Ok(response);
+    }
+
+    [HttpGet("movements/recent")]
+    [ProducesResponseType(typeof(McpRecentMovementsResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetRecentMovements([FromQuery] McpRecentMovementsQuery query, CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var userId = User.GetRequiredUserId();
+        var response = await _mcpService.GetRecentMovementsAsync(userId, query, ct);
+        return Ok(response);
+    }
 }

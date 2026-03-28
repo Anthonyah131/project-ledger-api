@@ -12,6 +12,7 @@ public class McpExpenseTotalsResponse
     public decimal? DeltaAmount { get; set; }
     public decimal? DeltaPercentage { get; set; }
     public string? SearchNote { get; set; }
+    public List<McpExpenseByCategoryItemResponse>? TopCategories { get; set; }
 }
 
 public class McpExpenseByCategoryResponse
