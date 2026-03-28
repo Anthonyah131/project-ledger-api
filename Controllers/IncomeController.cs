@@ -72,6 +72,8 @@ public class IncomeController : ControllerBase
         [FromQuery] PagedRequest pagination,
         [FromQuery] bool includeDeleted = false,
         [FromQuery] bool? isActive = null,
+        [FromQuery] DateOnly? from = null,
+        [FromQuery] DateOnly? to = null,
         CancellationToken ct = default)
     {
         if (includeDeleted)
@@ -82,7 +84,7 @@ public class IncomeController : ControllerBase
 
         var (items, totalCount) = await _incomeService.GetByProjectIdPagedAsync(
             projectId, includeDeleted, isActive, pagination.Skip, pagination.PageSize,
-            pagination.SortBy, pagination.IsDescending, ct);
+            pagination.SortBy, pagination.IsDescending, from, to, ct);
 
         var response = PagedResponse<IncomeResponse>.Create(
             items.ToResponse().ToList(), totalCount, pagination);

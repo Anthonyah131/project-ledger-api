@@ -30,7 +30,7 @@ public class IncomeRepository : Repository<Income>, IIncomeRepository
             .ToListAsync(ct);
 
     public async Task<(IReadOnlyList<Income> Items, int TotalCount)> GetByProjectIdPagedAsync(
-        Guid projectId, bool includeDeleted, bool? isActive, int skip, int take, string? sortBy, bool descending, CancellationToken ct = default)
+        Guid projectId, bool includeDeleted, bool? isActive, int skip, int take, string? sortBy, bool descending, DateOnly? from, DateOnly? to, CancellationToken ct = default)
     {
         var query = DbSet
             .Include(e => e.Category)
@@ -42,6 +42,12 @@ public class IncomeRepository : Repository<Income>, IIncomeRepository
 
         if (isActive.HasValue)
             query = query.Where(e => e.IncIsActive == isActive.Value);
+
+        if (from.HasValue)
+            query = query.Where(e => e.IncIncomeDate >= from.Value);
+
+        if (to.HasValue)
+            query = query.Where(e => e.IncIncomeDate <= to.Value);
 
         var totalCount = await query.CountAsync(ct);
 

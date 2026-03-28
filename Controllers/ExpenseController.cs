@@ -76,6 +76,8 @@ public class ExpenseController : ControllerBase
         [FromQuery] PagedRequest pagination,
         [FromQuery] bool includeDeleted = false,
         [FromQuery] bool? isActive = null,
+        [FromQuery] DateOnly? from = null,
+        [FromQuery] DateOnly? to = null,
         CancellationToken ct = default)
     {
         // Solo Editor+ puede ver gastos eliminados
@@ -87,7 +89,7 @@ public class ExpenseController : ControllerBase
 
         var (items, totalCount) = await _expenseService.GetByProjectIdPagedAsync(
             projectId, includeDeleted, isActive, pagination.Skip, pagination.PageSize,
-            pagination.SortBy, pagination.IsDescending, ct);
+            pagination.SortBy, pagination.IsDescending, from, to, ct);
 
         var response = PagedResponse<ExpenseResponse>.Create(
             items.ToResponse().ToList(), totalCount, pagination);

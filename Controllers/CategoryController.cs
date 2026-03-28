@@ -140,7 +140,7 @@ public class CategoryController : ControllerBase
             return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["CategoryNotFound"]));
 
         category.ApplyUpdate(request);
-        await _categoryService.UpdateAsync(category, ct);
+        await _categoryService.UpdateAsync(category, userId, ct);
 
         return Ok(category.ToResponse());
     }

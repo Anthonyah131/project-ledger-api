@@ -54,8 +54,8 @@ public class IncomeService : IIncomeService
         => await _incomeRepo.GetByProjectIdAsync(projectId, includeDeleted, ct);
 
     public async Task<(IReadOnlyList<Income> Items, int TotalCount)> GetByProjectIdPagedAsync(
-        Guid projectId, bool includeDeleted, bool? isActive, int skip, int take, string? sortBy, bool descending, CancellationToken ct = default)
-        => await _incomeRepo.GetByProjectIdPagedAsync(projectId, includeDeleted, isActive, skip, take, sortBy, descending, ct);
+        Guid projectId, bool includeDeleted, bool? isActive, int skip, int take, string? sortBy, bool descending, DateOnly? from, DateOnly? to, CancellationToken ct = default)
+        => await _incomeRepo.GetByProjectIdPagedAsync(projectId, includeDeleted, isActive, skip, take, sortBy, descending, from, to, ct);
 
     public async Task<IEnumerable<Income>> GetByPaymentMethodIdAsync(
         Guid paymentMethodId, CancellationToken ct = default)

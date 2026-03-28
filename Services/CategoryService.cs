@@ -60,13 +60,13 @@ public class CategoryService : ICategoryService
         return category;
     }
 
-    public async Task UpdateAsync(Category category, CancellationToken ct = default)
+    public async Task UpdateAsync(Category category, Guid performedByUserId, CancellationToken ct = default)
     {
         category.CatUpdatedAt = DateTime.UtcNow;
         _categoryRepo.Update(category);
         await _categoryRepo.SaveChangesAsync(ct);
 
-        await _auditLog.LogAsync("Category", category.CatId, "update", category.CatProjectId,
+        await _auditLog.LogAsync("Category", category.CatId, "update", performedByUserId,
             newValues: new { category.CatName, category.CatDescription }, ct: ct);
     }
 

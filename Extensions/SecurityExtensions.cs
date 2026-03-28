@@ -245,7 +245,7 @@ public static class SecurityExtensions
             // Política estricta para Auth: 10 intentos / 60s (anti brute-force)
             options.AddFixedWindowLimiter("AuthRateLimit", limiter =>
             {
-                limiter.PermitLimit = 10;
+                limiter.PermitLimit = 30;
                 limiter.Window      = TimeSpan.FromSeconds(60);
                 limiter.QueueLimit  = 0;
             });
