@@ -367,6 +367,8 @@ public class ExpenseController : ControllerBase
                 ExpCreatedByUserId = userId,
                 ExpCategoryId = item.CategoryId,
                 ExpPaymentMethodId = item.PaymentMethodId,
+                ExpObligationId = item.ObligationId,
+                ExpObligationEquivalentAmount = item.ObligationEquivalentAmount,
                 ExpOriginalAmount = item.OriginalAmount,
                 ExpOriginalCurrency = item.OriginalCurrency,
                 ExpExchangeRate = item.ExchangeRate,
@@ -384,18 +386,12 @@ public class ExpenseController : ControllerBase
                 s.CurrencyExchanges?.Select(ce => new SplitCurrencyExchangeInput(
                     ce.CurrencyCode, ce.ExchangeRate, ce.ConvertedAmount)).ToList()
             )).ToList();
-            return (expense, (IReadOnlyList<SplitInput>?)splits);
+            var exchanges = item.CurrencyExchanges?.Select(ce =>
+                new TransactionExchangeInput(ce.CurrencyCode, ce.ExchangeRate, ce.ConvertedAmount)).ToList();
+            return (expense, (IReadOnlyList<SplitInput>?)splits, (IReadOnlyList<TransactionExchangeInput>?)exchanges);
         }).ToList();
 
         var created = await _expenseService.BulkCreateAsync(items, ct);
-
-        // Guardar conversiones a monedas alternativas por item
-        for (var i = 0; i < created.Count; i++)
-        {
-            var exchanges = request.Items[i].CurrencyExchanges;
-            if (exchanges?.Count > 0)
-                await _exchangeService.SaveExchangesAsync("expense", created[i].ExpId, exchanges, ct);
-        }
 
         var response = new BulkCreateExpenseResponse
         {

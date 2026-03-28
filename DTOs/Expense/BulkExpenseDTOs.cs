@@ -30,6 +30,16 @@ public class BulkExpenseItemRequest
     [Required]
     public Guid PaymentMethodId { get; set; }
 
+    /// <summary>FK → obligations. NULL = gasto normal; valor = pago de deuda.</summary>
+    public Guid? ObligationId { get; set; }
+
+    /// <summary>
+    /// Monto equivalente en la moneda de la obligación.
+    /// Requerido cuando ObligationId está presente y OriginalCurrency difiere de la moneda de la obligación.
+    /// </summary>
+    [Range(0.01, 999999999999.99, ErrorMessage = "Obligation equivalent amount must be between 0.01 and 999,999,999,999.99.")]
+    public decimal? ObligationEquivalentAmount { get; set; }
+
     // ── Montos ──────────────────────────────────────────────
 
     [Required]

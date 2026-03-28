@@ -17,6 +17,7 @@ public class IncomeService : IIncomeService
     private readonly IProjectPartnerRepository _projectPartnerRepo;
     private readonly IPlanAuthorizationService _planAuth;
     private readonly IAuditLogService _auditLog;
+    private readonly ITransactionCurrencyExchangeService _exchangeService;
 
     public IncomeService(
         IIncomeRepository incomeRepo,
@@ -26,7 +27,8 @@ public class IncomeService : IIncomeService
         IIncomeSplitRepository incomeSplitRepo,
         IProjectPartnerRepository projectPartnerRepo,
         IPlanAuthorizationService planAuth,
-        IAuditLogService auditLog)
+        IAuditLogService auditLog,
+        ITransactionCurrencyExchangeService exchangeService)
     {
         _incomeRepo = incomeRepo;
         _projectRepo = projectRepo;
@@ -36,6 +38,7 @@ public class IncomeService : IIncomeService
         _projectPartnerRepo = projectPartnerRepo;
         _planAuth = planAuth;
         _auditLog = auditLog;
+        _exchangeService = exchangeService;
     }
 
     public async Task<Income?> GetByIdAsync(Guid id, CancellationToken ct = default)
@@ -269,7 +272,7 @@ public class IncomeService : IIncomeService
     }
 
     public async Task<IReadOnlyList<Income>> BulkCreateAsync(
-        IReadOnlyList<(Income Income, IReadOnlyList<SplitInput>? Splits)> items,
+        IReadOnlyList<(Income Income, IReadOnlyList<SplitInput>? Splits, IReadOnlyList<TransactionExchangeInput>? Exchanges)> items,
         CancellationToken ct = default)
     {
         if (items.Count == 0)
@@ -293,7 +296,7 @@ public class IncomeService : IIncomeService
         var paymentMethodCache = new Dictionary<Guid, PaymentMethod>();
 
         var now = DateTime.UtcNow;
-        foreach (var (income, _) in items)
+        foreach (var (income, _, _) in items)
         {
             ValidateAccountingReadinessForActivation(income);
 
@@ -311,7 +314,7 @@ public class IncomeService : IIncomeService
 
         await _incomeRepo.ExecuteInTransactionAsync(async (ct) =>
         {
-            foreach (var (income, splits) in items)
+            foreach (var (income, splits, exchanges) in items)
             {
                 await _incomeRepo.AddAsync(income, ct);
                 await _incomeRepo.SaveChangesAsync(ct);
@@ -340,6 +343,9 @@ public class IncomeService : IIncomeService
                     await _incomeSplitRepo.AddAsync(autoSplit, ct);
                     await _incomeSplitRepo.SaveChangesAsync(ct);
                 }
+
+                if (exchanges is { Count: > 0 })
+                    await _exchangeService.SaveExchangesAsync("income", income.IncId, exchanges, ct);
 
                 await _auditLog.LogAsync("Income", income.IncId, "create", income.IncCreatedByUserId,
                     newValues: new

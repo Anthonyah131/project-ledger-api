@@ -18,6 +18,7 @@ public class ExpenseService : IExpenseService
     private readonly IProjectPartnerRepository _projectPartnerRepo;
     private readonly IPlanAuthorizationService _planAuth;
     private readonly IAuditLogService _auditLog;
+    private readonly ITransactionCurrencyExchangeService _exchangeService;
 
     public ExpenseService(
         IExpenseRepository expenseRepo,
@@ -28,7 +29,8 @@ public class ExpenseService : IExpenseService
         IExpenseSplitRepository expenseSplitRepo,
         IProjectPartnerRepository projectPartnerRepo,
         IPlanAuthorizationService planAuth,
-        IAuditLogService auditLog)
+        IAuditLogService auditLog,
+        ITransactionCurrencyExchangeService exchangeService)
     {
         _expenseRepo = expenseRepo;
         _projectRepo = projectRepo;
@@ -39,6 +41,7 @@ public class ExpenseService : IExpenseService
         _projectPartnerRepo = projectPartnerRepo;
         _planAuth = planAuth;
         _auditLog = auditLog;
+        _exchangeService = exchangeService;
     }
 
     public async Task<Expense?> GetByIdAsync(Guid id, CancellationToken ct = default)
@@ -372,7 +375,7 @@ public class ExpenseService : IExpenseService
     }
 
     public async Task<IReadOnlyList<Expense>> BulkCreateAsync(
-        IReadOnlyList<(Expense Expense, IReadOnlyList<SplitInput>? Splits)> items,
+        IReadOnlyList<(Expense Expense, IReadOnlyList<SplitInput>? Splits, IReadOnlyList<TransactionExchangeInput>? Exchanges)> items,
         CancellationToken ct = default)
     {
         if (items.Count == 0)
@@ -383,7 +386,7 @@ public class ExpenseService : IExpenseService
         var project = await _projectRepo.GetByIdAsync(projectId, ct)
             ?? throw new KeyNotFoundException("ProjectNotFound");
 
-        // Validar límite de plan para el lote completo de una vez
+        // Validar límite de plan para el lote completo de una vez (solo gastos no-template)
         var projectExpenses = await _expenseRepo.GetByProjectIdAsync(projectId, ct);
         var thisMonthCount = projectExpenses
             .Count(e => !e.ExpIsTemplate
@@ -397,7 +400,7 @@ public class ExpenseService : IExpenseService
         var paymentMethodCache = new Dictionary<Guid, PaymentMethod>();
 
         var now = DateTime.UtcNow;
-        foreach (var (expense, _) in items)
+        foreach (var (expense, _, _) in items)
         {
             ValidateAccountingReadinessForActivation(expense);
 
@@ -421,8 +424,46 @@ public class ExpenseService : IExpenseService
 
         await _expenseRepo.ExecuteInTransactionAsync(async (ct) =>
         {
-            foreach (var (expense, splits) in items)
+            foreach (var (expense, splits, exchanges) in items)
             {
+                // Validar obligación si aplica — debe hacerse dentro de la transacción
+                // para que las validaciones de sobre-pago incluyan los items ya guardados del mismo lote.
+                if (expense.ExpObligationId.HasValue && expense.ExpIsActive)
+                {
+                    var obligation = await _obligationRepo.GetByIdAsync(expense.ExpObligationId.Value, ct)
+                        ?? throw new KeyNotFoundException("ObligationNotFound");
+
+                    if (obligation.OblIsDeleted)
+                        throw new KeyNotFoundException("ObligationNotFound");
+
+                    if (obligation.OblProjectId != expense.ExpProjectId)
+                        throw new InvalidOperationException("ObligationProjectMismatch");
+
+                    var existingPayments = await _expenseRepo.GetByObligationIdAsync(obligation.OblId, ct);
+                    var currentPaid = existingPayments.Sum(e =>
+                        AmountInObligationCurrency(
+                            e.ExpOriginalAmount,
+                            e.ExpOriginalCurrency,
+                            e.ExpConvertedAmount,
+                            e.ExpObligationEquivalentAmount,
+                            obligation.OblCurrency,
+                            requireEquivalentForCrossCurrency: false));
+
+                    var newPaymentAmount = AmountInObligationCurrency(
+                        expense.ExpOriginalAmount,
+                        expense.ExpOriginalCurrency,
+                        expense.ExpConvertedAmount,
+                        expense.ExpObligationEquivalentAmount,
+                        obligation.OblCurrency,
+                        requireEquivalentForCrossCurrency: true);
+
+                    if (currentPaid >= obligation.OblTotalAmount)
+                        throw new InvalidOperationException("ObligationAlreadyPaid");
+
+                    if (currentPaid + newPaymentAmount > obligation.OblTotalAmount)
+                        throw new InvalidOperationException("PaymentExceedsObligationTotal");
+                }
+
                 await _expenseRepo.AddAsync(expense, ct);
                 await _expenseRepo.SaveChangesAsync(ct);
 
@@ -451,8 +492,18 @@ public class ExpenseService : IExpenseService
                     await _expenseSplitRepo.SaveChangesAsync(ct);
                 }
 
+                if (exchanges is { Count: > 0 })
+                    await _exchangeService.SaveExchangesAsync("expense", expense.ExpId, exchanges, ct);
+
                 await _auditLog.LogAsync("Expense", expense.ExpId, "create", expense.ExpCreatedByUserId,
                     newValues: new { expense.ExpId, expense.ExpTitle, expense.ExpConvertedAmount, expense.ExpProjectId }, ct: ct);
+
+                if (expense.ExpObligationId.HasValue)
+                {
+                    await _auditLog.LogAsync("Obligation", expense.ExpObligationId.Value, "associate",
+                        expense.ExpCreatedByUserId,
+                        newValues: new { ExpenseId = expense.ExpId, Amount = expense.ExpConvertedAmount }, ct: ct);
+                }
             }
         }, ct);
 

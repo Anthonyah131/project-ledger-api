@@ -205,18 +205,12 @@ public class IncomeController : ControllerBase
                 s.CurrencyExchanges?.Select(ce => new SplitCurrencyExchangeInput(
                     ce.CurrencyCode, ce.ExchangeRate, ce.ConvertedAmount)).ToList()
             )).ToList();
-            return (income, (IReadOnlyList<SplitInput>?)splits);
+            var exchanges = item.CurrencyExchanges?.Select(ce =>
+                new TransactionExchangeInput(ce.CurrencyCode, ce.ExchangeRate, ce.ConvertedAmount)).ToList();
+            return (income, (IReadOnlyList<SplitInput>?)splits, (IReadOnlyList<TransactionExchangeInput>?)exchanges);
         }).ToList();
 
         var created = await _incomeService.BulkCreateAsync(items, ct);
-
-        // Guardar conversiones a monedas alternativas por item
-        for (var i = 0; i < created.Count; i++)
-        {
-            var exchanges = request.Items[i].CurrencyExchanges;
-            if (exchanges?.Count > 0)
-                await _exchangeService.SaveExchangesAsync("income", created[i].IncId, exchanges, ct);
-        }
 
         var response = new BulkCreateIncomeResponse
         {
