@@ -30,6 +30,7 @@ public class PlanPermissionsDto
     public bool CanUseApi { get; set; }
     public bool CanUseMultiCurrency { get; set; }
     public bool CanSetBudgets { get; set; }
+    public bool CanUsePartners { get; set; }
 }
 
 /// <summary>Límites numéricos del plan (deserializados del JSONB).</summary>

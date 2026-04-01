@@ -36,6 +36,7 @@ public class PlanConfiguration : IEntityTypeConfiguration<Plan>
         builder.Property(p => p.PlnCanUseApi).HasColumnName("pln_can_use_api").HasDefaultValue(false);
         builder.Property(p => p.PlnCanUseMultiCurrency).HasColumnName("pln_can_use_multi_currency").HasDefaultValue(true);
         builder.Property(p => p.PlnCanSetBudgets).HasColumnName("pln_can_set_budgets").HasDefaultValue(true);
+        builder.Property(p => p.PlnCanUsePartners).HasColumnName("pln_can_use_partners").HasDefaultValue(false);
 
         // Límites JSONB
         builder.Property(p => p.PlnLimits).HasColumnName("pln_limits").HasColumnType("jsonb");

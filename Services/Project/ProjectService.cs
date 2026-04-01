@@ -166,6 +166,8 @@ public class ProjectService : IProjectService
         {
             if (partnersEnabled.Value)
             {
+                await _planAuth.ValidatePermissionAsync(project.PrjOwnerUserId, PlanPermission.CanUsePartners, ct);
+
                 var partners = await _projectPartnerRepo.GetByProjectIdAsync(projectId, ct);
                 if (partners.Count() < 2)
                     throw new InvalidOperationException("ProjectPartnersEnabledRequiresMinPartners");

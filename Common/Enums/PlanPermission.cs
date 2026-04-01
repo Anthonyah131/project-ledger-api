@@ -15,5 +15,6 @@ public enum PlanPermission
     CanUseOcr,
     CanUseApi,
     CanUseMultiCurrency,
-    CanSetBudgets
+    CanSetBudgets,
+    CanUsePartners
 }

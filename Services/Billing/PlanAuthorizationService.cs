@@ -103,7 +103,8 @@ public class PlanAuthorizationService : IPlanAuthorizationService
                 [nameof(PlanPermission.CanUseOcr)]             = plan.PlnCanUseOcr,
                 [nameof(PlanPermission.CanUseApi)]             = plan.PlnCanUseApi,
                 [nameof(PlanPermission.CanUseMultiCurrency)]   = plan.PlnCanUseMultiCurrency,
-                [nameof(PlanPermission.CanSetBudgets)]         = plan.PlnCanSetBudgets
+                [nameof(PlanPermission.CanSetBudgets)]         = plan.PlnCanSetBudgets,
+                [nameof(PlanPermission.CanUsePartners)]        = plan.PlnCanUsePartners
             },
             Limits = new Dictionary<string, int?>
             {
@@ -180,6 +181,7 @@ public class PlanAuthorizationService : IPlanAuthorizationService
         PlanPermission.CanUseApi             => plan.PlnCanUseApi,
         PlanPermission.CanUseMultiCurrency   => plan.PlnCanUseMultiCurrency,
         PlanPermission.CanSetBudgets         => plan.PlnCanSetBudgets,
+        PlanPermission.CanUsePartners        => plan.PlnCanUsePartners,
         _ => false
     };
 

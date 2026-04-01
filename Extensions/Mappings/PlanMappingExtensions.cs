@@ -33,7 +33,8 @@ public static class PlanMappingExtensions
             CanUseOcr = entity.PlnCanUseOcr,
             CanUseApi = entity.PlnCanUseApi,
             CanUseMultiCurrency = entity.PlnCanUseMultiCurrency,
-            CanSetBudgets = entity.PlnCanSetBudgets
+            CanSetBudgets = entity.PlnCanSetBudgets,
+            CanUsePartners = entity.PlnCanUsePartners
         },
         Limits = DeserializeLimits(entity.PlnLimits)
     };

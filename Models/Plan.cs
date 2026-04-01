@@ -30,6 +30,7 @@ public class Plan
     public bool PlnCanUseApi { get; set; }
     public bool PlnCanUseMultiCurrency { get; set; } = true;
     public bool PlnCanSetBudgets { get; set; } = true;
+    public bool PlnCanUsePartners { get; set; }
 
     // ── Límites numéricos (JSONB) ───────────────────────────
     public string? PlnLimits { get; set; }  // Almacenado como JSONB en DB
