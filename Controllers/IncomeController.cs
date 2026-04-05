@@ -66,6 +66,7 @@ public class IncomeController : ControllerBase
     [HttpGet]
     [Authorize(Policy = "ProjectViewer")]
     [ProducesResponseType(typeof(PagedResponse<IncomeResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetByProject(
         Guid projectId,
@@ -76,6 +77,9 @@ public class IncomeController : ControllerBase
         [FromQuery] DateOnly? to = null,
         CancellationToken ct = default)
     {
+        if (from.HasValue && to.HasValue && from > to)
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["InvalidDateRange"]));
+
         if (includeDeleted)
         {
             var userId = User.GetRequiredUserId();

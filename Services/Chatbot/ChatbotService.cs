@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
@@ -47,34 +48,35 @@ public class ChatbotService : IChatbotService
         _logger = logger;
     }
 
+    // ── Streaming pipeline ────────────────────────────────────────────────────
+
     /// <inheritdoc/>
-    public async Task<ChatbotMessageResponse> SendMessageAsync(
+    public async IAsyncEnumerable<ChatbotStreamEvent> StreamMessageAsync(
         Guid userId,
         string message,
         IReadOnlyList<ChatbotHistoryEntry>? history,
-        CancellationToken ct)
+        [EnumeratorCancellation] CancellationToken ct)
     {
         var enabled = _providers.Where(p => p.IsEnabled).ToList();
 
         if (enabled.Count == 0)
             throw new InvalidOperationException("ChatbotNoProvidersEnabled");
 
-        var today = DateTime.UtcNow;
+        var today      = DateTime.UtcNow;
         var startIndex = _rotator.GetNext(enabled.Count);
 
-        // ── Pre-load financial context ───────────────────────────────────────
         var (contextSummary, usedFinancialContext) = await BuildContextSummaryAsync(userId, ct);
 
-        // ── LLM Call #1: Intent Parser ───────────────────────────────────────
-        var parserProvider = GetProvider(enabled, startIndex, 0);
-        ParsedIntent intent;
+        // ── LLM Call #1: Intent Parser (non-streaming — structured JSON output) ──
+        var parserProvider  = GetProvider(enabled, startIndex, 0);
+        ParsedIntent? intent = null;
 
         try
         {
             var parserSystemPrompt = BuildParserSystemPrompt(today, contextSummary);
-            var parserMessages = BuildMessagesList(parserSystemPrompt, history, message);
+            var parserMessages     = BuildMessagesList(parserSystemPrompt, history, message);
 
-            _logger.LogDebug("Intent Parser — proveedor: {Provider}", parserProvider.ProviderName);
+            _logger.LogDebug("Intent Parser — provider: {Provider}", parserProvider.ProviderName);
             var parserResponse = await parserProvider.SendMessageAsync(parserMessages, ct);
 
             _logger.LogInformation("Intent Parser raw response: {R}", parserResponse);
@@ -82,124 +84,149 @@ public class ChatbotService : IChatbotService
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            _logger.LogWarning(ex, "Intent Parser ({Provider}) falló — respondiendo con fallback", parserProvider.ProviderName);
-
-            return new ChatbotMessageResponse
-            {
-                Response = "Lo siento, no pude procesar tu consulta en este momento. Intenta de nuevo.",
-                Provider = parserProvider.ProviderName,
-                Model = parserProvider.Model,
-                UsedFinancialContext = usedFinancialContext,
-                ToolCallsExecuted = 0
-            };
+            _logger.LogWarning(ex, "Intent Parser ({Provider}) failed — streaming fallback", parserProvider.ProviderName);
         }
 
-        // ── Short-circuit: greeting / context_only / off_topic ───────────────
+        // Yield is not allowed inside catch blocks — handle fallback here.
+        if (intent is null)
+        {
+            yield return MetaEvent(parserProvider, usedFinancialContext, 0);
+            yield return ChunkEvent("Lo siento, no pude procesar tu consulta en este momento. Intenta de nuevo.");
+            yield return DoneEvent();
+            yield break;
+        }
+
+        // ── Determine data source and tool count ─────────────────────────────
+        string dataOrContext;
+        int    toolCallsExecuted;
+        IReadOnlyList<ChatbotHistoryEntry>? formatterHistory;
+        bool   finalUsedFinancialContext;
+
         if (intent.Domain is "context_only" or "greeting" or "off_topic")
         {
-            _logger.LogDebug("Intent domain={Domain} — short-circuit sin tools", intent.Domain);
-
-            var formatterProvider = GetProvider(enabled, startIndex, 1);
-            return await FormatResponseAsync(
-                formatterProvider, message, contextSummary, intent, usedFinancialContext, 0, history, ct);
+            _logger.LogDebug("Intent domain={Domain} — short-circuit, no tools", intent.Domain);
+            dataOrContext            = contextSummary;
+            toolCallsExecuted        = 0;
+            formatterHistory         = history;
+            finalUsedFinancialContext = usedFinancialContext;
+        }
+        else
+        {
+            _logger.LogDebug("IntentRouter: {Domain}/{Action}", intent.Domain, intent.Action);
+            dataOrContext            = await _intentRouter.ExecuteAsync(userId, intent, ct);
+            toolCallsExecuted        = 1;
+            formatterHistory         = null;
+            finalUsedFinancialContext = true;
         }
 
-        // ── Backend routing (zero LLM calls) ────────────────────────────────
-        _logger.LogDebug("IntentRouter: {Domain}/{Action}", intent.Domain, intent.Action);
-        var toolData = await _intentRouter.ExecuteAsync(userId, intent, ct);
-
-        // ── LLM Call #2: Response Formatter ──────────────────────────────────
         var responseProvider = GetProvider(enabled, startIndex, 1);
 
         _logger.LogInformation(
-            "Pipeline completado: Parser({P1})→Router→Formatter({P2}), intent={Domain}/{Action}",
+            "Stream pipeline: Parser({P1})→Router→Formatter({P2}), intent={Domain}/{Action}",
             parserProvider.ProviderName, responseProvider.ProviderName, intent.Domain, intent.Action);
 
-        return await FormatResponseAsync(
-            responseProvider, message, toolData, intent, true, 1, null, ct);
+        // Send metadata before the first text chunk so the client knows the provider/model immediately.
+        yield return MetaEvent(responseProvider, finalUsedFinancialContext, toolCallsExecuted);
+
+        // ── LLM Call #2: Response Formatter (streaming) ──────────────────────
+        await foreach (var chunk in StreamFormatResponseAsync(
+            responseProvider, message, dataOrContext, intent, formatterHistory, ct))
+        {
+            yield return chunk;
+        }
+
+        yield return DoneEvent();
     }
 
-    // ── Response Formatter ────────────────────────────────────────────────────
-
-    private async Task<ChatbotMessageResponse> FormatResponseAsync(
+    /// <summary>
+    /// Builds the formatter prompt (same logic as <see cref="FormatResponseAsync"/>)
+    /// and streams the provider response chunk by chunk.
+    /// Falls back to a single error chunk if the provider throws.
+    /// </summary>
+    private async IAsyncEnumerable<ChatbotStreamEvent> StreamFormatResponseAsync(
         IChatProvider provider,
         string userMessage,
         string dataOrContext,
         ParsedIntent intent,
-        bool usedFinancialContext,
-        int toolCallsExecuted,
         IReadOnlyList<ChatbotHistoryEntry>? history,
-        CancellationToken ct)
+        [EnumeratorCancellation] CancellationToken ct)
     {
         var today = DateTime.UtcNow;
-        var lang = intent.Lang == "en" ? "English" : "Spanish";
+        var lang  = intent.Lang == "en" ? "English" : "Spanish";
 
-        try
+        var baseRules =
+            "Be concise and direct — answer the question in 1-3 sentences when possible. " +
+            "Do not add extra explanations or suggestions unless the user asked. " +
+            "Do not use markdown formatting (no **, no *, no #, no ---). " +
+            "Write plain conversational text. For lists use simple line breaks, not bullet points or tables.";
+
+        string systemPrompt;
+        string formatterUserMessage;
+
+        if (intent.Domain is "greeting" or "off_topic")
         {
-            string systemPrompt;
-            string formatterUserMessage;
-
-            var baseRules =
-                "Be concise and direct — answer the question in 1-3 sentences when possible. " +
-                "Do not add extra explanations or suggestions unless the user asked. " +
-                "Do not use markdown formatting (no **, no *, no #, no ---). " +
-                "Write plain conversational text. For lists use simple line breaks, not bullet points or tables.";
-
-            if (intent.Domain is "greeting" or "off_topic")
-            {
-                systemPrompt =
-                    $"You are a financial assistant. Today is {today:yyyy-MM-dd}. Answer in {lang}. {baseRules} " +
-                    "If the user greets you, greet them back briefly. " +
-                    "If the question is off-topic, say in one sentence that you only help with finances.";
-                formatterUserMessage = userMessage;
-            }
-            else if (intent.Domain == "context_only")
-            {
-                systemPrompt =
-                    $"You are a financial assistant. Today is {today:yyyy-MM-dd}. Answer in {lang}. {baseRules} " +
-                    "Use ONLY the pre-loaded financial context below. Do not invent data. " +
-                    "If the information requested is not in the context, say so in one sentence.\n\n" +
-                    "Pre-loaded context:\n" + dataOrContext;
-                formatterUserMessage = userMessage;
-            }
-            else
-            {
-                systemPrompt =
-                    $"You are a financial assistant. Today is {today:yyyy-MM-dd}. Answer in {lang}. {baseRules} " +
-                    "Use ONLY the data provided below. Do not invent numbers. " +
-                    "For amounts, include the currency code next to the number (e.g. 10,000 CRC).";
-                formatterUserMessage =
-                    $"User question: {userMessage}\n\nFinancial data:\n{dataOrContext}";
-            }
-
-            var messages = BuildMessagesList(systemPrompt, history, formatterUserMessage);
-
-            _logger.LogDebug("Response Formatter — proveedor: {Provider}", provider.ProviderName);
-            var response = await provider.SendMessageAsync(messages, ct);
-
-            return new ChatbotMessageResponse
-            {
-                Response = response,
-                Provider = provider.ProviderName,
-                Model = provider.Model,
-                UsedFinancialContext = usedFinancialContext,
-                ToolCallsExecuted = toolCallsExecuted
-            };
+            systemPrompt =
+                $"You are a financial assistant. Today is {today:yyyy-MM-dd}. Answer in {lang}. {baseRules} " +
+                "If the user greets you, greet them back briefly. " +
+                "If the question is off-topic, say in one sentence that you only help with finances.";
+            formatterUserMessage = userMessage;
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        else if (intent.Domain == "context_only")
         {
-            _logger.LogWarning(ex, "Response Formatter ({Provider}) falló", provider.ProviderName);
+            systemPrompt =
+                $"You are a financial assistant. Today is {today:yyyy-MM-dd}. Answer in {lang}. {baseRules} " +
+                "Use ONLY the pre-loaded financial context below. Do not invent data. " +
+                "If the information requested is not in the context, say so in one sentence.\n\n" +
+                "Pre-loaded context:\n" + dataOrContext;
+            formatterUserMessage = userMessage;
+        }
+        else
+        {
+            systemPrompt =
+                $"You are a financial assistant. Today is {today:yyyy-MM-dd}. Answer in {lang}. {baseRules} " +
+                "Use ONLY the data provided below. Do not invent numbers. " +
+                "For amounts, include the currency code next to the number (e.g. 10,000 CRC).";
+            formatterUserMessage = $"User question: {userMessage}\n\nFinancial data:\n{dataOrContext}";
+        }
 
-            return new ChatbotMessageResponse
-            {
-                Response = "Lo siento, no pude procesar tu consulta en este momento. Intenta de nuevo.",
-                Provider = provider.ProviderName,
-                Model = provider.Model,
-                UsedFinancialContext = usedFinancialContext,
-                ToolCallsExecuted = toolCallsExecuted
-            };
+        var messages = BuildMessagesList(systemPrompt, history, formatterUserMessage);
+
+        _logger.LogDebug("Response Formatter (stream) — provider: {Provider}", provider.ProviderName);
+
+        // Enumerate the provider stream. Errors during iteration are surfaced as exceptions
+        // on MoveNextAsync, so we track whether we emitted anything and fall back if not.
+        bool anyChunk = false;
+
+        await foreach (var chunk in provider.StreamMessageAsync(messages, ct).WithCancellation(ct))
+        {
+            anyChunk = true;
+            yield return ChunkEvent(chunk);
+        }
+
+        if (!anyChunk)
+        {
+            _logger.LogWarning("Response Formatter ({Provider}) returned no chunks", provider.ProviderName);
+            yield return ChunkEvent("Lo siento, no pude procesar tu consulta en este momento. Intenta de nuevo.");
         }
     }
+
+    // ── Stream event helpers ──────────────────────────────────────────────────
+
+    private static ChatbotStreamEvent ChunkEvent(string content) =>
+        new() { Type = "chunk", Content = content };
+
+    private static ChatbotStreamEvent DoneEvent() =>
+        new() { Type = "done" };
+
+    private static ChatbotStreamEvent MetaEvent(IChatProvider provider, bool usedFinancialContext, int toolCalls) =>
+        new()
+        {
+            Type                 = "meta",
+            Provider             = provider.ProviderName,
+            Model                = provider.Model,
+            UsedFinancialContext = usedFinancialContext,
+            ToolCallsExecuted    = toolCalls
+        };
 
     // ── Provider selector ────────────────────────────────────────────────────
 

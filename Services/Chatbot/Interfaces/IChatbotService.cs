@@ -9,10 +9,11 @@ namespace ProjectLedger.API.Services.Chatbot.Interfaces;
 public interface IChatbotService
 {
     /// <summary>
-    /// Envía un mensaje con contexto financiero inyectado y el historial de la sesión.
-    /// Si el proveedor asignado falla, prueba con el siguiente hasta agotar todos.
+    /// Streams the LLM response token by token via SSE.
+    /// Yields a "meta" event first, then "chunk" events, and finally a "done" event.
+    /// Intent parsing and backend routing remain non-streaming (they are fast and structured).
     /// </summary>
-    Task<ChatbotMessageResponse> SendMessageAsync(
+    IAsyncEnumerable<ChatbotStreamEvent> StreamMessageAsync(
         Guid userId,
         string message,
         IReadOnlyList<ChatbotHistoryEntry>? history,

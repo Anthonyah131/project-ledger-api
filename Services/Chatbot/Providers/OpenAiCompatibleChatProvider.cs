@@ -1,4 +1,6 @@
 using System.Net.Http.Json;
+using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -68,6 +70,67 @@ public abstract class OpenAiCompatibleChatProvider : IToolCallingChatProvider
 
         return content;
     }
+
+    // ── IChatProvider: streaming ─────────────────────────────────────────────
+
+    /// <inheritdoc/>
+    public async IAsyncEnumerable<string> StreamMessageAsync(
+        IReadOnlyList<TcMessage> messages,
+        [EnumeratorCancellation] CancellationToken ct)
+    {
+        var client = _httpClientFactory.CreateClient(HttpClientName);
+
+        var requestBody = new
+        {
+            model    = Model,
+            messages = SerializeMessages(messages),
+            stream   = true
+        };
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "chat/completions")
+        {
+            Content = JsonContent.Create(requestBody)
+        };
+
+        // ResponseHeadersRead avoids buffering the entire response body before we start reading.
+        using var httpResponse = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+        httpResponse.EnsureSuccessStatusCode();
+
+        using var stream = await httpResponse.Content.ReadAsStreamAsync(ct);
+        using var reader = new StreamReader(stream);
+
+        // ReadLineAsync returns null at end-of-stream; avoids CA2024 (EndOfStream in async context).
+        while (true)
+        {
+            var line = await reader.ReadLineAsync(ct);
+
+            if (line is null || ct.IsCancellationRequested) break;
+            if (!line.StartsWith("data: ", StringComparison.Ordinal)) continue;
+
+            var payload = line["data: ".Length..];
+            if (payload == "[DONE]") break;
+
+            string? chunk;
+            try
+            {
+                var parsed = JsonSerializer.Deserialize<StreamChunk>(payload, _streamJsonOptions);
+                chunk = parsed?.Choices?.FirstOrDefault()?.Delta?.Content;
+            }
+            catch
+            {
+                // Malformed SSE line — skip silently
+                continue;
+            }
+
+            if (!string.IsNullOrEmpty(chunk))
+                yield return chunk;
+        }
+    }
+
+    private static readonly JsonSerializerOptions _streamJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
 
     // ── IToolCallingChatProvider ─────────────────────────────────────────────
 
@@ -179,6 +242,16 @@ public abstract class OpenAiCompatibleChatProvider : IToolCallingChatProvider
         }).ToArray();
 
     // ── DTOs internos para deserializar respuestas ───────────────────────────
+
+    // SSE streaming chunks (stream=true)
+    private sealed record StreamChunk(
+        [property: JsonPropertyName("choices")] List<StreamChoice>? Choices);
+
+    private sealed record StreamChoice(
+        [property: JsonPropertyName("delta")] StreamDelta? Delta);
+
+    private sealed record StreamDelta(
+        [property: JsonPropertyName("content")] string? Content);
 
     // Respuesta simple (sin tool calls)
     private sealed record ChatCompletionResponse(

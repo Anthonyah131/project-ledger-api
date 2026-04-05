@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.Chatbot;
@@ -12,6 +13,12 @@ namespace ProjectLedger.API.Controllers;
 [Produces("application/json")]
 public class ChatbotController : ControllerBase
 {
+    private static readonly JsonSerializerOptions _sseJsonOptions = new()
+    {
+        PropertyNamingPolicy        = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition      = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+    };
+
     private readonly IChatbotService _chatbotService;
 
     public ChatbotController(IChatbotService chatbotService)
@@ -20,37 +27,51 @@ public class ChatbotController : ControllerBase
     }
 
     /// <summary>
-    /// Envía un mensaje al chatbot de IA con contexto financiero real inyectado.
-    /// Incluye el resumen mensual actual y los pagos vencidos en el system prompt.
-    /// Soporta historial de conversación para respuestas de seguimiento coherentes.
-    /// Cada petición usa el siguiente proveedor en la rotación (OpenRouter → Groq → Cerebras → BytePlus).
-    /// Si el proveedor asignado no está disponible, se pasa automáticamente al siguiente.
+    /// Streams the chatbot response token by token using Server-Sent Events (text/event-stream).
+    /// The intent parsing and backend routing happen upfront (non-streaming), then the final
+    /// LLM response is streamed. Emits the following SSE event types in order:
+    /// - type:"meta"  → sent once before the first token; contains provider, model, and pipeline metadata.
+    /// - type:"chunk" → one partial text token per event.
+    /// - type:"done"  → sent once after the last chunk to signal stream completion.
+    /// On pipeline failure, a type:"error" event is emitted instead.
     /// </summary>
-    [HttpPost("message")]
-    [ProducesResponseType(typeof(ChatbotMessageResponse), StatusCodes.Status200OK)]
+    [HttpPost("message/stream")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
-    public async Task<IActionResult> SendMessage(
+    [Produces("text/event-stream")]
+    public async Task StreamMessage(
         [FromBody] ChatbotMessageRequest request,
         CancellationToken ct)
     {
         if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+        {
+            Response.StatusCode = StatusCodes.Status400BadRequest;
+            return;
+        }
+
+        Response.ContentType = "text/event-stream";
+        Response.Headers.CacheControl    = "no-cache";
+        Response.Headers["X-Accel-Buffering"] = "no"; // Disable Nginx proxy buffering
+
+        var userId = User.GetRequiredUserId();
 
         try
         {
-            var userId   = User.GetRequiredUserId();
-            var response = await _chatbotService.SendMessageAsync(
-                userId,
-                request.Message,
-                request.History,
-                ct);
-
-            return Ok(response);
+            await foreach (var evt in _chatbotService.StreamMessageAsync(
+                userId, request.Message, request.History, ct))
+            {
+                var json = JsonSerializer.Serialize(evt, _sseJsonOptions);
+                await Response.WriteAsync($"data: {json}\n\n", ct);
+                await Response.Body.FlushAsync(ct);
+            }
         }
         catch (InvalidOperationException ex)
         {
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = ex.Message });
+            // Write error as a final SSE event so the client can handle it gracefully.
+            var errorJson = JsonSerializer.Serialize(
+                new { type = "error", content = ex.Message }, _sseJsonOptions);
+            await Response.WriteAsync($"data: {errorJson}\n\n", ct);
+            await Response.Body.FlushAsync(ct);
         }
     }
 }

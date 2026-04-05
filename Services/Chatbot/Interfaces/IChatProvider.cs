@@ -30,4 +30,11 @@ public interface IChatProvider
     /// Lanza excepción si el proveedor no está disponible o hay un error de red/API.
     /// </summary>
     Task<string> SendMessageAsync(IReadOnlyList<TcMessage> messages, CancellationToken ct);
+
+    /// <summary>
+    /// Streams the final response token by token using the provider's SSE endpoint (stream=true).
+    /// Each yielded string is a partial text chunk (delta content).
+    /// Throws on network or API errors.
+    /// </summary>
+    IAsyncEnumerable<string> StreamMessageAsync(IReadOnlyList<TcMessage> messages, CancellationToken ct);
 }

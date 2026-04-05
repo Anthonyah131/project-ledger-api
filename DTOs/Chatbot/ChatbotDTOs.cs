@@ -32,27 +32,20 @@ public class ChatbotHistoryEntry
     public string Content { get; set; } = string.Empty;
 }
 
-/// <summary>Respuesta del chatbot con metadata del proveedor utilizado.</summary>
-public class ChatbotMessageResponse
+/// <summary>
+/// SSE event emitted by the streaming endpoint (POST /message/stream).
+/// The <see cref="Type"/> field acts as a discriminator:
+/// - "meta"  → sent once before the first chunk; contains provider, model, and pipeline metadata.
+/// - "chunk" → one partial text token per event; read <see cref="Content"/>.
+/// - "done"  → sent once after the last chunk to signal stream completion.
+/// - "error" → sent if the pipeline fails; read <see cref="Content"/> for the message.
+/// </summary>
+public class ChatbotStreamEvent
 {
-    /// <summary>Texto de respuesta generado por el modelo de IA.</summary>
-    public string Response { get; set; } = string.Empty;
-
-    /// <summary>Nombre del proveedor que procesó la petición (OpenRouter, Groq, Cerebras, BytePlus).</summary>
-    public string Provider { get; set; } = string.Empty;
-
-    /// <summary>Identificador del modelo utilizado dentro del proveedor.</summary>
-    public string Model { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Indica si se inyectó contexto financiero real (resumen mensual + pagos vencidos)
-    /// en el system prompt de esta petición.
-    /// </summary>
-    public bool UsedFinancialContext { get; set; }
-
-    /// <summary>
-    /// Número de llamadas a herramientas MCP ejecutadas por el LLM en esta petición.
-    /// 0 si el proveedor no soporta tool calling o el LLM respondió sin consultar datos.
-    /// </summary>
-    public int ToolCallsExecuted { get; set; }
+    public string  Type                  { get; set; } = string.Empty;
+    public string? Content               { get; set; }
+    public string? Provider              { get; set; }
+    public string? Model                 { get; set; }
+    public bool?   UsedFinancialContext  { get; set; }
+    public int?    ToolCallsExecuted     { get; set; }
 }

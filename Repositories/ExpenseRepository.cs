@@ -224,8 +224,10 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
         return sortBy?.ToLowerInvariant() switch
         {
             "title" => descending ? query.OrderByDescending(e => e.ExpTitle) : query.OrderBy(e => e.ExpTitle),
-            "amount" => descending ? query.OrderByDescending(e => e.ExpConvertedAmount) : query.OrderBy(e => e.ExpConvertedAmount),
+            "amount" or "convertedamount" => descending ? query.OrderByDescending(e => e.ExpConvertedAmount) : query.OrderBy(e => e.ExpConvertedAmount),
+            "originalamount" => descending ? query.OrderByDescending(e => e.ExpOriginalAmount) : query.OrderBy(e => e.ExpOriginalAmount),
             "createdat" => descending ? query.OrderByDescending(e => e.ExpCreatedAt) : query.OrderBy(e => e.ExpCreatedAt),
+            "date" or "expensedate" => descending ? query.OrderByDescending(e => e.ExpExpenseDate) : query.OrderBy(e => e.ExpExpenseDate),
             _ => descending ? query.OrderByDescending(e => e.ExpExpenseDate) : query.OrderBy(e => e.ExpExpenseDate),
         };
     }

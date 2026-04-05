@@ -202,10 +202,10 @@ public class IncomeRepository : Repository<Income>, IIncomeRepository
         return sortBy?.ToLowerInvariant() switch
         {
             "title" => descending ? query.OrderByDescending(e => e.IncTitle) : query.OrderBy(e => e.IncTitle),
-            "convertedamount" => descending ? query.OrderByDescending(e => e.IncConvertedAmount) : query.OrderBy(e => e.IncConvertedAmount),
-            "amount" => descending ? query.OrderByDescending(e => e.IncConvertedAmount) : query.OrderBy(e => e.IncConvertedAmount),
+            "amount" or "convertedamount" => descending ? query.OrderByDescending(e => e.IncConvertedAmount) : query.OrderBy(e => e.IncConvertedAmount),
+            "originalamount" => descending ? query.OrderByDescending(e => e.IncOriginalAmount) : query.OrderBy(e => e.IncOriginalAmount),
             "createdat" => descending ? query.OrderByDescending(e => e.IncCreatedAt) : query.OrderBy(e => e.IncCreatedAt),
-            "incomedate" => descending ? query.OrderByDescending(e => e.IncIncomeDate) : query.OrderBy(e => e.IncIncomeDate),
+            "date" or "incomedate" => descending ? query.OrderByDescending(e => e.IncIncomeDate) : query.OrderBy(e => e.IncIncomeDate),
             _ => descending ? query.OrderByDescending(e => e.IncIncomeDate) : query.OrderBy(e => e.IncIncomeDate),
         };
     }

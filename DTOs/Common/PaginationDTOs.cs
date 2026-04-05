@@ -35,14 +35,26 @@ public class PagedRequest
     /// <summary>Campo por el cual ordenar (depende de cada endpoint). Ejemplo: "createdAt", "title".</summary>
     public string? SortBy { get; set; }
 
+    private bool _descending = true;
+
     /// <summary>"asc" o "desc". Por defecto "desc".</summary>
     [RegularExpression("^(asc|desc)$", ErrorMessage = "Sort direction must be 'asc' or 'desc'.")]
-    public string SortDirection { get; set; } = "desc";
+    public string SortDirection
+    {
+        get => _descending ? "desc" : "asc";
+        set => _descending = value.Equals("desc", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Dirección de ordenamiento como booleano. Si se provee, tiene precedencia sobre sortDirection.</summary>
+    public bool IsDescending
+    {
+        get => _descending;
+        set => _descending = value;
+    }
 
     // ── Helpers ──────────────────────────────────────────────
 
     public int Skip => (Page - 1) * PageSize;
-    public bool IsDescending => SortDirection.Equals("desc", StringComparison.OrdinalIgnoreCase);
 }
 
 // ── Response ────────────────────────────────────────────────
