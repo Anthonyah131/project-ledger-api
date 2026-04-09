@@ -14,6 +14,10 @@ public class ProjectMember
     public DateTime PrmCreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime PrmUpdatedAt { get; set; } = DateTime.UtcNow;
 
+    // ── Pinned ──────────────────────────────────────────────
+    public bool PrmIsPinned { get; set; }
+    public DateTime? PrmPinnedAt { get; set; }
+
     // ── Soft delete ─────────────────────────────────────────
     public bool PrmIsDeleted { get; set; }
     public DateTime? PrmDeletedAt { get; set; }

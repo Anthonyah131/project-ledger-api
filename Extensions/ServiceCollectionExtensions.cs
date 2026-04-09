@@ -88,6 +88,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPartnerSettlementRepository, PartnerSettlementRepository>();
         services.AddScoped<IPartnerBalanceRepository, PartnerBalanceRepository>();
 
+        // Global Search
+        services.AddScoped<ISearchRepository, SearchRepository>();
+
         return services;
     }
 
@@ -154,6 +157,9 @@ public static class ServiceCollectionExtensions
 
         // Partner Reports
         services.AddScoped<IPartnerReportService, PartnerReportService>();
+
+        // Global Search
+        services.AddScoped<ISearchService, SearchService>();
 
         // Chatbot IA (rotación de proveedores gratuitos)
         // Singleton: el rotador mantiene el índice entre peticiones

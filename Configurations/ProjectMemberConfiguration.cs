@@ -19,6 +19,8 @@ public class ProjectMemberConfiguration : IEntityTypeConfiguration<ProjectMember
         builder.Property(pm => pm.PrmJoinedAt).HasColumnName("prm_joined_at").HasDefaultValueSql("now()");
         builder.Property(pm => pm.PrmCreatedAt).HasColumnName("prm_created_at").HasDefaultValueSql("now()");
         builder.Property(pm => pm.PrmUpdatedAt).HasColumnName("prm_updated_at").HasDefaultValueSql("now()");
+        builder.Property(pm => pm.PrmIsPinned).HasColumnName("prm_is_pinned").HasDefaultValue(false);
+        builder.Property(pm => pm.PrmPinnedAt).HasColumnName("prm_pinned_at");
         builder.Property(pm => pm.PrmIsDeleted).HasColumnName("prm_is_deleted").HasDefaultValue(false);
         builder.Property(pm => pm.PrmDeletedAt).HasColumnName("prm_deleted_at");
         builder.Property(pm => pm.PrmDeletedByUserId).HasColumnName("prm_deleted_by_user_id");

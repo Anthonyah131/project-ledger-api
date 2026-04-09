@@ -19,4 +19,21 @@ public class ProjectMemberRepository : Repository<ProjectMember>, IProjectMember
             m => m.PrmProjectId == projectId &&
                  m.PrmUserId == userId &&
                  !m.PrmIsDeleted, ct);
+
+    public async Task<IEnumerable<ProjectMember>> GetPinnedByUserIdAsync(Guid userId, CancellationToken ct = default)
+        => await DbSet
+            .Include(m => m.Project)
+                .ThenInclude(p => p.Workspace)
+            .Where(m => m.PrmUserId == userId &&
+                        m.PrmIsPinned &&
+                        !m.PrmIsDeleted &&
+                        !m.Project.PrjIsDeleted)
+            .OrderByDescending(m => m.PrmPinnedAt)
+            .ToListAsync(ct);
+
+    public async Task<int> GetPinnedCountAsync(Guid userId, CancellationToken ct = default)
+        => await DbSet
+            .CountAsync(m => m.PrmUserId == userId &&
+                             m.PrmIsPinned &&
+                             !m.PrmIsDeleted, ct);
 }

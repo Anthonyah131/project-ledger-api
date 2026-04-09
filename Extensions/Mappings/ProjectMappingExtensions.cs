@@ -22,6 +22,22 @@ public static class ProjectMappingExtensions
         UpdatedAt = entity.PrjUpdatedAt
     };
 
+    public static PinnedProjectResponse ToPinnedResponse(this Project entity, string userRole, DateTime pinnedAt) => new()
+    {
+        Id = entity.PrjId,
+        Name = entity.PrjName,
+        CurrencyCode = entity.PrjCurrencyCode,
+        Description = entity.PrjDescription,
+        OwnerUserId = entity.PrjOwnerUserId,
+        UserRole = userRole,
+        WorkspaceId = entity.PrjWorkspaceId,
+        WorkspaceName = entity.Workspace?.WksName,
+        PartnersEnabled = entity.PrjPartnersEnabled,
+        CreatedAt = entity.PrjCreatedAt,
+        UpdatedAt = entity.PrjUpdatedAt,
+        PinnedAt = pinnedAt
+    };
+
     // ── Request → Entity ────────────────────────────────────
 
     public static Project ToEntity(this CreateProjectRequest request, Guid ownerUserId) => new()

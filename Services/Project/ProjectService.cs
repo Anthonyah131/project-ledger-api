@@ -56,6 +56,54 @@ public class ProjectService : IProjectService
         Guid workspaceId, Guid userId, int skip, int take, string? sortBy = null, bool isDescending = true, CancellationToken ct = default)
         => await _projectRepo.GetByWorkspaceIdPagedAsync(workspaceId, userId, skip, take, sortBy, isDescending, ct);
 
+    public async Task<IEnumerable<ProjectMember>> GetPinnedMembershipsAsync(Guid userId, CancellationToken ct = default)
+        => await _memberRepo.GetPinnedByUserIdAsync(userId, ct);
+
+    public async Task<(IEnumerable<Project> Items, int TotalCount)> GetByUserIdPagedExcludingAsync(
+        Guid userId, IEnumerable<Guid> excludeProjectIds, int skip, int take, string? sortBy = null, bool isDescending = true, CancellationToken ct = default)
+        => await _projectRepo.GetByUserIdPagedExcludingAsync(userId, excludeProjectIds, skip, take, sortBy, isDescending, ct);
+
+    public async Task<(IEnumerable<Project> Items, int TotalCount)> GetByWorkspaceIdPagedExcludingAsync(
+        Guid workspaceId, Guid userId, IEnumerable<Guid> excludeProjectIds, int skip, int take, string? sortBy = null, bool isDescending = true, CancellationToken ct = default)
+        => await _projectRepo.GetByWorkspaceIdPagedExcludingAsync(workspaceId, userId, excludeProjectIds, skip, take, sortBy, isDescending, ct);
+
+    public async Task<DateTime> PinProjectAsync(Guid userId, Guid projectId, CancellationToken ct = default)
+    {
+        var member = await _memberRepo.GetByProjectAndUserAsync(projectId, userId, ct)
+            ?? throw new KeyNotFoundException("ProjectNotFound");
+
+        if (member.PrmIsPinned)
+            return member.PrmPinnedAt!.Value;
+
+        var pinnedCount = await _memberRepo.GetPinnedCountAsync(userId, ct);
+        if (pinnedCount >= 6)
+            throw new InvalidOperationException("PINNED_LIMIT_EXCEEDED");
+
+        var now = DateTime.UtcNow;
+        member.PrmIsPinned = true;
+        member.PrmPinnedAt = now;
+        member.PrmUpdatedAt = now;
+
+        _memberRepo.Update(member);
+        await _memberRepo.SaveChangesAsync(ct);
+
+        return now;
+    }
+
+    public async Task UnpinProjectAsync(Guid userId, Guid projectId, CancellationToken ct = default)
+    {
+        var member = await _memberRepo.GetByProjectAndUserAsync(projectId, userId, ct);
+        if (member is null || !member.PrmIsPinned)
+            return;
+
+        member.PrmIsPinned = false;
+        member.PrmPinnedAt = null;
+        member.PrmUpdatedAt = DateTime.UtcNow;
+
+        _memberRepo.Update(member);
+        await _memberRepo.SaveChangesAsync(ct);
+    }
+
     public async Task<Project> CreateAsync(Project project, CancellationToken ct = default)
     {
         // Validar permiso del plan

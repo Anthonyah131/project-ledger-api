@@ -52,6 +52,7 @@ CREATE TABLE public.plans (
 	pln_stripe_price_id VARCHAR(255) NULL,
 	pln_stripe_payment_link_id VARCHAR(255) NULL,
 	pln_stripe_payment_link_url STRING NULL,
+	pln_can_use_partners BOOL NOT NULL DEFAULT false,
 	CONSTRAINT plans_pkey PRIMARY KEY (pln_id ASC),
 	UNIQUE INDEX plans_slug_unique (pln_slug ASC),
 	INDEX idx_pln_is_active (pln_is_active ASC),
@@ -600,6 +601,8 @@ CREATE TABLE public.project_members (
 	prm_is_deleted BOOL NOT NULL DEFAULT false,
 	prm_deleted_at TIMESTAMPTZ NULL,
 	prm_deleted_by_user_id UUID NULL,
+	prm_is_pinned BOOL NOT NULL DEFAULT false,
+	prm_pinned_at TIMESTAMP NULL,
 	CONSTRAINT project_members_pkey PRIMARY KEY (prm_id ASC),
 	CONSTRAINT project_members_project_id_fkey FOREIGN KEY (prm_project_id) REFERENCES public.projects(prj_id),
 	CONSTRAINT project_members_user_id_fkey FOREIGN KEY (prm_user_id) REFERENCES public.users(usr_id),
@@ -608,6 +611,7 @@ CREATE TABLE public.project_members (
 	INDEX idx_prm_project_id (prm_project_id ASC),
 	INDEX idx_prm_user_id (prm_user_id ASC),
 	INDEX idx_prm_is_deleted (prm_is_deleted ASC),
+	INDEX idx_project_members_pinned (prm_user_id ASC, prm_is_pinned ASC) WHERE (prm_is_pinned = true) AND (prm_is_deleted = false),
 	CONSTRAINT project_members_role_check CHECK (prm_role IN ('owner':::STRING, 'editor':::STRING, 'viewer':::STRING))
 );
 

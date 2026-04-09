@@ -112,6 +112,40 @@ public class PartnerSplitDefault
     public decimal DefaultPercentage { get; set; }
 }
 
+// ── Pinned Projects ──────────────────────────────────────────
+
+/// <summary>Respuesta de proyecto fijado. Incluye pinnedAt además de los campos normales.</summary>
+public class PinnedProjectResponse : ProjectResponse
+{
+    public DateTime PinnedAt { get; set; }
+}
+
+/// <summary>Respuesta de confirmación al fijar un proyecto.</summary>
+public class PinProjectResponse
+{
+    public Guid ProjectId { get; set; }
+    public DateTime PinnedAt { get; set; }
+}
+
+/// <summary>
+/// Respuesta paginada de proyectos con sección de fijados.
+/// pinned[] solo se incluye en la página 1; en páginas posteriores viene vacío.
+/// total refleja únicamente proyectos no fijados.
+/// </summary>
+public class ProjectsPagedResponse
+{
+    public IReadOnlyList<PinnedProjectResponse> Pinned { get; set; } = [];
+    /// <summary>Total de proyectos fijados por el usuario (de todos los proyectos, no solo los de este workspace).</summary>
+    public int PinnedCount { get; set; }
+    public IReadOnlyList<ProjectResponse> Items { get; set; } = [];
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+    public int TotalCount { get; set; }
+    public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
+    public bool HasPreviousPage => Page > 1;
+    public bool HasNextPage => Page < TotalPages;
+}
+
 // ── Project Payment Methods ─────────────────────────────────
 
 /// <summary>Request para vincular un método de pago a un proyecto.</summary>

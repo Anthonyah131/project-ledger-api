@@ -186,13 +186,14 @@ public class WorkspaceController : ControllerBase
 
     /// <summary>
     /// Lista los proyectos del workspace accesibles para el usuario autenticado (paginado).
+    /// En la página 1 incluye una sección "pinned" con los proyectos fijados de este workspace.
     /// El usuario debe ser miembro del workspace.
     /// </summary>
-    /// <response code="200">Lista paginada de proyectos del workspace.</response>
+    /// <response code="200">Lista paginada de proyectos del workspace con sección de fijados.</response>
     /// <response code="403">El usuario no es miembro del workspace.</response>
     /// <response code="404">Workspace no encontrado.</response>
     [HttpGet("{id:guid}/projects")]
-    [ProducesResponseType(typeof(PagedResponse<ProjectResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProjectsPagedResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetWorkspaceProjects(
@@ -210,17 +211,42 @@ public class WorkspaceController : ControllerBase
         if (role is null)
             return Forbid();
 
-        var (projects, totalCount) = await _projectService.GetByWorkspaceIdPagedAsync(
-            id, userId, pagination.Skip, pagination.PageSize, pagination.SortBy, pagination.IsDescending, ct);
+        // Pinned filtrado solo al workspace actual
+        var allPinnedMemberships = await _projectService.GetPinnedMembershipsAsync(userId, ct);
+        var workspacePinned = allPinnedMemberships
+            .Where(m => m.Project.PrjWorkspaceId == id)
+            .ToList();
+        var pinnedIds = workspacePinned.Select(m => m.PrmProjectId).ToList();
 
-        var result = new List<ProjectResponse>();
+        var (projects, totalCount) = await _projectService.GetByWorkspaceIdPagedExcludingAsync(
+            id, userId, pinnedIds, pagination.Skip, pagination.PageSize, pagination.SortBy, pagination.IsDescending, ct);
+
+        var items = new List<ProjectResponse>();
         foreach (var p in projects)
         {
             var projectRole = await _projectAccessService.GetUserRoleAsync(userId, p.PrjId, ct);
-            result.Add(p.ToResponse(projectRole ?? ProjectRoles.Viewer));
+            items.Add(p.ToResponse(projectRole ?? ProjectRoles.Viewer));
         }
 
-        return Ok(PagedResponse<ProjectResponse>.Create(result, totalCount, pagination));
+        var pinned = new List<PinnedProjectResponse>();
+        if (pagination.Page == 1)
+        {
+            foreach (var m in workspacePinned)
+            {
+                var projectRole = await _projectAccessService.GetUserRoleAsync(userId, m.PrmProjectId, ct);
+                pinned.Add(m.Project.ToPinnedResponse(projectRole ?? ProjectRoles.Viewer, m.PrmPinnedAt!.Value));
+            }
+        }
+
+        return Ok(new ProjectsPagedResponse
+        {
+            Pinned = pinned,
+            PinnedCount = allPinnedMemberships.Count(),
+            Items = items,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize,
+            TotalCount = totalCount
+        });
     }
 
     // ── POST /api/workspaces/{id}/projects ──────────────────

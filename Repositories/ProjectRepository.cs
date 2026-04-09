@@ -43,12 +43,46 @@ public class ProjectRepository : Repository<Project>, IProjectRepository
         return (items, total);
     }
 
+    public async Task<(IEnumerable<Project> Items, int TotalCount)> GetByUserIdPagedExcludingAsync(
+        Guid userId, IEnumerable<Guid> excludeProjectIds, int skip, int take, string? sortBy = null, bool isDescending = true, CancellationToken ct = default)
+    {
+        var excluded = excludeProjectIds.ToList();
+        var query = DbSet
+            .Include(p => p.Workspace)
+            .Where(p => !p.PrjIsDeleted &&
+                        !excluded.Contains(p.PrjId) &&
+                        (p.PrjOwnerUserId == userId ||
+                         p.Members.Any(m => m.PrmUserId == userId && !m.PrmIsDeleted)));
+
+        var sorted = ApplySort(query, sortBy, isDescending);
+        var total = await sorted.CountAsync(ct);
+        var items = await sorted.Skip(skip).Take(take).ToListAsync(ct);
+        return (items, total);
+    }
+
     public async Task<(IEnumerable<Project> Items, int TotalCount)> GetByWorkspaceIdPagedAsync(
         Guid workspaceId, Guid userId, int skip, int take, string? sortBy = null, bool isDescending = true, CancellationToken ct = default)
     {
         var query = DbSet
             .Include(p => p.Workspace)
             .Where(p => p.PrjWorkspaceId == workspaceId && !p.PrjIsDeleted &&
+                        (p.PrjOwnerUserId == userId ||
+                         p.Members.Any(m => m.PrmUserId == userId && !m.PrmIsDeleted)));
+
+        var sorted = ApplySort(query, sortBy, isDescending);
+        var total = await sorted.CountAsync(ct);
+        var items = await sorted.Skip(skip).Take(take).ToListAsync(ct);
+        return (items, total);
+    }
+
+    public async Task<(IEnumerable<Project> Items, int TotalCount)> GetByWorkspaceIdPagedExcludingAsync(
+        Guid workspaceId, Guid userId, IEnumerable<Guid> excludeProjectIds, int skip, int take, string? sortBy = null, bool isDescending = true, CancellationToken ct = default)
+    {
+        var excluded = excludeProjectIds.ToList();
+        var query = DbSet
+            .Include(p => p.Workspace)
+            .Where(p => p.PrjWorkspaceId == workspaceId && !p.PrjIsDeleted &&
+                        !excluded.Contains(p.PrjId) &&
                         (p.PrjOwnerUserId == userId ||
                          p.Members.Any(m => m.PrmUserId == userId && !m.PrmIsDeleted)));
 

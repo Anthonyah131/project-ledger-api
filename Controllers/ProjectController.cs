@@ -54,27 +54,102 @@ public class ProjectController : ControllerBase
 
     /// <summary>
     /// Lista todos los proyectos donde el usuario es owner o miembro (paginado).
+    /// En la página 1 incluye una sección "pinned" con proyectos fijados (máx. 6).
+    /// El total y la paginación normal excluyen los proyectos fijados.
     /// </summary>
-    /// <response code="200">Lista paginada de proyectos del usuario.</response>
+    /// <response code="200">Lista paginada de proyectos del usuario con sección de fijados.</response>
     [HttpGet]
-    [ProducesResponseType(typeof(PagedResponse<ProjectResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProjectsPagedResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMyProjects(
         [FromQuery] PagedRequest pagination,
         CancellationToken ct)
     {
         var userId = User.GetRequiredUserId();
 
-        var (projects, totalCount) = await _projectService.GetByUserIdPagedAsync(
-            userId, pagination.Skip, pagination.PageSize, pagination.SortBy, pagination.IsDescending, ct);
+        // Fetch pinned memberships (always, to know which IDs to exclude)
+        var pinnedMemberships = await _projectService.GetPinnedMembershipsAsync(userId, ct);
+        var pinnedIds = pinnedMemberships.Select(m => m.PrmProjectId).ToList();
 
-        var result = new List<ProjectResponse>();
+        // Paginated non-pinned projects
+        var (projects, totalCount) = await _projectService.GetByUserIdPagedExcludingAsync(
+            userId, pinnedIds, pagination.Skip, pagination.PageSize, pagination.SortBy, pagination.IsDescending, ct);
+
+        var items = new List<ProjectResponse>();
         foreach (var p in projects)
         {
             var role = await _accessService.GetUserRoleAsync(userId, p.PrjId, ct);
-            result.Add(p.ToResponse(role ?? ProjectRoles.Viewer));
+            items.Add(p.ToResponse(role ?? ProjectRoles.Viewer));
         }
 
-        return Ok(PagedResponse<ProjectResponse>.Create(result, totalCount, pagination));
+        // Build pinned list only for page 1
+        var pinned = new List<PinnedProjectResponse>();
+        if (pagination.Page == 1)
+        {
+            foreach (var m in pinnedMemberships)
+            {
+                var role = await _accessService.GetUserRoleAsync(userId, m.PrmProjectId, ct);
+                pinned.Add(m.Project.ToPinnedResponse(role ?? ProjectRoles.Viewer, m.PrmPinnedAt!.Value));
+            }
+        }
+
+        return Ok(new ProjectsPagedResponse
+        {
+            Pinned = pinned,
+            PinnedCount = pinnedIds.Count,
+            Items = items,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize,
+            TotalCount = totalCount
+        });
+    }
+
+    // ── PUT /api/projects/{projectId}/pin ───────────────────
+
+    /// <summary>
+    /// Fija un proyecto para el usuario autenticado. Máximo 6 proyectos fijados.
+    /// </summary>
+    /// <response code="200">Proyecto fijado correctamente.</response>
+    /// <response code="400">Límite de 6 fijados alcanzado.</response>
+    /// <response code="403">Sin acceso al proyecto.</response>
+    /// <response code="404">Proyecto no existe o está inactivo.</response>
+    [HttpPut("{projectId:guid}/pin")]
+    [ProducesResponseType(typeof(PinProjectResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> PinProject(Guid projectId, CancellationToken ct)
+    {
+        var userId = User.GetRequiredUserId();
+        await _accessService.ValidateAccessAsync(userId, projectId, ProjectRoles.Viewer, ct);
+
+        try
+        {
+            var pinnedAt = await _projectService.PinProjectAsync(userId, projectId, ct);
+            return Ok(new PinProjectResponse { ProjectId = projectId, PinnedAt = pinnedAt });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["ProjectNotFound"]));
+        }
+        catch (InvalidOperationException ex) when (ex.Message == "PINNED_LIMIT_EXCEEDED")
+        {
+            return BadRequest(new { type = "BusinessError", code = "PINNED_LIMIT_EXCEEDED", message = "Maximum of 6 pinned projects reached.", limit = 6 });
+        }
+    }
+
+    // ── DELETE /api/projects/{projectId}/pin ────────────────
+
+    /// <summary>
+    /// Desancla un proyecto fijado. Operación idempotente.
+    /// </summary>
+    /// <response code="204">Proyecto desfijado correctamente.</response>
+    [HttpDelete("{projectId:guid}/pin")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> UnpinProject(Guid projectId, CancellationToken ct)
+    {
+        var userId = User.GetRequiredUserId();
+        await _projectService.UnpinProjectAsync(userId, projectId, ct);
+        return NoContent();
     }
 
     // ── GET /api/projects/{projectId} ───────────────────────
