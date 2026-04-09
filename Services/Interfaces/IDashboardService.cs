@@ -18,4 +18,7 @@ public interface IDashboardService
 
     Task<MonthlyOverviewResponse> GetMonthlyOverviewAsync(
         Guid userId, DateOnly monthStart, CancellationToken ct = default);
+
+    Task<DashboardProjectsPagedResponse> GetDashboardProjectsAsync(
+        Guid userId, int page, int pageSize, string? q, CancellationToken ct = default);
 }

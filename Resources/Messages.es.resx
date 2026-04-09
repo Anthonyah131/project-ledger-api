@@ -511,5 +511,11 @@
   </data>
 
   <!-- ══ Dashboard ══ -->
+  <data name="InvalidPage" xml:space="preserve">
+    <value>page debe ser un entero positivo (mínimo: 1).</value>
+  </data>
+  <data name="InvalidPageSize" xml:space="preserve">
+    <value>pageSize debe estar entre 1 y 100.</value>
+  </data>
 
 </root>

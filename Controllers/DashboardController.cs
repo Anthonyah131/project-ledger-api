@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -216,6 +216,43 @@ public class DashboardController : ControllerBase
 
         var userId = User.GetRequiredUserId();
         var response = await _dashboardService.GetMonthlyOverviewAsync(userId, monthStart, ct);
+        return Ok(response);
+    }
+
+    /// <summary>
+    /// Selector ligero de proyectos para el dashboard.
+    /// Página 1: incluye proyectos pineados del usuario + proyectos no pineados paginados.
+    /// Páginas > 1: solo proyectos no pineados paginados (los pineados NO se repiten).
+    /// </summary>
+    [HttpGet("projects")]
+    [ProducesResponseType(typeof(DashboardProjectsPagedResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetDashboardProjects(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? q = null,
+        CancellationToken ct = default)
+    {
+        if (page < 1)
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["InvalidPage"]));
+
+        if (pageSize is < 1 or > 100)
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["InvalidPageSize"]));
+
+        if (IsAdminUser())
+        {
+            return Ok(new DashboardProjectsPagedResponse
+            {
+                Pinned = [],
+                Items = [],
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = 0
+            });
+        }
+
+        var userId = User.GetRequiredUserId();
+        var response = await _dashboardService.GetDashboardProjectsAsync(userId, page, pageSize, q, ct);
         return Ok(response);
     }
 

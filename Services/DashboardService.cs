@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using ProjectLedger.API.DTOs.Dashboard;
 using ProjectLedger.API.Models;
 using ProjectLedger.API.Repositories;
@@ -154,6 +154,67 @@ public class DashboardService : IDashboardService
             CurrencyCode = ResolveCurrencyCode(scopedProjects),
             ProjectId = projectId,
             PaymentMethodSplit = BuildPaymentMethodSplit(monthData.Expenses, totalSpent)
+        };
+    }
+
+    public async Task<DashboardProjectsPagedResponse> GetDashboardProjectsAsync(
+        Guid userId, int page, int pageSize, string? q, CancellationToken ct = default)
+    {
+        // 1. Fetch pinned memberships (ordered by pinnedAt DESC via repository)
+        var pinnedMemberships = (await _projectService.GetPinnedMembershipsAsync(userId, ct)).ToList();
+
+        // 2. Apply optional name filter to pinned results
+        var filteredPinned = string.IsNullOrWhiteSpace(q)
+            ? pinnedMemberships
+            : pinnedMemberships
+                .Where(m => m.Project.PrjName.Contains(q, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+        var pinnedProjectIds = pinnedMemberships.Select(m => m.PrmProjectId);
+
+        // 3. Fetch non-pinned projects page, excluding all pinned project IDs
+        int skip = (page - 1) * pageSize;
+        var (nonPinnedItems, totalNonPinned) = await _projectService
+            .GetByUserIdPagedExcludingAsync(userId, pinnedProjectIds, skip, pageSize, "updatedAt", isDescending: true, ct);
+
+        // 4. Apply optional name filter to non-pinned results after paging (search targets name only)
+        var filteredNonPinned = string.IsNullOrWhiteSpace(q)
+            ? nonPinnedItems.ToList()
+            : nonPinnedItems.Where(p => p.PrjName.Contains(q, StringComparison.OrdinalIgnoreCase)).ToList();
+
+        // 5. Map pinned — only include on page 1
+        var pinnedDtos = page == 1
+            ? filteredPinned
+                .Select(m => new DashboardProjectItemDto
+                {
+                    Id = m.PrmProjectId,
+                    Name = m.Project.PrjName,
+                    CurrencyCode = m.Project.PrjCurrencyCode,
+                    IsPinned = true,
+                    PinnedAt = m.PrmPinnedAt
+                })
+                .ToList()
+            : [];
+
+        // 6. Map non-pinned items
+        var itemDtos = filteredNonPinned
+            .Select(p => new DashboardProjectItemDto
+            {
+                Id = p.PrjId,
+                Name = p.PrjName,
+                CurrencyCode = p.PrjCurrencyCode,
+                IsPinned = false,
+                PinnedAt = null
+            })
+            .ToList();
+
+        return new DashboardProjectsPagedResponse
+        {
+            Pinned = pinnedDtos,
+            Items = itemDtos,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalNonPinned
         };
     }
 

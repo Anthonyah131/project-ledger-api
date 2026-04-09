@@ -139,3 +139,35 @@ public class DashboardAlertResponse
     public int Priority { get; set; }
     public int Count { get; set; }
 }
+
+// ── Dashboard Project Selector ──────────────────────────────
+
+/// <summary>
+/// Proyecto ligero para el selector del dashboard.
+/// Solo expone los campos necesarios para la UI del picker.
+/// </summary>
+public record DashboardProjectItemDto
+{
+    public Guid Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string CurrencyCode { get; init; } = string.Empty;
+    public bool IsPinned { get; init; }
+    public DateTime? PinnedAt { get; init; }
+}
+
+/// <summary>
+/// Respuesta paginada del endpoint GET /api/dashboard/projects.
+/// Página 1: incluye proyectos pineados + ítems no pineados.
+/// Páginas > 1: pinned[] vacío, solo ítems no pineados.
+/// </summary>
+public record DashboardProjectsPagedResponse
+{
+    public IReadOnlyList<DashboardProjectItemDto> Pinned { get; init; } = [];
+    public IReadOnlyList<DashboardProjectItemDto> Items { get; init; } = [];
+    public int Page { get; init; }
+    public int PageSize { get; init; }
+    public int TotalCount { get; init; }
+    public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
+    public bool HasNextPage => Page < TotalPages;
+    public bool HasPreviousPage => Page > 1;
+}
