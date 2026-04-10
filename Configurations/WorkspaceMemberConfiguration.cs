@@ -4,8 +4,14 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Configurations;
 
+/// <summary>
+/// Entity Framework configuration for the WorkspaceMember model.
+/// </summary>
 public class WorkspaceMemberConfiguration : IEntityTypeConfiguration<WorkspaceMember>
 {
+    /// <summary>
+    /// Configures the database schema and relationships for WorkspaceMember.
+    /// </summary>
     public void Configure(EntityTypeBuilder<WorkspaceMember> builder)
     {
         builder.ToTable("workspace_members");
@@ -27,7 +33,7 @@ public class WorkspaceMemberConfiguration : IEntityTypeConfiguration<WorkspaceMe
         builder.HasIndex(m => m.WkmUserId);
         builder.HasIndex(m => m.WkmIsDeleted);
 
-        // Partial UNIQUE: un miembro activo por workspace
+        // Partial UNIQUE: one active member per workspace
         builder.HasIndex(m => new { m.WkmWorkspaceId, m.WkmUserId })
             .IsUnique()
             .HasFilter("wkm_is_deleted = false");

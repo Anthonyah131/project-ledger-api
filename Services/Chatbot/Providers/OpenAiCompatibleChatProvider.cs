@@ -253,7 +253,7 @@ public abstract class OpenAiCompatibleChatProvider : IToolCallingChatProvider
     private sealed record StreamDelta(
         [property: JsonPropertyName("content")] string? Content);
 
-    // Respuesta simple (sin tool calls)
+    // Simple response (without tool calls)
     private sealed record ChatCompletionResponse(
         [property: JsonPropertyName("choices")] List<ChatChoice>? Choices);
 
@@ -263,7 +263,7 @@ public abstract class OpenAiCompatibleChatProvider : IToolCallingChatProvider
     private sealed record ChatMessage(
         [property: JsonPropertyName("content")] string? Content);
 
-    // Respuesta con tool calling
+    // Response with tool calling
     private sealed record ToolCallingCompletionResponse(
         [property: JsonPropertyName("choices")] List<ToolCallingChoice>? Choices);
 

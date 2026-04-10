@@ -5,7 +5,9 @@ using ProjectLedger.API.Models;
 namespace ProjectLedger.API.Repositories;
 
 /// <summary>
+/// Repository implementation for PartnerBalance operations.
 /// Read-only repository for calculating balances and history per partner.
+/// Note: Inherits from IPartnerBalanceRepository but not Repository&lt;T&gt; as it uses raw SQL queries.
 ///
 /// Balance logic (all in project base currency):
 ///   Expense component A = SUM(others' splits in expenses paid by A) - SUM(A's split in expenses paid by others)

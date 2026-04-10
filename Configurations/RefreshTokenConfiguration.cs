@@ -4,8 +4,14 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Configurations;
 
+/// <summary>
+/// Entity Framework configuration for the RefreshToken model.
+/// </summary>
 public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
 {
+    /// <summary>
+    /// Configures the database schema and relationships for RefreshToken.
+    /// </summary>
     public void Configure(EntityTypeBuilder<RefreshToken> builder)
     {
         builder.ToTable("refresh_tokens");

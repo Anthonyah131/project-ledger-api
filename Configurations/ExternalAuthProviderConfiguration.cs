@@ -4,8 +4,14 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Configurations;
 
+/// <summary>
+/// Entity Framework configuration for the ExternalAuthProvider model.
+/// </summary>
 public class ExternalAuthProviderConfiguration : IEntityTypeConfiguration<ExternalAuthProvider>
 {
+    /// <summary>
+    /// Configures the database schema and relationships for ExternalAuthProvider.
+    /// </summary>
     public void Configure(EntityTypeBuilder<ExternalAuthProvider> builder)
     {
         builder.ToTable("external_auth_providers");

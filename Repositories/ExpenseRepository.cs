@@ -4,6 +4,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository implementation for Expense operations.
+/// </summary>
 public class ExpenseRepository : Repository<Expense>, IExpenseRepository
 {
     public ExpenseRepository(AppDbContext context) : base(context) { }

@@ -2,6 +2,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository interface for AuditLog operations.
+/// </summary>
 public interface IAuditLogRepository : IRepository<AuditLog>
 {
     Task<IEnumerable<AuditLog>> GetByEntityAsync(string entityName, Guid entityId, CancellationToken ct = default);

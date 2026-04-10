@@ -4,8 +4,14 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Configurations;
 
+/// <summary>
+/// Entity Framework configuration for the Partner model.
+/// </summary>
 public class PartnerConfiguration : IEntityTypeConfiguration<Partner>
 {
+    /// <summary>
+    /// Configures the database schema and relationships for Partner.
+    /// </summary>
     public void Configure(EntityTypeBuilder<Partner> builder)
     {
         builder.ToTable("partners");

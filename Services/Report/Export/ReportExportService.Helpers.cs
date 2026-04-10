@@ -8,12 +8,12 @@ using QuestPDF.Infrastructure;
 namespace ProjectLedger.API.Services.Report;
 
 /// <summary>
-/// Constantes, utilidades de formato y helpers de estilo compartidos
-/// entre las partes Excel y PDF del servicio de exportación.
+/// Constants, formatting utilities, and shared style helpers 
+/// between the Excel and PDF parts of the export service.
 /// </summary>
 public partial class ReportExportService : IReportExportService
 {
-    // ── Constantes de formato Excel ──────────────────────────────────────────
+    // ── Excel Formatting Constants ──────────────────────────────────────────
 
     private const string ExcelFontName         = "Arial";
     private const double ExcelFontSize         = 10;
@@ -21,8 +21,9 @@ public partial class ReportExportService : IReportExportService
     private const string ExcelExchangeRateFormat = "#,##0.0000;(#,##0.0000);-";
     private const string ExcelPercentFormat    = "0.0\"%\";(0.0\"%\");-";
 
-    // ── Helpers Excel ────────────────────────────────────────────────────────
+    // ── Excel Helpers ────────────────────────────────────────────────────────
 
+    /// <summary>Converts an XLWorkbook to a byte array for file downloads.</summary>
     private static byte[] WorkbookToBytes(XLWorkbook workbook)
     {
         using var ms = new MemoryStream();
@@ -30,6 +31,7 @@ public partial class ReportExportService : IReportExportService
         return ms.ToArray();
     }
 
+    /// <summary>Applies default fonts, sizes, and metadata to an Excel workbook.</summary>
     private static void ApplyWorkbookDefaults(XLWorkbook workbook, string title, string subject)
     {
         workbook.Style.Font.FontName = ExcelFontName;
@@ -42,8 +44,8 @@ public partial class ReportExportService : IReportExportService
     }
 
     /// <summary>
-    /// Aplica auto-ajuste de columnas, congelado de filas, auto-filtro opcional
-    /// y ajuste de texto en columnas indicadas.
+    /// Applies column auto-fit, row freezing, optional auto-filtering,
+    /// and text wrapping to specified columns in a worksheet.
     /// </summary>
     private static void FinalizeSheetLayout(
         IXLWorksheet ws,
@@ -73,7 +75,7 @@ public partial class ReportExportService : IReportExportService
         }
     }
 
-    /// <summary>Aplica estilo de encabezado de tabla (fondo azul oscuro, texto blanco, negrita, centrado).</summary>
+    /// <summary>Applies table header styling (dark blue background, white bold centered text).</summary>
     private static void StyleTableHeader(IXLRange range)
     {
         range.Style.Font.Bold                    = true;
@@ -82,15 +84,16 @@ public partial class ReportExportService : IReportExportService
         range.Style.Alignment.Horizontal         = XLAlignmentHorizontalValues.Center;
     }
 
-    /// <summary>Aplica estilo de etiqueta lateral (negrita, color azul oscuro).</summary>
+    /// <summary>Applies side label styling (bold dark blue text).</summary>
     private static void StyleHeaderRange(IXLRange range)
     {
         range.Style.Font.Bold      = true;
         range.Style.Font.FontColor = XLColor.DarkBlue;
     }
 
-    // ── Helpers PDF ──────────────────────────────────────────────────────────
+    // ── PDF Helpers ──────────────────────────────────────────────────────────
 
+    /// <summary>Styles and renders a PDF table header cell.</summary>
     private static void PdfTableHeaderCell(TableCellDescriptor header, string text, bool alignRight = false)
     {
         var cell = header.Cell()
@@ -103,6 +106,7 @@ public partial class ReportExportService : IReportExportService
             cell.Text(text).FontSize(8).FontColor(Colors.White).Bold();
     }
 
+    /// <summary>Styles and renders a PDF standard table data cell.</summary>
     private static void PdfTableCell(TableDescriptor table, string text, bool alignRight = false)
     {
         var cell = table.Cell()
@@ -115,6 +119,7 @@ public partial class ReportExportService : IReportExportService
             cell.Text(text).FontSize(8);
     }
 
+    /// <summary>Renders a placeholder section when no data is available for a report segment.</summary>
     private static void ComposePdfEmptyState(ColumnDescriptor col, string message)
     {
         col.Item().PaddingTop(10).Background(Colors.Grey.Lighten3).Padding(10).Column(inner =>
@@ -126,6 +131,7 @@ public partial class ReportExportService : IReportExportService
         });
     }
 
+    /// <summary>Composes the standard page footer with numbering.</summary>
     private static void ComposeFooter(IContainer container)
     {
         container.AlignCenter().Text(text =>
@@ -137,13 +143,15 @@ public partial class ReportExportService : IReportExportService
         });
     }
 
-    // ── Helpers de dominio ───────────────────────────────────────────────────
+    // ── Domain Helpers ───────────────────────────────────────────────────────
 
+    /// <summary>Formats a decimal amount with its respective ISO currency code.</summary>
     private static string FormatCurrency(string currencyCode, decimal amount)
         => string.IsNullOrWhiteSpace(currencyCode)
             ? $"{amount:N2}"
             : $"{currencyCode} {amount:N2}";
 
+    /// <summary>Generates a human-readable date range label.</summary>
     private static string FormatDateRange(DateOnly? from, DateOnly? to) => (from, to) switch
     {
         ({ } f, { } t) => $"{f:yyyy-MM-dd} — {t:yyyy-MM-dd}",
@@ -152,6 +160,7 @@ public partial class ReportExportService : IReportExportService
         _             => "Todo el historial"
     };
 
+    /// <summary>Translates internal status codes to display-friendly labels.</summary>
     private static string FormatStatus(string status) => status switch
     {
         "open"           => "Abierta",
@@ -161,6 +170,7 @@ public partial class ReportExportService : IReportExportService
         _                => status
     };
 
+    /// <summary>Identifies and labels the month with the highest total expenditure.</summary>
     private static string GetPeakExpenseMonthLabel(DetailedExpenseReportResponse report)
     {
         var peak = report.Sections
@@ -172,6 +182,7 @@ public partial class ReportExportService : IReportExportService
             : $"{peak.MonthLabel} ({peak.SectionTotal:N2})";
     }
 
+    /// <summary>Identifies and labels the category with the highest total expenditure.</summary>
     private static string GetTopExpenseCategoryLabel(DetailedExpenseReportResponse report)
     {
         if (report.CategoryAnalysis is { Count: > 0 })

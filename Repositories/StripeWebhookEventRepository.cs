@@ -4,6 +4,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository implementation for StripeWebhookEvent operations.
+/// </summary>
 public class StripeWebhookEventRepository : Repository<StripeWebhookEvent>, IStripeWebhookEventRepository
 {
     public StripeWebhookEventRepository(AppDbContext context) : base(context) { }

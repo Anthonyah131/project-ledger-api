@@ -5,6 +5,9 @@ using ProjectLedger.API.DTOs.Split;
 
 namespace ProjectLedger.API.Extensions.Mappings;
 
+/// <summary>
+/// Mapping extensions for Expense entity-to-DTO conversions, including template support.
+/// </summary>
 public static class ExpenseMappingExtensions
 {
     // ── Entity → Response ───────────────────────────────────

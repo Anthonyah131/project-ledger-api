@@ -2,6 +2,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository interface for ProjectPaymentMethod operations.
+/// </summary>
 public interface IProjectPaymentMethodRepository : IRepository<ProjectPaymentMethod>
 {
     Task<IEnumerable<ProjectPaymentMethod>> GetByProjectIdAsync(Guid projectId, CancellationToken ct = default);

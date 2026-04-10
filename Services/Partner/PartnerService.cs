@@ -20,22 +20,27 @@ public class PartnerService : IPartnerService
         _planAuth = planAuth;
     }
 
+    /// <inheritdoc />
     public async Task<Partner?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         var partner = await _partnerRepo.GetByIdAsync(id, ct);
         return partner is { PtrIsDeleted: false } ? partner : null;
     }
 
+    /// <inheritdoc />
     public async Task<Partner?> GetByIdWithPaymentMethodsAsync(Guid id, CancellationToken ct = default)
         => await _partnerRepo.GetByIdWithPaymentMethodsAsync(id, ct);
 
+    /// <inheritdoc />
     public async Task<IEnumerable<Partner>> GetByOwnerUserIdAsync(Guid userId, CancellationToken ct = default)
         => await _partnerRepo.GetByOwnerUserIdAsync(userId, ct);
 
+    /// <inheritdoc />
     public async Task<(IEnumerable<Partner> Items, int TotalCount)> SearchAsync(
         Guid userId, string? search, int skip, int take, CancellationToken ct = default)
         => await _partnerRepo.SearchByNameAsync(userId, search, skip, take, ct);
 
+    /// <inheritdoc />
     public async Task<Partner> CreateAsync(Partner partner, CancellationToken ct = default)
     {
         partner.PtrCreatedAt = DateTime.UtcNow;
@@ -47,6 +52,7 @@ public class PartnerService : IPartnerService
         return partner;
     }
 
+    /// <inheritdoc />
     public async Task UpdateAsync(Partner partner, CancellationToken ct = default)
     {
         partner.PtrUpdatedAt = DateTime.UtcNow;
@@ -54,6 +60,7 @@ public class PartnerService : IPartnerService
         await _partnerRepo.SaveChangesAsync(ct);
     }
 
+    /// <inheritdoc />
     public async Task SoftDeleteAsync(Guid id, Guid deletedByUserId, CancellationToken ct = default)
     {
         var partner = await _partnerRepo.GetByIdAsync(id, ct)
@@ -77,10 +84,12 @@ public class PartnerService : IPartnerService
         await _partnerRepo.SaveChangesAsync(ct);
     }
 
+    /// <inheritdoc />
     public async Task<(IEnumerable<PaymentMethod> Items, int TotalCount)> GetPaymentMethodsPagedAsync(
         Guid partnerId, int skip, int take, CancellationToken ct = default)
         => await _partnerRepo.GetPaymentMethodsByPartnerIdPagedAsync(partnerId, skip, take, ct);
 
+    /// <inheritdoc />
     public async Task<(IEnumerable<Project> Items, int TotalCount)> GetProjectsPagedAsync(
         Guid partnerId, int skip, int take, CancellationToken ct = default)
         => await _partnerRepo.GetProjectsByPartnerIdPagedAsync(partnerId, skip, take, ct);

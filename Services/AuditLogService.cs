@@ -22,6 +22,7 @@ public class AuditLogService : IAuditLogService
         _auditLogRepo = auditLogRepo;
     }
 
+    /// <inheritdoc />
     public async Task LogAsync(
         string entityName,
         Guid entityId,
@@ -51,21 +52,26 @@ public class AuditLogService : IAuditLogService
         await _auditLogRepo.SaveChangesAsync(ct);
     }
 
+    /// <inheritdoc />
     public async Task<IEnumerable<AuditLog>> GetByEntityAsync(
         string entityName, Guid entityId, CancellationToken ct = default)
         => await _auditLogRepo.GetByEntityAsync(entityName, entityId, ct);
 
+    /// <inheritdoc />
     public async Task<(IReadOnlyList<AuditLog> Items, int TotalCount)> GetByEntityPagedAsync(
         string entityName, Guid entityId, int skip, int take, CancellationToken ct = default)
         => await _auditLogRepo.GetByEntityPagedAsync(entityName, entityId, skip, take, ct);
 
+    /// <inheritdoc />
     public async Task<IEnumerable<AuditLog>> GetByUserIdAsync(Guid userId, CancellationToken ct = default)
         => await _auditLogRepo.GetByUserIdAsync(userId, ct);
 
+    /// <inheritdoc />
     public async Task<(IReadOnlyList<AuditLog> Items, int TotalCount)> GetByUserIdPagedAsync(
         Guid userId, int skip, int take, CancellationToken ct = default)
         => await _auditLogRepo.GetByUserIdPagedAsync(userId, skip, take, ct);
 
+    /// <inheritdoc />
     public async Task<int> CountByUserAndActionInRangeAsync(
         Guid userId,
         string entityName,

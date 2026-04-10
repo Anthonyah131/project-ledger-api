@@ -22,19 +22,23 @@ public class ObligationService : IObligationService
         _transactionReferenceGuard = transactionReferenceGuard;
     }
 
+    /// <inheritdoc />
     public async Task<Obligation?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         var obligation = await _obligationRepo.GetByIdAsync(id, ct);
         return obligation is { OblIsDeleted: false } ? obligation : null;
     }
 
+    /// <inheritdoc />
     public async Task<IEnumerable<Obligation>> GetByProjectIdAsync(Guid projectId, CancellationToken ct = default)
         => await _obligationRepo.GetByProjectIdAsync(projectId, ct);
 
+    /// <inheritdoc />
     public async Task<(IReadOnlyList<Obligation> Items, int TotalCount)> GetByProjectIdPagedAsync(
         Guid projectId, int skip, int take, string? sortBy, bool descending, CancellationToken ct = default)
         => await _obligationRepo.GetByProjectIdPagedAsync(projectId, skip, take, sortBy, descending, ct);
 
+    /// <inheritdoc />
     public async Task<Obligation> CreateAsync(Obligation obligation, CancellationToken ct = default)
     {
         obligation.OblCreatedAt = DateTime.UtcNow;
@@ -49,6 +53,7 @@ public class ObligationService : IObligationService
         return obligation;
     }
 
+    /// <inheritdoc />
     public async Task UpdateAsync(Obligation obligation, CancellationToken ct = default)
     {
         obligation.OblUpdatedAt = DateTime.UtcNow;
@@ -59,6 +64,7 @@ public class ObligationService : IObligationService
             newValues: new { obligation.OblTitle, obligation.OblTotalAmount, obligation.OblDueDate }, ct: ct);
     }
 
+    /// <inheritdoc />
     public async Task SoftDeleteAsync(Guid id, Guid deletedByUserId, CancellationToken ct = default)
     {
         var obligation = await _obligationRepo.GetByIdAsync(id, ct)

@@ -11,6 +11,7 @@ public partial class ReportExportService
     //  WORKSPACE REPORT — PDF
     // ════════════════════════════════════════════════════════
 
+    /// <inheritdoc />
     public byte[] GenerateWorkspaceReportPdf(WorkspaceReportResponse report)
     {
         return Document.Create(container =>
@@ -28,6 +29,7 @@ public partial class ReportExportService
         }).GeneratePdf();
     }
 
+    /// <summary>Composes the visual header for the workspace report.</summary>
     private static void ComposeWorkspaceReportHeader(IContainer container, WorkspaceReportResponse report)
     {
         container.Column(col =>
@@ -94,6 +96,7 @@ public partial class ReportExportService
         });
     }
 
+    /// <summary>Composes the main body sections of the workspace report.</summary>
     private static void ComposeWorkspaceReportContent(IContainer container, WorkspaceReportResponse report)
     {
         container.Column(col =>

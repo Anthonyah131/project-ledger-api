@@ -18,15 +18,18 @@ public class UserService : IUserService
         _emailService = emailService;
     }
 
+    /// <inheritdoc />
     public async Task<User?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         var user = await _userRepo.GetByIdAsync(id, ct);
         return user is { UsrIsDeleted: false } ? user : null;
     }
 
+    /// <inheritdoc />
     public async Task<User?> GetByEmailAsync(string email, CancellationToken ct = default)
         => await _userRepo.GetByEmailAsync(email.ToLowerInvariant(), ct);
 
+    /// <inheritdoc />
     public async Task<User> CreateAsync(User user, CancellationToken ct = default)
     {
         user.UsrCreatedAt = DateTime.UtcNow;
@@ -37,6 +40,7 @@ public class UserService : IUserService
         return user;
     }
 
+    /// <inheritdoc />
     public async Task UpdateAsync(User user, CancellationToken ct = default)
     {
         user.UsrUpdatedAt = DateTime.UtcNow;
@@ -44,6 +48,7 @@ public class UserService : IUserService
         await _userRepo.SaveChangesAsync(ct);
     }
 
+    /// <inheritdoc />
     public async Task SoftDeleteAsync(Guid id, Guid deletedByUserId, CancellationToken ct = default)
     {
         var user = await _userRepo.GetByIdAsync(id, ct)
@@ -64,13 +69,16 @@ public class UserService : IUserService
 
     // ── Admin operations ────────────────────────────────────
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<User>> GetAllAsync(bool includeDeleted = false, CancellationToken ct = default)
         => await _userRepo.GetAllUsersAsync(includeDeleted, ct);
 
+    /// <inheritdoc />
     public async Task<(IReadOnlyList<User> Items, int TotalCount)> GetAllPagedAsync(
         bool includeDeleted, int skip, int take, string? sortBy, bool descending, CancellationToken ct = default)
         => await _userRepo.GetAllUsersPagedAsync(includeDeleted, skip, take, sortBy, descending, ct);
 
+    /// <inheritdoc />
     public async Task<bool> ActivateAsync(Guid userId, CancellationToken ct = default)
     {
         var user = await _userRepo.GetByIdAsync(userId, ct);
@@ -88,6 +96,7 @@ public class UserService : IUserService
         return true;
     }
 
+    /// <inheritdoc />
     public async Task<bool> DeactivateAsync(Guid userId, CancellationToken ct = default)
     {
         var user = await _userRepo.GetByIdAsync(userId, ct);

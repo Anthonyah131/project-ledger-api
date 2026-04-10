@@ -4,8 +4,14 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Configurations;
 
+/// <summary>
+/// Entity Framework configuration for the UserSubscription model.
+/// </summary>
 public class UserSubscriptionConfiguration : IEntityTypeConfiguration<UserSubscription>
 {
+    /// <summary>
+    /// Configures the database schema and relationships for UserSubscription.
+    /// </summary>
     public void Configure(EntityTypeBuilder<UserSubscription> builder)
     {
         builder.ToTable("user_subscriptions");

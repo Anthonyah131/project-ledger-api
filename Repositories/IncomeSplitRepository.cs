@@ -4,6 +4,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository implementation for IncomeSplit operations.
+/// </summary>
 public class IncomeSplitRepository : Repository<IncomeSplit>, IIncomeSplitRepository
 {
     public IncomeSplitRepository(AppDbContext context) : base(context) { }

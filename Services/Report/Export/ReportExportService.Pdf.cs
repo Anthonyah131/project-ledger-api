@@ -6,7 +6,7 @@ using QuestPDF.Infrastructure;
 namespace ProjectLedger.API.Services.Report;
 
 /// <summary>
-/// Generación de reportes en formato PDF usando QuestPDF.
+/// PDF report generation using QuestPDF.
 /// </summary>
 public partial class ReportExportService
 {
@@ -14,6 +14,7 @@ public partial class ReportExportService
     //  EXPENSE REPORT — PDF
     // ════════════════════════════════════════════════════════
 
+    /// <inheritdoc />
     public byte[] GenerateExpenseReportPdf(DetailedExpenseReportResponse report)
     {
         return Document.Create(container =>
@@ -31,6 +32,7 @@ public partial class ReportExportService
         }).GeneratePdf();
     }
 
+    /// <summary>Composes the visual header for the expense report.</summary>
     private static void ComposeExpenseReportHeader(IContainer container, DetailedExpenseReportResponse report)
     {
         container.Column(col =>
@@ -93,6 +95,7 @@ public partial class ReportExportService
         });
     }
 
+    /// <summary>Composes the main body sections of the expense report.</summary>
     private static void ComposeExpenseReportContent(IContainer container, DetailedExpenseReportResponse report)
     {
         container.Column(col =>
@@ -116,6 +119,7 @@ public partial class ReportExportService
         });
     }
 
+    /// <summary>Composes a monthly breakdown table for expenses.</summary>
     private static void ComposeExpenseSection(
         ColumnDescriptor col,
         MonthlyExpenseSection section,
@@ -177,6 +181,7 @@ public partial class ReportExportService
         });
     }
 
+    /// <summary>Composes the category-based budgetary analysis section.</summary>
     private static void ComposeCategoryAnalysisSection(
         ColumnDescriptor col,
         DetailedExpenseReportResponse report)
@@ -226,6 +231,7 @@ public partial class ReportExportService
         });
     }
 
+    /// <summary>Composes the summary and detailed breakdown of obligations related to expenses.</summary>
     private static void ComposeObligationsSummarySection(
         ColumnDescriptor col,
         DetailedExpenseReportResponse report)

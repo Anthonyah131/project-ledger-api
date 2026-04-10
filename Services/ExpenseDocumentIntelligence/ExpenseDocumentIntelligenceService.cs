@@ -164,6 +164,7 @@ public class ExpenseDocumentIntelligenceService : IExpenseDocumentIntelligenceSe
         };
     }
 
+    /// <summary>Ensures that Azure Document Intelligence endpoints and keys are loaded.</summary>
     private void EnsureConfigured()
     {
         if (!_settings.Enabled)
@@ -176,6 +177,7 @@ public class ExpenseDocumentIntelligenceService : IExpenseDocumentIntelligenceSe
             throw new InvalidOperationException("DocumentIntelligenceMissingApiKey");
     }
 
+    /// <summary>Validates the constraints of the uploaded file (size, content type).</summary>
     private void ValidateFile(IFormFile file)
     {
         if (file is null || file.Length == 0)
@@ -192,6 +194,7 @@ public class ExpenseDocumentIntelligenceService : IExpenseDocumentIntelligenceSe
         }
     }
 
+    /// <summary>Initiates the document analysis operation with Azure and returns the operation location.</summary>
     private async Task<string> StartAnalyzeAsync(IFormFile file, string modelId, string documentKind, CancellationToken ct)
     {
         var requestUri = BuildAnalyzeRequestUri(modelId, documentKind, includeQueryFields: true);
@@ -231,6 +234,7 @@ public class ExpenseDocumentIntelligenceService : IExpenseDocumentIntelligenceSe
         }
     }
 
+    /// <summary>Posts the target file stream to the Azure endpoint for analysis.</summary>
     private async Task<HttpResponseMessage> TryStartAnalyzeAsync(IFormFile file, string requestUri, CancellationToken ct)
     {
         await using var fileStream = file.OpenReadStream();
@@ -246,6 +250,7 @@ public class ExpenseDocumentIntelligenceService : IExpenseDocumentIntelligenceSe
         return await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
     }
 
+    /// <summary>Builds the Azure Document Intelligence request URI string.</summary>
     private static string BuildAnalyzeRequestUri(string modelId, string documentKind, bool includeQueryFields)
     {
         var baseUri = $"documentintelligence/documentModels/{Uri.EscapeDataString(modelId)}:analyze?api-version=2024-11-30";
@@ -260,6 +265,7 @@ public class ExpenseDocumentIntelligenceService : IExpenseDocumentIntelligenceSe
         return $"{baseUri}&features=queryFields&queryFields={encodedQueryFields}";
     }
 
+    /// <summary>Polls the Azure polling endpoint until the operation completes or fails.</summary>
     private async Task<string> PollAnalyzeResultAsync(string operationLocation, CancellationToken ct)
     {
         var pollInterval = Math.Clamp(_settings.PollingIntervalMilliseconds, 300, 5000);
@@ -294,6 +300,7 @@ public class ExpenseDocumentIntelligenceService : IExpenseDocumentIntelligenceSe
         throw new InvalidOperationException("DocumentIntelligenceTimeout");
     }
 
+    /// <summary>Resolves the content type based on file extension.</summary>
     private static string ResolveContentType(IFormFile file)
     {
         if (!string.IsNullOrWhiteSpace(file.ContentType))
@@ -313,6 +320,7 @@ public class ExpenseDocumentIntelligenceService : IExpenseDocumentIntelligenceSe
         };
     }
 
+    /// <summary>Computes system warnings describing data extraction quality.</summary>
     private static List<string> BuildWarnings(
         ExpenseDocumentDraftResponse draft,
         SuggestedExpenseCategoryResponse? categorySuggestion,

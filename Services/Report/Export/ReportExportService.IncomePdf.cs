@@ -11,6 +11,7 @@ public partial class ReportExportService
     //  INCOME REPORT — PDF
     // ════════════════════════════════════════════════════════
 
+    /// <inheritdoc />
     public byte[] GenerateIncomeReportPdf(DetailedIncomeReportResponse report)
     {
         return Document.Create(container =>
@@ -28,6 +29,7 @@ public partial class ReportExportService
         }).GeneratePdf();
     }
 
+    /// <summary>Composes the visual header for the income report.</summary>
     private static void ComposeIncomeReportHeader(IContainer container, DetailedIncomeReportResponse report)
     {
         container.Column(col =>
@@ -87,6 +89,7 @@ public partial class ReportExportService
         });
     }
 
+    /// <summary>Composes the main body sections of the income report.</summary>
     private static void ComposeIncomeReportContent(IContainer container, DetailedIncomeReportResponse report)
     {
         container.Column(col =>
@@ -110,6 +113,7 @@ public partial class ReportExportService
         });
     }
 
+    /// <summary>Composes a monthly breakdown table for incomes.</summary>
     private static void ComposeIncomeSection(
         ColumnDescriptor col,
         MonthlyIncomeSection section,
@@ -171,6 +175,7 @@ public partial class ReportExportService
         });
     }
 
+    /// <summary>Composes the category-based distribution analysis section for incomes.</summary>
     private static void ComposeIncomeCategoryAnalysisSection(
         ColumnDescriptor col,
         DetailedIncomeReportResponse report)
@@ -209,6 +214,7 @@ public partial class ReportExportService
         });
     }
 
+    /// <summary>Composes the payment method distribution analysis section for incomes.</summary>
     private static void ComposeIncomePaymentMethodAnalysisSection(
         ColumnDescriptor col,
         DetailedIncomeReportResponse report)

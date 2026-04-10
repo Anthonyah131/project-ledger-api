@@ -4,6 +4,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository implementation for TransactionCurrencyExchange operations.
+/// </summary>
 public class TransactionCurrencyExchangeRepository : Repository<TransactionCurrencyExchange>, ITransactionCurrencyExchangeRepository
 {
     public TransactionCurrencyExchangeRepository(AppDbContext context) : base(context) { }

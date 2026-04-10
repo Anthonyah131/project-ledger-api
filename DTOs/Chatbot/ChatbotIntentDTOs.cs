@@ -3,8 +3,8 @@ using System.Text.Json.Serialization;
 namespace ProjectLedger.API.DTOs.Chatbot;
 
 /// <summary>
-/// Resultado del parsing de intención por el LLM.
-/// El parser siempre devuelve JSON con esta estructura.
+/// Result of the LLM intent parsing.
+/// The parser always returns JSON with this structure.
 /// </summary>
 public class ParsedIntent
 {
@@ -12,11 +12,11 @@ public class ParsedIntent
     [JsonPropertyName("domain")]
     public string Domain { get; set; } = string.Empty;
 
-    /// <summary>Acción dentro del dominio (e.g. totals, by_category, portfolio).</summary>
+    /// <summary>Action within the domain (e.g. totals, by_category, portfolio).</summary>
     [JsonPropertyName("action")]
     public string Action { get; set; } = string.Empty;
 
-    /// <summary>Filtros extraídos del lenguaje natural del usuario.</summary>
+    /// <summary>Filters extracted from the user's natural language.</summary>
     [JsonPropertyName("filters")]
     public IntentFilters Filters { get; set; } = new();
 
@@ -26,8 +26,8 @@ public class ParsedIntent
 }
 
 /// <summary>
-/// Filtros opcionales extraídos del mensaje del usuario.
-/// Todos nullable — el LLM solo llena los que detecta.
+/// Optional filters extracted from the user's message.
+/// All nullable — the LLM only fills the ones it detects.
 /// </summary>
 public class IntentFilters
 {

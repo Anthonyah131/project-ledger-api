@@ -3,8 +3,8 @@ using System.ComponentModel.DataAnnotations;
 namespace ProjectLedger.API.DTOs.Common;
 
 /// <summary>
-/// Request para un valor de tipo de cambio a moneda alternativa.
-/// Usado en la creación/actualización de gastos e ingresos.
+/// Request for an alternative-currency exchange rate value.
+/// Used when creating or updating expenses and incomes.
 /// </summary>
 public class CurrencyExchangeRequest
 {
@@ -23,7 +23,7 @@ public class CurrencyExchangeRequest
 }
 
 /// <summary>
-/// Response con un valor de tipo de cambio a moneda alternativa.
+/// Response containing an alternative-currency exchange rate value.
 /// </summary>
 public class CurrencyExchangeResponse
 {

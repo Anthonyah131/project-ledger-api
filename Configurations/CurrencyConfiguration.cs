@@ -4,8 +4,14 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Configurations;
 
+/// <summary>
+/// Entity Framework configuration for the Currency model.
+/// </summary>
 public class CurrencyConfiguration : IEntityTypeConfiguration<Currency>
 {
+    /// <summary>
+    /// Configures the database schema and relationships for Currency.
+    /// </summary>
     public void Configure(EntityTypeBuilder<Currency> builder)
     {
         builder.ToTable("currencies");

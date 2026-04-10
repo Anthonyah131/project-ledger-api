@@ -3,6 +3,9 @@ using ProjectLedger.API.DTOs.Admin;
 
 namespace ProjectLedger.API.Extensions.Mappings;
 
+/// <summary>
+/// Mapping extensions for admin-level User operations.
+/// </summary>
 public static class AdminMappingExtensions
 {
     public static AdminUserResponse ToAdminResponse(this User entity) => new()

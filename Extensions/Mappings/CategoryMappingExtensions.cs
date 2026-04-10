@@ -3,6 +3,9 @@ using ProjectLedger.API.DTOs.Category;
 
 namespace ProjectLedger.API.Extensions.Mappings;
 
+/// <summary>
+/// Mapping extensions for Category entity-to-DTO conversions.
+/// </summary>
 public static class CategoryMappingExtensions
 {
     // ── Entity → Response ───────────────────────────────────

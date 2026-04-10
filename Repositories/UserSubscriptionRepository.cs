@@ -4,6 +4,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository implementation for UserSubscription operations.
+/// </summary>
 public class UserSubscriptionRepository : Repository<UserSubscription>, IUserSubscriptionRepository
 {
     private static readonly string[] ActiveLikeStatuses = ["active", "trialing", "past_due", "incomplete"];

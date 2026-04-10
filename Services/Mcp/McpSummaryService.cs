@@ -245,6 +245,7 @@ public partial class McpService
         };
     }
 
+    /// <summary>Generates actionable financial alerts based on budget and overdue data.</summary>
     private async Task<List<McpAlertResponse>> BuildAlertsAsync(
         IReadOnlyCollection<ProjectLedger.API.Models.Project> selectedProjects,
         DateOnly? from,
@@ -335,6 +336,7 @@ public partial class McpService
             .ToList();
     }
 
+    /// <summary>Calculates a weighted financial health score (0-100).</summary>
     private static int ComputeHealthScore(decimal net, int overdueCount, int budgetRiskProjects, decimal totalIncome, decimal totalSpent)
     {
         var score = 50;

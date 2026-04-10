@@ -4,8 +4,14 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Configurations;
 
+/// <summary>
+/// Entity Framework configuration for the Obligation model.
+/// </summary>
 public class ObligationConfiguration : IEntityTypeConfiguration<Obligation>
 {
+    /// <summary>
+    /// Configures the database schema and relationships for Obligation.
+    /// </summary>
     public void Configure(EntityTypeBuilder<Obligation> builder)
     {
         builder.ToTable("obligations");

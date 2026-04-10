@@ -4,6 +4,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository implementation for Category operations.
+/// </summary>
 public class CategoryRepository : Repository<Category>, ICategoryRepository
 {
     public CategoryRepository(AppDbContext context) : base(context) { }

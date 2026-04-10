@@ -4,8 +4,14 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Configurations;
 
+/// <summary>
+/// Entity Framework configuration for the StripeWebhookEvent model.
+/// </summary>
 public class StripeWebhookEventConfiguration : IEntityTypeConfiguration<StripeWebhookEvent>
 {
+    /// <summary>
+    /// Configures the database schema and relationships for StripeWebhookEvent.
+    /// </summary>
     public void Configure(EntityTypeBuilder<StripeWebhookEvent> builder)
     {
         builder.ToTable("stripe_webhook_events");

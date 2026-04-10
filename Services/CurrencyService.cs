@@ -15,9 +15,11 @@ public class CurrencyService : ICurrencyService
         _currencyRepo = currencyRepo;
     }
 
+    /// <inheritdoc />
     public async Task<Currency?> GetByCodeAsync(string code, CancellationToken ct = default)
         => await _currencyRepo.GetByCodeAsync(code.ToUpperInvariant(), ct);
 
+    /// <inheritdoc />
     public async Task<IEnumerable<Currency>> GetAllActiveAsync(CancellationToken ct = default)
         => await _currencyRepo.GetActiveAsync(ct);
 }

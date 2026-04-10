@@ -9,6 +9,7 @@ public partial class ReportExportService
     //  INCOME REPORT — EXCEL
     // ════════════════════════════════════════════════════════
 
+    /// <inheritdoc />
     public byte[] GenerateIncomeReportExcel(DetailedIncomeReportResponse report)
     {
         using var workbook = new XLWorkbook();
@@ -25,6 +26,7 @@ public partial class ReportExportService
         return WorkbookToBytes(workbook);
     }
 
+    /// <summary>Adds the main detailed income tracking worksheet.</summary>
     private static void AddIncomeSheet(XLWorkbook workbook, DetailedIncomeReportResponse report)
     {
         var ws = workbook.Worksheets.Add("Ingresos");
@@ -194,6 +196,7 @@ public partial class ReportExportService
         FinalizeSheetLayout(ws, headerRow, row - 1, headers.Length, headerRow, wrapColumns: [12, 14]);
     }
 
+    /// <summary>Adds a worksheet for category-based income analysis.</summary>
     private static void AddIncomeCategoryAnalysisSheet(XLWorkbook workbook, DetailedIncomeReportResponse report)
     {
         var ws = workbook.Worksheets.Add("Categorías");
@@ -231,6 +234,7 @@ public partial class ReportExportService
         FinalizeSheetLayout(ws, 1, Math.Max(1, row), headers.Length, 1);
     }
 
+    /// <summary>Adds a worksheet for payment method distribution analysis for incomes.</summary>
     private static void AddIncomePaymentMethodAnalysisSheet(XLWorkbook workbook, DetailedIncomeReportResponse report)
     {
         var ws = workbook.Worksheets.Add("Por Método de Pago");

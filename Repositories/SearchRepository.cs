@@ -4,6 +4,9 @@ using ProjectLedger.API.DTOs.Search;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository implementation for generic Search operations across entities.
+/// </summary>
 public class SearchRepository : ISearchRepository
 {
     private readonly AppDbContext _context;

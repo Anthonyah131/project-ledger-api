@@ -4,8 +4,14 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Configurations;
 
+/// <summary>
+/// Entity Framework configuration for the Category model.
+/// </summary>
 public class CategoryConfiguration : IEntityTypeConfiguration<Category>
 {
+    /// <summary>
+    /// Configures the database schema and relationships for Category.
+    /// </summary>
     public void Configure(EntityTypeBuilder<Category> builder)
     {
         builder.ToTable("categories");
@@ -20,14 +26,14 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
         builder.Property(c => c.CatBudgetAmount).HasColumnName("cat_budget_amount").HasColumnType("numeric(14,2)");
         builder.Property(c => c.CatCreatedAt).HasColumnName("cat_created_at").HasDefaultValueSql("now()");
         builder.Property(c => c.CatUpdatedAt).HasColumnName("cat_updated_at").HasDefaultValueSql("now()");
-        builder.Property(c => c.CatIsDeleted).HasColumnName("cat_is_deleted").HasDefaultValue(false);
+        builder.Property(c => c.CatIsDeleted).HasColumnName("cat_is_default").HasDefaultValue(false);
         builder.Property(c => c.CatDeletedAt).HasColumnName("cat_deleted_at");
         builder.Property(c => c.CatDeletedByUserId).HasColumnName("cat_deleted_by_user_id");
 
         builder.HasIndex(c => c.CatProjectId);
         builder.HasIndex(c => c.CatIsDeleted);
 
-        // Partial UNIQUE: nombre único por proyecto entre categorías activas
+        // Partial UNIQUE: Name must be unique per project among active categories
         builder.HasIndex(c => new { c.CatProjectId, c.CatName })
             .IsUnique()
             .HasFilter("cat_is_deleted = false");

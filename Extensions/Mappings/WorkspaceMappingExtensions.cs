@@ -3,6 +3,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Extensions.Mappings;
 
+/// <summary>
+/// Mapping extensions for Workspace entity-to-DTO conversions.
+/// </summary>
 public static class WorkspaceMappingExtensions
 {
     public static Workspace ToEntity(this CreateWorkspaceRequest request, Guid ownerUserId)

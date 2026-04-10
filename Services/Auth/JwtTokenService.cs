@@ -21,8 +21,10 @@ public class JwtTokenService : IJwtTokenService
         _settings = settings.Value;
     }
 
-    // Resuelve el placeholder ${VAR} igual que SecurityExtensions — garantiza
-    // que firma y validación usen exactamente los mismos bytes de clave.
+    /// <summary>
+    /// Resolves the ${VAR} placeholder just like SecurityExtensions — ensures
+    /// that signature and validation use the exact same key bytes.
+    /// </summary>
     private string ResolveSecretKey()
     {
         var raw = _settings.SecretKey;

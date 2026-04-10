@@ -9,6 +9,7 @@ public partial class ReportExportService
     //  PAYMENT METHOD REPORT — EXCEL
     // ════════════════════════════════════════════════════════
 
+    /// <inheritdoc />
     public byte[] GeneratePaymentMethodReportExcel(PaymentMethodReportResponse report)
     {
         using var workbook = new XLWorkbook();
@@ -27,6 +28,7 @@ public partial class ReportExportService
         return WorkbookToBytes(workbook);
     }
 
+    /// <summary>Adds the payment method summary worksheet.</summary>
     private static void AddPaymentMethodSummarySheet(XLWorkbook workbook, PaymentMethodReportResponse report)
     {
         var ws = workbook.Worksheets.Add("Métodos de Pago");
@@ -92,6 +94,7 @@ public partial class ReportExportService
             wrapColumns: [1, 4, 5]);
     }
 
+    /// <summary>Adds a worksheet for payment method distribution by project.</summary>
     private static void AddPaymentMethodByProjectSheet(XLWorkbook workbook, PaymentMethodReportResponse report)
     {
         var ws = workbook.Worksheets.Add("Por Proyecto");
@@ -122,6 +125,7 @@ public partial class ReportExportService
         FinalizeSheetLayout(ws, 1, Math.Max(1, row - 1), headers.Length, 1, maxColumnWidth: 36, wrapColumns: [1, 3]);
     }
 
+    /// <summary>Adds a worksheet for detailed expense listing related to payment methods.</summary>
     private static void AddPaymentMethodExpensesSheet(XLWorkbook workbook, PaymentMethodReportResponse report)
     {
         var ws = workbook.Worksheets.Add("Gastos");
@@ -156,6 +160,7 @@ public partial class ReportExportService
         FinalizeSheetLayout(ws, 1, Math.Max(1, row - 1), headers.Length, 1, maxColumnWidth: 42, wrapColumns: [2, 5, 8]);
     }
 
+    /// <summary>Adds a worksheet for detailed income listing related to payment methods.</summary>
     private static void AddPaymentMethodIncomesSheet(XLWorkbook workbook, PaymentMethodReportResponse report)
     {
         var ws = workbook.Worksheets.Add("Ingresos");
@@ -190,6 +195,7 @@ public partial class ReportExportService
         FinalizeSheetLayout(ws, 1, Math.Max(1, row - 1), headers.Length, 1, maxColumnWidth: 42, wrapColumns: [2, 5, 8]);
     }
 
+    /// <summary>Adds a worksheet for monthly trend analysis of payment methods.</summary>
     private static void AddMonthlyTrendSheet(XLWorkbook workbook, PaymentMethodReportResponse report)
     {
         var ws = workbook.Worksheets.Add("Tendencia Mensual");
@@ -222,6 +228,7 @@ public partial class ReportExportService
         FinalizeSheetLayout(ws, 1, Math.Max(1, row - 1), headers.Length, 1, maxColumnWidth: 36, wrapColumns: [1, 2]);
     }
 
+    /// <summary>Adds a worksheet for top category distribution per payment method.</summary>
     private static void AddTopCategoriesSheet(XLWorkbook workbook, PaymentMethodReportResponse report)
     {
         var ws = workbook.Worksheets.Add("Top Categorías");

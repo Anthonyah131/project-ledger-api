@@ -31,6 +31,7 @@ public class DashboardService : IDashboardService
         _projectService = projectService;
     }
 
+    /// <inheritdoc />
     public async Task<MonthlySummaryDashboardResponse> GetMonthlySummaryAsync(
         Guid userId, DateOnly monthStart, Guid projectId, CancellationToken ct = default)
     {
@@ -95,6 +96,7 @@ public class DashboardService : IDashboardService
         };
     }
 
+    /// <inheritdoc />
     public async Task<MonthlyDailyTrendResponse> GetMonthlyDailyTrendAsync(
         Guid userId, DateOnly monthStart, Guid projectId, CancellationToken ct = default)
     {
@@ -117,6 +119,7 @@ public class DashboardService : IDashboardService
         };
     }
 
+    /// <inheritdoc />
     public async Task<MonthlyTopCategoriesResponse> GetMonthlyTopCategoriesAsync(
         Guid userId, DateOnly monthStart, Guid projectId, CancellationToken ct = default)
     {
@@ -139,6 +142,7 @@ public class DashboardService : IDashboardService
         };
     }
 
+    /// <inheritdoc />
     public async Task<MonthlyPaymentMethodsResponse> GetMonthlyPaymentMethodsAsync(
         Guid userId, DateOnly monthStart, Guid projectId, CancellationToken ct = default)
     {
@@ -161,6 +165,7 @@ public class DashboardService : IDashboardService
         };
     }
 
+    /// <inheritdoc />
     public async Task<DashboardProjectsPagedResponse> GetDashboardProjectsAsync(
         Guid userId, int page, int pageSize, string? q, CancellationToken ct = default)
     {
@@ -222,6 +227,7 @@ public class DashboardService : IDashboardService
         };
     }
 
+    /// <inheritdoc />
     public async Task<MonthlyOverviewResponse> GetMonthlyOverviewAsync(
         Guid userId, DateOnly monthStart, CancellationToken ct = default)
     {
@@ -307,6 +313,7 @@ public class DashboardService : IDashboardService
 
     // ── Private Helpers ─────────────────────────────────────
 
+    /// <summary>Loads expense and income data for a specific group of projects within a date range.</summary>
     private async Task<MonthData> LoadMonthDataAsync(
         IReadOnlyCollection<Guid> projectIds,
         DateOnly from,
@@ -331,6 +338,7 @@ public class DashboardService : IDashboardService
         return new MonthData(expenses, incomes);
     }
 
+    /// <summary>Retrieves active budgets for a collection of projects.</summary>
     private async Task<Dictionary<Guid, ProjectBudget?>> LoadBudgetsByProjectAsync(
         IReadOnlyCollection<Project> projects,
         CancellationToken ct)
@@ -345,6 +353,7 @@ public class DashboardService : IDashboardService
         return result;
     }
 
+    /// <summary>Analyzes and summarizes pending and overdue obligations across multiple projects.</summary>
     private async Task<ObligationDashboardSummary> ComputePendingObligationsAsync(
         IReadOnlyCollection<Project> projects,
         DateOnly monthEnd,
@@ -400,6 +409,7 @@ public class DashboardService : IDashboardService
             overdueByProject);
     }
 
+    /// <summary>Identifies projects where the user has either ownership or membership access.</summary>
     private async Task<DashboardProjectScope> GetVisibleProjectScopeAsync(Guid userId, CancellationToken ct)
     {
         var ownedProjects = (await _projectService.GetByOwnerUserIdAsync(userId, ct)).ToList();
@@ -414,6 +424,7 @@ public class DashboardService : IDashboardService
             visibleProjects.Select(p => p.PrjId).ToHashSet());
     }
 
+    /// <summary>Aggregates financial activity into daily data points for trend visualization.</summary>
     private static List<DailyTrendPointResponse> BuildTrendByDay(
         DateOnly monthStart,
         IReadOnlyCollection<Expense> expenses,
@@ -458,6 +469,7 @@ public class DashboardService : IDashboardService
         return trend;
     }
 
+    /// <summary>Filters and ranks the categories with the highest spending.</summary>
     private static List<TopCategoryRowResponse> BuildTopCategories(
         IReadOnlyCollection<Expense> expenses,
         decimal totalSpent)
@@ -485,6 +497,7 @@ public class DashboardService : IDashboardService
             .ToList();
     }
 
+    /// <summary>Distributes total spending across different payment methods used.</summary>
     private static List<PaymentMethodSplitRowResponse> BuildPaymentMethodSplit(
         IReadOnlyCollection<Expense> expenses,
         decimal totalSpent)
@@ -509,6 +522,7 @@ public class DashboardService : IDashboardService
             .ToList();
     }
 
+    /// <summary>Compares actual spending against budgets to determine project financial status.</summary>
     private static List<ProjectHealthRowResponse> BuildProjectHealthRows(
         IReadOnlyCollection<Project> projects,
         IReadOnlyCollection<Expense> expenses,
@@ -550,6 +564,7 @@ public class DashboardService : IDashboardService
             .ToList();
     }
 
+    /// <summary>Generates actionable alerts based on budget limits and overdue items.</summary>
     private static List<DashboardAlertResponse> BuildAlerts(
         IReadOnlyCollection<ProjectHealthRowResponse> projectHealth,
         ObligationDashboardSummary obligationSummary)
@@ -591,6 +606,7 @@ public class DashboardService : IDashboardService
             .ToList();
     }
 
+    /// <summary>Calculates the previous and next month keys for dashboard navigation.</summary>
     private static MonthlyNavigationResponse BuildNavigation(
         DateOnly monthStart,
         bool hasPreviousData,
@@ -611,12 +627,15 @@ public class DashboardService : IDashboardService
         };
     }
 
+    /// <summary>Gets the DateOnly representation of the current month's start.</summary>
     private static DateOnly CurrentMonthStart()
         => new(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
 
+    /// <summary>Safe calculation of percentage changes between months.</summary>
     private static decimal ComputeDeltaPercentage(decimal delta, decimal previous)
         => previous == 0m ? 0m : Math.Round(delta / previous * 100m, 2);
 
+    /// <summary>Determines the most used currency among a set of projects for consolidated reporting.</summary>
     private static string ResolveCurrencyCode(IReadOnlyCollection<Project> projects)
     {
         return projects
@@ -629,6 +648,7 @@ public class DashboardService : IDashboardService
             ?? "USD";
     }
 
+    /// <summary>Standardizes the status code for an obligation based on payment history and due date.</summary>
     private static string ComputeObligationStatus(Obligation obligation, decimal paidAmount, DateOnly referenceDate)
     {
         if (paidAmount >= obligation.OblTotalAmount)
@@ -645,6 +665,7 @@ public class DashboardService : IDashboardService
         return "open";
     }
 
+    /// <summary>Converts a date to a standard dashboard month key (yyyy-MM).</summary>
     private static string ToMonthKey(DateOnly date)
         => date.ToString("yyyy-MM", CultureInfo.InvariantCulture);
 
@@ -654,11 +675,15 @@ public class DashboardService : IDashboardService
         public int GetHashCode(Project obj) => obj.PrjId.GetHashCode();
     }
 
+    /// <summary>Container record for project visibility scope.</summary>
     private sealed record DashboardProjectScope(
         List<Project> VisibleProjects,
         HashSet<Guid> VisibleProjectIds);
 
+    /// <summary>Internal data transfer record for monthly activity data batches.</summary>
     private sealed record MonthData(List<Expense> Expenses, List<Income> Incomes);
+
+    /// <summary>Summary record for obligation-related dashboard alerts and metrics.</summary>
     private sealed record ObligationDashboardSummary(
         int PendingCount,
         decimal PendingAmount,

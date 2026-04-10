@@ -312,6 +312,8 @@ public class ExpenseService : IExpenseService
     /// - If originalCurrency matches obligation: uses originalAmount.
     /// - If differs and obligationEquivalentAmount exists: uses obligationEquivalentAmount.
     /// - If differs and no equivalent:
+    /// <summary>
+    /// Computes the correct amount mapping to an obligation.
     ///   - requireEquivalentForCrossCurrency=true: throws 400.
     ///   - requireEquivalentForCrossCurrency=false: legacy fallback to convertedAmount.
     /// </summary>
@@ -336,6 +338,7 @@ public class ExpenseService : IExpenseService
         return convertedAmount;
     }
 
+    /// <summary>Resolves the amount evaluated against the payment method's account currency.</summary>
     private static decimal ResolveAccountAmount(
         Expense expense,
         string paymentMethodCurrency,
@@ -353,6 +356,7 @@ public class ExpenseService : IExpenseService
         throw new InvalidOperationException("AccountAmountRequiredForDistinctCurrencies");
     }
 
+    /// <summary>Ensures the expense has sufficient currency data to be confirmed as active.</summary>
     private static void ValidateAccountingReadinessForActivation(Expense expense)
     {
         if (expense.ExpOriginalAmount <= 0)
@@ -510,6 +514,7 @@ public class ExpenseService : IExpenseService
         return items.Select(i => i.Expense).ToList();
     }
 
+    /// <summary>Resolves partner split definitions and computes equivalent balances.</summary>
     private async Task<IReadOnlyList<ExpenseSplit>> BuildExpenseSplitsAsync(
         Guid expenseId,
         decimal originalAmount,

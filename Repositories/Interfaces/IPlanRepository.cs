@@ -2,6 +2,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository interface for Plan operations.
+/// </summary>
 public interface IPlanRepository : IRepository<Plan>
 {
     Task<Plan?> GetBySlugAsync(string slug, CancellationToken ct = default);

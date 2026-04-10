@@ -4,8 +4,14 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Configurations;
 
+/// <summary>
+/// Entity Framework configuration for the IncomeSplit model.
+/// </summary>
 public class IncomeSplitConfiguration : IEntityTypeConfiguration<IncomeSplit>
 {
+    /// <summary>
+    /// Configures the database schema and relationships for IncomeSplit.
+    /// </summary>
     public void Configure(EntityTypeBuilder<IncomeSplit> builder)
     {
         builder.ToTable("income_splits");

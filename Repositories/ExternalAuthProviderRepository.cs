@@ -4,6 +4,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository implementation for ExternalAuthProvider operations.
+/// </summary>
 public class ExternalAuthProviderRepository : Repository<ExternalAuthProvider>, IExternalAuthProviderRepository
 {
     public ExternalAuthProviderRepository(AppDbContext context) : base(context) { }

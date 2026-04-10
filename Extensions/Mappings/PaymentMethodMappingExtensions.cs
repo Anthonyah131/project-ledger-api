@@ -3,6 +3,9 @@ using ProjectLedger.API.DTOs.PaymentMethod;
 
 namespace ProjectLedger.API.Extensions.Mappings;
 
+/// <summary>
+/// Mapping extensions for PaymentMethod entity-to-DTO conversions.
+/// </summary>
 public static class PaymentMethodMappingExtensions
 {
     // ── Entity → Response ───────────────────────────────────

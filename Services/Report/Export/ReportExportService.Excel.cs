@@ -4,7 +4,7 @@ using ProjectLedger.API.DTOs.Report;
 namespace ProjectLedger.API.Services.Report;
 
 /// <summary>
-/// Generación de reportes en formato Excel (.xlsx) usando ClosedXML.
+/// Excel report generation (.xlsx) using ClosedXML.
 /// </summary>
 public partial class ReportExportService
 {
@@ -12,6 +12,7 @@ public partial class ReportExportService
     //  EXPENSE REPORT — EXCEL
     // ════════════════════════════════════════════════════════
 
+    /// <inheritdoc />
     public byte[] GenerateExpenseReportExcel(DetailedExpenseReportResponse report)
     {
         using var workbook = new XLWorkbook();
@@ -31,11 +32,12 @@ public partial class ReportExportService
         return WorkbookToBytes(workbook);
     }
 
+    /// <summary>Adds the main detailed expense tracking worksheet.</summary>
     private static void AddExpenseSheet(XLWorkbook workbook, DetailedExpenseReportResponse report)
     {
         var ws = workbook.Worksheets.Add("Gastos");
 
-        // ── Bloque de resumen (columnas A-B) ─────────────────
+        // ── Summary Block (Columns A-B) ─────────────────
         ws.Cell(1,  1).Value = "Proyecto";           ws.Cell(1,  2).Value = report.ProjectName;
         ws.Cell(2,  1).Value = "Moneda";             ws.Cell(2,  2).Value = report.CurrencyCode;
         ws.Cell(3,  1).Value = "Período";            ws.Cell(3,  2).Value = FormatDateRange(report.DateFrom, report.DateTo);
@@ -55,7 +57,7 @@ public partial class ReportExportService
 
         StyleHeaderRange(ws.Range(1, 1, 11, 1));
 
-        // ── Bloque de insights (columnas D-E) ─────────────────
+        // ── Insights Block (Columns D-E) ─────────────────
         var peakLabel = report.PeakMonth is not null
             ? $"{report.PeakMonth.MonthLabel} ({report.PeakMonth.Total:N2})"
             : GetPeakExpenseMonthLabel(report);
@@ -76,7 +78,7 @@ public partial class ReportExportService
 
         StyleHeaderRange(ws.Range(1, 4, 6, 4));
 
-        // ── Bloque de monedas alternativas (columnas G-J) ───
+        // ── Alternative Currencies Block (Columns G-J) ───
         var altCurrencies = report.AlternativeCurrencies ?? [];
         if (altCurrencies.Count > 0)
         {
@@ -101,7 +103,7 @@ public partial class ReportExportService
             }
         }
 
-        // ── Tabla de gastos ───────────────────────────────────
+        // ── Expense Table ───────────────────────────────────
         // Build dynamic headers: base columns + one column per alternative currency
         var baseHeaders = new List<string>
         {
@@ -124,7 +126,7 @@ public partial class ReportExportService
 
         foreach (var section in report.Sections)
         {
-            // ── Fila de sección mensual (enriquecida) ─────────
+            // ── Monthly Section Row (Enriched) ─────────
             var sectionLabel = $"── {section.MonthLabel}  |  {section.SectionCount} gastos  |  {section.PercentageOfTotal:N1}% del total  |  Prom: {section.AverageExpenseAmount:N2}";
             if (section.TopExpense is not null)
                 sectionLabel += $"  |  Mayor: {section.TopExpense.Title} ({section.TopExpense.Amount:N2})";
@@ -203,6 +205,7 @@ public partial class ReportExportService
             wrapColumns: [12, 14, 16]);
     }
 
+    /// <summary>Writes monthly subtotal summary rows for a specific section.</summary>
     private static void WriteSectionTotals(IXLWorksheet ws, int startRow, MonthlyExpenseSection section, List<string> altCodes)
     {
         void TotalRow(int offset, string label, decimal value)
@@ -237,6 +240,7 @@ public partial class ReportExportService
         }
     }
 
+    /// <summary>Adds a worksheet for category-based budgetary analysis.</summary>
     private static void AddCategoryAnalysisSheet(XLWorkbook workbook, DetailedExpenseReportResponse report)
     {
         var ws = workbook.Worksheets.Add("Categorías");
@@ -275,7 +279,7 @@ public partial class ReportExportService
             row++;
         }
 
-        // Fila de totales
+        // Totals row
         ws.Cell(row, 3).Value = report.CategoryAnalysis.Sum(c => c.BudgetAmount ?? 0);
         ws.Cell(row, 3).Style.NumberFormat.Format = ExcelCurrencyFormat;
         ws.Cell(row, 3).Style.Font.Bold = true;
@@ -297,6 +301,7 @@ public partial class ReportExportService
             wrapColumns: [1]);
     }
 
+    /// <summary>Adds a worksheet for payment method distribution analysis.</summary>
     private static void AddExpensePaymentMethodAnalysisSheet(XLWorkbook workbook, DetailedExpenseReportResponse report)
     {
         var ws = workbook.Worksheets.Add("Por Método de Pago");
@@ -337,12 +342,13 @@ public partial class ReportExportService
         FinalizeSheetLayout(ws, 1, Math.Max(1, row), headers.Length, 1, maxColumnWidth: 36, wrapColumns: [1]);
     }
 
+    /// <summary>Adds a worksheet for obligation status and tracking.</summary>
     private static void AddObligationsSheet(XLWorkbook workbook, DetailedExpenseReportResponse report)
     {
         var ws  = workbook.Worksheets.Add("Obligaciones");
         var obl = report.ObligationSummary!;
 
-        // ── Resumen ───────────────────────────────────────────
+        // ── Summary ───────────────────────────────────────────
         ws.Cell(1, 1).Value = "Total Obligaciones"; ws.Cell(1, 2).Value = obl.TotalObligations;
         ws.Cell(2, 1).Value = "Monto Total";        ws.Cell(2, 2).Value = obl.TotalAmount;
         ws.Cell(2, 2).Style.NumberFormat.Format = ExcelCurrencyFormat;
@@ -356,7 +362,7 @@ public partial class ReportExportService
 
         StyleHeaderRange(ws.Range(1, 1, 6, 1));
 
-        // ── Tabla ─────────────────────────────────────────────
+        // ── Table ─────────────────────────────────────────────
         var headers = new[]
         {
             "Estado", "Título", "Descripción", "Monto Total",

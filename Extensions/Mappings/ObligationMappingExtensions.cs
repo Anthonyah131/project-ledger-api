@@ -3,6 +3,9 @@ using ProjectLedger.API.DTOs.Obligation;
 
 namespace ProjectLedger.API.Extensions.Mappings;
 
+/// <summary>
+/// Mapping extensions for Obligation entity-to-DTO conversions with computed status.
+/// </summary>
 public static class ObligationMappingExtensions
 {
     // ── Entity → Response ───────────────────────────────────

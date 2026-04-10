@@ -4,8 +4,14 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Configurations;
 
+/// <summary>
+/// Entity Framework configuration for the SplitCurrencyExchange model.
+/// </summary>
 public class SplitCurrencyExchangeConfiguration : IEntityTypeConfiguration<SplitCurrencyExchange>
 {
+    /// <summary>
+    /// Configures the database schema and relationships for SplitCurrencyExchange.
+    /// </summary>
     public void Configure(EntityTypeBuilder<SplitCurrencyExchange> builder)
     {
         builder.ToTable("split_currency_exchanges");
@@ -21,7 +27,7 @@ public class SplitCurrencyExchangeConfiguration : IEntityTypeConfiguration<Split
         builder.Property(e => e.SceConvertedAmount).HasColumnName("sce_converted_amount").HasColumnType("numeric(18,4)").IsRequired();
         builder.Property(e => e.SceCreatedAt).HasColumnName("sce_created_at").HasDefaultValueSql("now()");
 
-        // Índices únicos filtrados — evita duplicados de moneda por fuente
+        // Unique filtered indexes — avoids duplicate currency records per source
         builder.HasIndex(e => new { e.SceExpenseSplitId, e.SceCurrencyCode })
             .IsUnique()
             .HasFilter("sce_expense_split_id IS NOT NULL");

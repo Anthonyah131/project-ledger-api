@@ -4,8 +4,14 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Configurations;
 
+/// <summary>
+/// Entity Framework configuration for the ExpenseSplit model.
+/// </summary>
 public class ExpenseSplitConfiguration : IEntityTypeConfiguration<ExpenseSplit>
 {
+    /// <summary>
+    /// Configures the database schema and relationships for ExpenseSplit.
+    /// </summary>
     public void Configure(EntityTypeBuilder<ExpenseSplit> builder)
     {
         builder.ToTable("expense_splits");

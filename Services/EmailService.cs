@@ -22,6 +22,7 @@ public class EmailService : IEmailService
 
     // ── Welcome ─────────────────────────────────────────────
 
+    /// <inheritdoc />
     public async Task SendWelcomeEmailAsync(string toEmail, string fullName, CancellationToken ct = default)
     {
         var subject = "Welcome to Project Ledger!";
@@ -40,6 +41,7 @@ public class EmailService : IEmailService
 
     // ── Admin notification ──────────────────────────────────
 
+    /// <inheritdoc />
     public async Task SendNewUserNotificationToAdminAsync(string userEmail, string fullName, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(_settings.AdminEmail))
@@ -62,6 +64,7 @@ public class EmailService : IEmailService
 
     // ── Account activated ───────────────────────────────────
 
+    /// <inheritdoc />
     public async Task SendAccountActivatedEmailAsync(string toEmail, string fullName, CancellationToken ct = default)
     {
         var subject = "Your account has been activated — Project Ledger";
@@ -78,6 +81,7 @@ public class EmailService : IEmailService
 
     // ── Account deactivated ─────────────────────────────────
 
+    /// <inheritdoc />
     public async Task SendAccountDeactivatedEmailAsync(string toEmail, string fullName, CancellationToken ct = default)
     {
         var subject = "Your account has been deactivated — Project Ledger";
@@ -96,6 +100,7 @@ public class EmailService : IEmailService
 
     // ── Project shared ──────────────────────────────────
 
+    /// <inheritdoc />
     public async Task SendProjectSharedEmailAsync(
         string toEmail, string fullName, string projectName,
         string role, string sharedByName, CancellationToken ct = default)
@@ -122,6 +127,7 @@ public class EmailService : IEmailService
 
     // ── Project access revoked ──────────────────────────────
 
+    /// <inheritdoc />
     public async Task SendProjectAccessRevokedEmailAsync(
         string toEmail, string fullName, string projectName,
         string revokedByName, CancellationToken ct = default)
@@ -141,6 +147,7 @@ public class EmailService : IEmailService
 
     // ── Password reset OTP ────────────────────────────────────
 
+    /// <inheritdoc />
     public async Task SendPasswordResetEmailAsync(
         string toEmail, string fullName, string otpCode, CancellationToken ct = default)
     {
@@ -160,6 +167,7 @@ public class EmailService : IEmailService
 
     // ── Password changed notification ─────────────────────────────
 
+    /// <inheritdoc />
     public async Task SendPasswordChangedEmailAsync(
         string toEmail, string fullName, CancellationToken ct = default)
     {
@@ -179,6 +187,7 @@ public class EmailService : IEmailService
 
     // ── Core send method ────────────────────────────────────────
 
+    /// <summary>Sends an email using the configured SMTP settings or logs it if in fake mode.</summary>
     private async Task SendAsync(string to, string subject, string htmlBody, CancellationToken ct)
     {
         if (_settings.UseFakeProvider)

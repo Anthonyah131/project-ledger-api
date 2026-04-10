@@ -208,12 +208,12 @@ public class ProjectService : IProjectService
     public async Task<(IEnumerable<ProjectMember> PinnedFiltered, int PinnedTotalCount, IEnumerable<Project> Items, int TotalCount)>
         GetProjectsLookupAsync(Guid userId, string? search, int page, int skip, int take, CancellationToken ct = default)
     {
-        // Una query: todos los pineados (máx 6). IDs para excluir de items[]
+        // Single query: all pinned items (max 6). IDs to exclude from items[]
         var allPinned = await _memberRepo.GetPinnedByUserIdAsync(userId, ct);
         var pinnedList = allPinned.ToList();
         var pinnedIds = pinnedList.Select(m => m.PrmProjectId).ToList();
 
-        // Filtrar por búsqueda en memoria (máx 6, siempre barato). Solo en página 1
+        // Filter in-memory (max 6, always cheap). Only on page 1
         IEnumerable<ProjectMember> pinnedFiltered = [];
         if (page == 1)
         {

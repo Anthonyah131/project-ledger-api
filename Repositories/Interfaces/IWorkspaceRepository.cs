@@ -2,6 +2,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository interface for Workspace operations.
+/// </summary>
 public interface IWorkspaceRepository : IRepository<Workspace>
 {
     Task<Workspace?> GetByIdWithDetailsAsync(Guid id, CancellationToken ct = default);

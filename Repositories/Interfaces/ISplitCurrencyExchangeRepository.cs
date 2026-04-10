@@ -2,6 +2,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository interface for SplitCurrencyExchange operations.
+/// </summary>
 public interface ISplitCurrencyExchangeRepository : IRepository<SplitCurrencyExchange>
 {
     /// <summary>Elimina todos los SplitCurrencyExchange de todos los splits de un gasto.</summary>

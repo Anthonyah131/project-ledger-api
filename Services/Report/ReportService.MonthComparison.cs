@@ -100,6 +100,7 @@ public partial class ReportService
         };
     }
 
+    /// <summary>Calculates alternative currency totals for a month comparison period.</summary>
     private static List<AlternativeCurrencyTotal>? BuildAltCurrencyTotals(
         List<Models.ProjectAlternativeCurrency> altCurrencies,
         List<Models.Expense> expenses,

@@ -4,8 +4,14 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Configurations;
 
+/// <summary>
+/// Entity Framework configuration for the Project model.
+/// </summary>
 public class ProjectConfiguration : IEntityTypeConfiguration<Project>
 {
+    /// <summary>
+    /// Configures the database schema and relationships for Project.
+    /// </summary>
     public void Configure(EntityTypeBuilder<Project> builder)
     {
         builder.ToTable("projects");
@@ -23,7 +29,7 @@ public class ProjectConfiguration : IEntityTypeConfiguration<Project>
         builder.Property(p => p.PrjDeletedAt).HasColumnName("prj_deleted_at");
         builder.Property(p => p.PrjDeletedByUserId).HasColumnName("prj_deleted_by_user_id");
 
-        // ── Workspace (Fase 2b) ──────────────────────────────────
+        // ── Workspace ──────────────────────────────────────────
         builder.Property(p => p.PrjWorkspaceId).HasColumnName("prj_workspace_id");
         builder.Property(p => p.PrjPartnersEnabled).HasColumnName("prj_partners_enabled").HasDefaultValue(false);
 

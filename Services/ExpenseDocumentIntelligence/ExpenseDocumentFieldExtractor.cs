@@ -170,6 +170,7 @@ internal static partial class ExpenseDocumentFieldExtractor
             : null;
     }
 
+    /// <summary>Extracts a fallback receipt number using RegEx when the Azure invoice model misses it.</summary>
     private static string? ExtractReceiptNumberFromContent(string fullContent)
     {
         if (string.IsNullOrWhiteSpace(fullContent))
@@ -192,6 +193,7 @@ internal static partial class ExpenseDocumentFieldExtractor
         return null;
     }
 
+    /// <summary>Cleans layout noise and punctuation from document reference values.</summary>
     private static string? NormalizeDocumentReference(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -205,6 +207,7 @@ internal static partial class ExpenseDocumentFieldExtractor
             : normalized.ToUpperInvariant();
     }
 
+    /// <summary>Checks whether a string acts like a valid receipt number.</summary>
     private static bool IsLikelyReceiptNumber(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -226,6 +229,7 @@ internal static partial class ExpenseDocumentFieldExtractor
         return true;
     }
 
+    /// <summary>Safe numerical parser converting strings to decimals.</summary>
     private static bool TryParseDecimal(string? value, out decimal result)
     {
         result = default;

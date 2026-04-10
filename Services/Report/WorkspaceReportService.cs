@@ -26,6 +26,7 @@ public class WorkspaceReportService : IWorkspaceReportService
         _planAuth = planAuth;
     }
 
+    /// <inheritdoc />
     public async Task<WorkspaceReportResponse> GetSummaryAsync(
         Guid workspaceId, Guid userId, DateOnly? from, DateOnly? to,
         string? referenceCurrency, CancellationToken ct = default)

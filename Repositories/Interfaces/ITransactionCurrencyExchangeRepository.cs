@@ -2,6 +2,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository interface for TransactionCurrencyExchange operations.
+/// </summary>
 public interface ITransactionCurrencyExchangeRepository : IRepository<TransactionCurrencyExchange>
 {
     Task<IEnumerable<TransactionCurrencyExchange>> GetByEntityAsync(string entityType, Guid entityId, CancellationToken ct = default);

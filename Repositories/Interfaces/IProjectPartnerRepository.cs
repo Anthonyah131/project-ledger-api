@@ -2,6 +2,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository interface for ProjectPartner operations.
+/// </summary>
 public interface IProjectPartnerRepository : IRepository<ProjectPartner>
 {
     Task<IEnumerable<ProjectPartner>> GetByProjectIdAsync(Guid projectId, CancellationToken ct = default);

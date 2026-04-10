@@ -4,6 +4,9 @@ using ProjectLedger.API.DTOs.Plan;
 
 namespace ProjectLedger.API.Extensions.Mappings;
 
+/// <summary>
+/// Mapping extensions for Plan entity-to-DTO conversions with JSONB limits deserialization.
+/// </summary>
 public static class PlanMappingExtensions
 {
     private static readonly JsonSerializerOptions JsonOptions = new()

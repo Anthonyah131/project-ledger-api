@@ -472,6 +472,10 @@ public class AuthService : IAuthService
         return true;
     }
 
+    /// <summary>
+    /// Ensures that an existing user is linked to their Google provider account.
+    /// Returns true if successful or already linked; false if there is a conflict.
+    /// </summary>
     private async Task<bool> EnsureGoogleProviderLinkedAsync(
         User user,
         string providerUserId,
@@ -520,6 +524,9 @@ public class AuthService : IAuthService
         return true;
     }
 
+    /// <summary>
+    /// Normalizes an optional string value to null if it's empty or whitespace.
+    /// </summary>
     private static string? NormalizeOptional(string? value)
     {
         var trimmed = value?.Trim();

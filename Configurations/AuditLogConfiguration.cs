@@ -4,8 +4,14 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Configurations;
 
+/// <summary>
+/// Entity Framework configuration for the AuditLog model.
+/// </summary>
 public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
 {
+    /// <summary>
+    /// Configures the database schema and relationships for AuditLog.
+    /// </summary>
     public void Configure(EntityTypeBuilder<AuditLog> builder)
     {
         builder.ToTable("audit_logs");

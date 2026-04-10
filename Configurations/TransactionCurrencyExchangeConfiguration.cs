@@ -4,8 +4,14 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Configurations;
 
+/// <summary>
+/// Entity Framework configuration for the TransactionCurrencyExchange model.
+/// </summary>
 public class TransactionCurrencyExchangeConfiguration : IEntityTypeConfiguration<TransactionCurrencyExchange>
 {
+    /// <summary>
+    /// Configures the database schema and relationships for TransactionCurrencyExchange.
+    /// </summary>
     public void Configure(EntityTypeBuilder<TransactionCurrencyExchange> builder)
     {
         builder.ToTable("transaction_currency_exchanges");
@@ -20,7 +26,7 @@ public class TransactionCurrencyExchangeConfiguration : IEntityTypeConfiguration
         builder.Property(e => e.TceConvertedAmount).HasColumnName("tce_converted_amount").HasColumnType("numeric(14,2)").IsRequired();
         builder.Property(e => e.TceCreatedAt).HasColumnName("tce_created_at").HasDefaultValueSql("now()");
 
-        // Índices — filtrados para evitar duplicados nulos
+        // Indexes — filtered to avoid null duplicates
         builder.HasIndex(e => new { e.TceExpenseId, e.TceCurrencyCode })
             .IsUnique()
             .HasFilter("tce_expense_id IS NOT NULL");
@@ -29,7 +35,7 @@ public class TransactionCurrencyExchangeConfiguration : IEntityTypeConfiguration
             .IsUnique()
             .HasFilter("tce_income_id IS NOT NULL");
 
-        // Relaciones con FK explícitas
+        // Relationships with explicit FKs
         builder.HasOne(e => e.Expense)
             .WithMany(ex => ex.CurrencyExchanges)
             .HasForeignKey(e => e.TceExpenseId)

@@ -10,6 +10,7 @@ public partial class ReportExportService
     //  PARTNER BALANCE REPORT — EXCEL
     // ════════════════════════════════════════════════════════
 
+    /// <inheritdoc />
     public byte[] GeneratePartnerBalanceReportExcel(PartnerBalanceReportResponse report)
     {
         using var workbook = new XLWorkbook();
@@ -29,6 +30,7 @@ public partial class ReportExportService
         return WorkbookToBytes(workbook);
     }
 
+    /// <summary>Adds the main partner balance summary worksheet.</summary>
     private static void AddPartnerBalanceSheet(XLWorkbook workbook, PartnerBalanceReportResponse report)
     {
         var ws = workbook.Worksheets.Add("Balances");
@@ -175,6 +177,7 @@ public partial class ReportExportService
         FinalizeSheetLayout(ws, headerRow, row, headers.Length, headerRow);
     }
 
+    /// <summary>Adds a worksheet detailing settlements between partners.</summary>
     private static void AddSettlementsSheet(XLWorkbook workbook, PartnerBalanceReportResponse report)
     {
         var ws = workbook.Worksheets.Add("Settlements");
@@ -221,6 +224,7 @@ public partial class ReportExportService
         FinalizeSheetLayout(ws, 1, row, headers.Length, 1, wrapColumns: [8, 9]);
     }
 
+    /// <summary>Adds a worksheet for pairwise balance tracking between partner combinations.</summary>
     private static void AddPairwiseSheet(XLWorkbook workbook, PartnerBalanceReportResponse report)
     {
         var ws = workbook.Worksheets.Add("Balances por Par");
@@ -284,6 +288,7 @@ public partial class ReportExportService
         FinalizeSheetLayout(ws, 1, Math.Max(1, row - 1), headers.Length, 1, maxColumnWidth: 36);
     }
 
+    /// <summary>Adds a worksheet for transactions with missing exchange rates.</summary>
     private static void AddPartnerBalanceWarningsSheet(XLWorkbook workbook, PartnerBalanceReportResponse report)
     {
         var ws = workbook.Worksheets.Add("Advertencias");

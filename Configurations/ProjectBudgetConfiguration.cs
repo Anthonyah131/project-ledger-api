@@ -4,8 +4,14 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Configurations;
 
+/// <summary>
+/// Entity Framework configuration for the ProjectBudget model.
+/// </summary>
 public class ProjectBudgetConfiguration : IEntityTypeConfiguration<ProjectBudget>
 {
+    /// <summary>
+    /// Configures the database schema and relationships for ProjectBudget.
+    /// </summary>
     public void Configure(EntityTypeBuilder<ProjectBudget> builder)
     {
         builder.ToTable("project_budgets");
@@ -25,7 +31,7 @@ public class ProjectBudgetConfiguration : IEntityTypeConfiguration<ProjectBudget
         builder.HasIndex(pb => pb.PjbProjectId);
         builder.HasIndex(pb => pb.PjbIsDeleted);
 
-        // Partial UNIQUE: un solo presupuesto activo por proyecto
+        // Partial UNIQUE: only one active budget per project
         builder.HasIndex(pb => pb.PjbProjectId)
             .IsUnique()
             .HasFilter("pjb_is_deleted = false")

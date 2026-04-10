@@ -4,6 +4,9 @@ using ProjectLedger.API.DTOs.Auth;
 
 namespace ProjectLedger.API.Extensions.Mappings;
 
+/// <summary>
+/// Mapping extensions for User entity-to-DTO conversions (profile, summary, auth info).
+/// </summary>
 public static class UserMappingExtensions
 {
     // ── Profile (full) ──────────────────────────────────────

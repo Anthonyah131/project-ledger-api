@@ -31,6 +31,7 @@ public class ExchangeRateService : IExchangeRateService
         _logger = logger;
     }
 
+    /// <inheritdoc />
     public async Task<ExchangeRateResponse> GetExchangeRateAsync(
         string from, string to, decimal? amount = null, CancellationToken ct = default)
     {
@@ -80,6 +81,7 @@ public class ExchangeRateService : IExchangeRateService
         };
     }
 
+    /// <inheritdoc />
     public async Task<ExchangeRateLatestResponse> GetLatestRatesAsync(
         string baseCurrency, CancellationToken ct = default)
     {
@@ -137,6 +139,7 @@ public class ExchangeRateService : IExchangeRateService
         }
     }
 
+    /// <summary>Validates that the service is enabled and credentials are present.</summary>
     private void EnsureExchangeRateApiConfigured()
     {
         if (!_settings.Enabled)
@@ -146,6 +149,7 @@ public class ExchangeRateService : IExchangeRateService
             throw new InvalidOperationException("ExchangeRateServiceMissingApiKey");
     }
 
+    /// <summary>Parses the date string from the provider into a system DateOnly.</summary>
     private static DateOnly ParseProviderDate(string? utcDate)
     {
         if (!string.IsNullOrWhiteSpace(utcDate)

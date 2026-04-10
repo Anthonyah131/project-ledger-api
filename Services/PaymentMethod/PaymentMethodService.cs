@@ -32,16 +32,19 @@ public class PaymentMethodService : IPaymentMethodService
         _localizer = localizer;
     }
 
+    /// <inheritdoc />
     public async Task<PaymentMethod?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         var pm = await _paymentMethodRepo.GetByIdAsync(id, ct);
         return pm is { PmtIsDeleted: false } ? pm : null;
     }
 
+    /// <inheritdoc />
     public async Task<IEnumerable<PaymentMethod>> GetByOwnerUserIdAsync(
         Guid userId, CancellationToken ct = default)
         => await _paymentMethodRepo.GetByOwnerUserIdAsync(userId, ct);
 
+    /// <inheritdoc />
     public async Task<PaymentMethod> CreateAsync(PaymentMethod paymentMethod, CancellationToken ct = default)
     {
         var existing = await _paymentMethodRepo.GetByOwnerUserIdAsync(paymentMethod.PmtOwnerUserId, ct);
@@ -57,6 +60,7 @@ public class PaymentMethodService : IPaymentMethodService
         return paymentMethod;
     }
 
+    /// <inheritdoc />
     public async Task UpdateAsync(PaymentMethod paymentMethod, CancellationToken ct = default)
     {
         paymentMethod.PmtUpdatedAt = DateTime.UtcNow;
@@ -64,6 +68,7 @@ public class PaymentMethodService : IPaymentMethodService
         await _paymentMethodRepo.SaveChangesAsync(ct);
     }
 
+    /// <inheritdoc />
     public async Task SoftDeleteAsync(Guid id, Guid deletedByUserId, CancellationToken ct = default)
     {
         var pm = await _paymentMethodRepo.GetByIdAsync(id, ct)
@@ -83,6 +88,7 @@ public class PaymentMethodService : IPaymentMethodService
         await _paymentMethodRepo.SaveChangesAsync(ct);
     }
 
+    /// <inheritdoc />
     public async Task<PaymentMethodBalanceResponse> GetProjectBalanceAsync(
         Guid pmtId, Guid projectId, CancellationToken ct = default)
     {
@@ -103,6 +109,7 @@ public class PaymentMethodService : IPaymentMethodService
         };
     }
 
+    /// <inheritdoc />
     public async Task<PaymentMethod> LinkPartnerAsync(Guid pmtId, Guid partnerId, Guid userId, CancellationToken ct = default)
     {
         var pm = await _paymentMethodRepo.GetByIdAsync(pmtId, ct)
@@ -130,6 +137,7 @@ public class PaymentMethodService : IPaymentMethodService
         return pm;
     }
 
+    /// <inheritdoc />
     public async Task<PaymentMethod> UnlinkPartnerAsync(Guid pmtId, Guid userId, CancellationToken ct = default)
     {
         var pm = await _paymentMethodRepo.GetByIdAsync(pmtId, ct)
@@ -155,6 +163,7 @@ public class PaymentMethodService : IPaymentMethodService
         return pm;
     }
 
+    /// <inheritdoc />
     public async Task<(IEnumerable<PaymentMethod> Items, int TotalCount)>
         GetLookupAsync(Guid userId, string? search, int skip, int take, CancellationToken ct = default)
         => await _paymentMethodRepo.GetByOwnerUserIdPagedWithSearchAsync(userId, search, skip, take, ct);

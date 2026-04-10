@@ -4,6 +4,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Extensions.Mappings;
 
+/// <summary>
+/// Mapping extensions for TransactionCurrencyExchange and ProjectAlternativeCurrency entity-to-DTO conversions.
+/// </summary>
 public static class TransactionCurrencyExchangeMappingExtensions
 {
     public static CurrencyExchangeResponse ToResponse(this TransactionCurrencyExchange entity) => new()

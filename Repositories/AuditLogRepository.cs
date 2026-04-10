@@ -4,6 +4,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository implementation for AuditLog operations.
+/// </summary>
 public class AuditLogRepository : Repository<AuditLog>, IAuditLogRepository
 {
     public AuditLogRepository(AppDbContext context) : base(context) { }

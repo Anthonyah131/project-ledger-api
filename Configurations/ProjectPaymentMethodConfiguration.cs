@@ -4,8 +4,14 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Configurations;
 
+/// <summary>
+/// Entity Framework configuration for the ProjectPaymentMethod model.
+/// </summary>
 public class ProjectPaymentMethodConfiguration : IEntityTypeConfiguration<ProjectPaymentMethod>
 {
+    /// <summary>
+    /// Configures the database schema and relationships for ProjectPaymentMethod.
+    /// </summary>
     public void Configure(EntityTypeBuilder<ProjectPaymentMethod> builder)
     {
         builder.ToTable("project_payment_methods");
@@ -18,7 +24,7 @@ public class ProjectPaymentMethodConfiguration : IEntityTypeConfiguration<Projec
         builder.Property(ppm => ppm.PpmAddedByUserId).HasColumnName("ppm_added_by_user_id").IsRequired();
         builder.Property(ppm => ppm.PpmCreatedAt).HasColumnName("ppm_created_at").HasDefaultValueSql("now()");
 
-        // UNIQUE: un método de pago solo puede vincularse una vez a un proyecto
+        // UNIQUE: a payment method can only be linked once to a project
         builder.HasIndex(ppm => new { ppm.PpmProjectId, ppm.PpmPaymentMethodId })
             .IsUnique();
 

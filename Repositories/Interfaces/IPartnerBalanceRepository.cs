@@ -2,6 +2,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository interface for PartnerBalance operations.
+/// </summary>
 public interface IPartnerBalanceRepository
 {
     Task<PartnerBalanceSummary> GetBalancesAsync(Guid projectId, CancellationToken ct = default);

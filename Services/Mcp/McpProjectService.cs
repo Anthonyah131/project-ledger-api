@@ -118,6 +118,7 @@ public partial class McpService
         return response;
     }
 
+    /// <summary>Maps a list of projects into portfolio data payloads.</summary>
     private async Task<List<McpProjectPortfolioItemResponse>> BuildPortfolioItemsAsync(
         Guid userId,
         IReadOnlyCollection<Project> selectedProjects,
@@ -228,6 +229,7 @@ public partial class McpService
         return result;
     }
 
+    /// <summary>Determines the project's health status based on budget constraints.</summary>
     private static string ComputeProjectStatus(
         DateTime? lastActivity,
         DateTime activityThreshold,
@@ -249,6 +251,7 @@ public partial class McpService
         return "active";
     }
 
+    /// <summary>Applies specific sorting logic to the project portfolio.</summary>
     private static IEnumerable<McpProjectPortfolioItemResponse> ApplyProjectPortfolioSorting(
         IEnumerable<McpProjectPortfolioItemResponse> source,
         string? sortBy,

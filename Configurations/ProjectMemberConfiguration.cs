@@ -4,8 +4,14 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Configurations;
 
+/// <summary>
+/// Entity Framework configuration for the ProjectMember model.
+/// </summary>
 public class ProjectMemberConfiguration : IEntityTypeConfiguration<ProjectMember>
 {
+    /// <summary>
+    /// Configures the database schema and relationships for ProjectMember.
+    /// </summary>
     public void Configure(EntityTypeBuilder<ProjectMember> builder)
     {
         builder.ToTable("project_members");
@@ -29,7 +35,7 @@ public class ProjectMemberConfiguration : IEntityTypeConfiguration<ProjectMember
         builder.HasIndex(pm => pm.PrmUserId);
         builder.HasIndex(pm => pm.PrmIsDeleted);
 
-        // Partial UNIQUE: un miembro activo por proyecto
+        // Partial UNIQUE: one active member per project
         builder.HasIndex(pm => new { pm.PrmProjectId, pm.PrmUserId })
             .IsUnique()
             .HasFilter("prm_is_deleted = false");

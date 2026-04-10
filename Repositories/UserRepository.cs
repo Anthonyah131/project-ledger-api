@@ -4,6 +4,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository implementation for User operations.
+/// </summary>
 public class UserRepository : Repository<User>, IUserRepository
 {
     public UserRepository(AppDbContext context) : base(context) { }

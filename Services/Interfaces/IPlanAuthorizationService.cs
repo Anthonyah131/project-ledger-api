@@ -9,7 +9,7 @@ namespace ProjectLedger.API.Services;
 ///    <code>await _planAuth.ValidatePermissionAsync(userId, PlanPermission.CanExportData);</code>
 ///    Throws PlanDeniedException if the user doesn't have the permission.
 /// 
-/// 2. DECLARATIVO (in controllers with Authorization Policies):
+/// 2. DECLARATIVE (in controllers with Authorization Policies):
 ///    <code>[Authorize(Policy = "Plan:CanExportData")]</code>
 ///    Handled automatically by the PlanPermissionHandler.
 /// </summary>

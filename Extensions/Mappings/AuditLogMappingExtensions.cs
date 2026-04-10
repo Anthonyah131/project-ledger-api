@@ -4,6 +4,9 @@ using ProjectLedger.API.DTOs.AuditLog;
 
 namespace ProjectLedger.API.Extensions.Mappings;
 
+/// <summary>
+/// Mapping extensions for AuditLog entity-to-DTO and factory creation.
+/// </summary>
 public static class AuditLogMappingExtensions
 {
     private static readonly JsonSerializerOptions JsonOptions = new()

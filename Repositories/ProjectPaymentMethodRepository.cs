@@ -4,6 +4,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository implementation for ProjectPaymentMethod operations.
+/// </summary>
 public class ProjectPaymentMethodRepository : Repository<ProjectPaymentMethod>, IProjectPaymentMethodRepository
 {
     public ProjectPaymentMethodRepository(AppDbContext context) : base(context) { }

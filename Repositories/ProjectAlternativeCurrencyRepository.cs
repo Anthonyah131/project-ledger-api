@@ -4,6 +4,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository implementation for ProjectAlternativeCurrency operations.
+/// </summary>
 public class ProjectAlternativeCurrencyRepository : Repository<ProjectAlternativeCurrency>, IProjectAlternativeCurrencyRepository
 {
     public ProjectAlternativeCurrencyRepository(AppDbContext context) : base(context) { }

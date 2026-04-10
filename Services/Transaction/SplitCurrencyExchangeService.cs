@@ -24,6 +24,7 @@ public class SplitCurrencyExchangeService : ISplitCurrencyExchangeService
         _incomeSplitRepo = incomeSplitRepo;
     }
 
+    /// <inheritdoc />
     public async Task SaveForExpenseAsync(
         Guid expenseId,
         decimal expenseOriginalAmount,
@@ -54,6 +55,7 @@ public class SplitCurrencyExchangeService : ISplitCurrencyExchangeService
         await _repo.SaveChangesAsync(ct);
     }
 
+    /// <inheritdoc />
     public async Task ReplaceForExpenseAsync(
         Guid expenseId,
         decimal expenseOriginalAmount,
@@ -69,6 +71,7 @@ public class SplitCurrencyExchangeService : ISplitCurrencyExchangeService
         }, ct);
     }
 
+    /// <inheritdoc />
     public async Task SaveForIncomeAsync(
         Guid incomeId,
         decimal incomeOriginalAmount,
@@ -99,6 +102,7 @@ public class SplitCurrencyExchangeService : ISplitCurrencyExchangeService
         await _repo.SaveChangesAsync(ct);
     }
 
+    /// <inheritdoc />
     public async Task ReplaceForIncomeAsync(
         Guid incomeId,
         decimal incomeOriginalAmount,

@@ -4,6 +4,10 @@ using ProjectLedger.API.Repositories;
 
 namespace ProjectLedger.API.Services;
 
+/// <summary>
+/// Service responsible for computing real-time net balances, pairwise debts, and optimal settlement strategies 
+/// within a multi-currency project context.
+/// </summary>
 public class PartnerBalanceService : IPartnerBalanceService
 {
     private readonly IPartnerBalanceRepository _balanceRepo;
@@ -13,6 +17,7 @@ public class PartnerBalanceService : IPartnerBalanceService
         _balanceRepo = balanceRepo;
     }
 
+    /// <inheritdoc />
     public async Task<PartnerBalanceResponse> GetBalancesAsync(Guid projectId, string projectCurrency, CancellationToken ct = default)
     {
         var summary = await _balanceRepo.GetBalancesAsync(projectId, ct);
@@ -89,6 +94,7 @@ public class PartnerBalanceService : IPartnerBalanceService
         );
     }
 
+    /// <inheritdoc />
     public async Task<SettlementSuggestionsResponse> GetSettlementSuggestionsAsync(
         Guid projectId, string projectCurrency, CancellationToken ct = default)
     {
@@ -142,6 +148,7 @@ public class PartnerBalanceService : IPartnerBalanceService
         );
     }
 
+    /// <inheritdoc />
     public async Task<PartnerHistoryResponse> GetPartnerHistoryAsync(
         Guid projectId, Guid partnerId,
         PagedRequest pagination,

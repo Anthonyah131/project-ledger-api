@@ -17,10 +17,12 @@ public class TransactionCurrencyExchangeService : ITransactionCurrencyExchangeSe
         _repo = repo;
     }
 
+    /// <inheritdoc />
     public async Task<IEnumerable<TransactionCurrencyExchange>> GetByEntityAsync(
         string entityType, Guid entityId, CancellationToken ct = default)
         => await _repo.GetByEntityAsync(entityType, entityId, ct);
 
+    /// <inheritdoc />
     public async Task SaveExchangesAsync(
         string entityType, Guid entityId, List<CurrencyExchangeRequest> exchanges, CancellationToken ct = default)
     {
@@ -32,6 +34,7 @@ public class TransactionCurrencyExchangeService : ITransactionCurrencyExchangeSe
         await _repo.SaveChangesAsync(ct);
     }
 
+    /// <inheritdoc />
     public async Task SaveExchangesAsync(
         string entityType, Guid entityId, IReadOnlyList<TransactionExchangeInput> exchanges, CancellationToken ct = default)
     {
@@ -52,6 +55,7 @@ public class TransactionCurrencyExchangeService : ITransactionCurrencyExchangeSe
         await _repo.SaveChangesAsync(ct);
     }
 
+    /// <inheritdoc />
     public async Task ReplaceExchangesAsync(
         string entityType, Guid entityId, List<CurrencyExchangeRequest> exchanges, CancellationToken ct = default)
     {

@@ -73,6 +73,7 @@ public partial class McpService : IMcpService
         };
     }
 
+    /// <summary>Resolves the execution scope, validating the target projects and fetching common entities.</summary>
     private async Task<McpScope> ResolveScopeAsync(
         Guid userId,
         Guid? projectId,
@@ -128,6 +129,7 @@ public partial class McpService : IMcpService
         return new McpScope(visible, visible, null);
     }
 
+    /// <summary>Builds a dictionary mapping project member user IDs to their role keys.</summary>
     private async Task<Dictionary<Guid, string>> BuildRoleMapAsync(
         Guid userId,
         IReadOnlyCollection<Project> projects,
@@ -153,6 +155,7 @@ public partial class McpService : IMcpService
         return roles;
     }
 
+    /// <summary>Loads project expenses, safely bounding them to a 1-year window.</summary>
     private async Task<List<Expense>> LoadExpensesAsync(
         IReadOnlyCollection<Project> projects,
         DateOnly? from,
@@ -174,6 +177,7 @@ public partial class McpService : IMcpService
         return result;
     }
 
+    /// <summary>Loads project incomes, safely bounding them to a 1-year window.</summary>
     private async Task<List<Income>> LoadIncomesAsync(
         IReadOnlyCollection<Project> projects,
         DateOnly? from,
@@ -224,6 +228,7 @@ public partial class McpService : IMcpService
         return map;
     }
 
+    /// <summary>Wraps a collection into a standardized MCP paginated response envelope.</summary>
     private static McpPagedResponse<T> ToMcpPagedResponse<T>(IEnumerable<T> source, PagedRequest request, string? searchNote = null)
     {
         var list = source.ToList();
@@ -232,12 +237,14 @@ public partial class McpService : IMcpService
         return McpPagedResponse<T>.Create(items, total, request, searchNote);
     }
 
+    /// <summary>Validates that the provided date range doesn't exceed the 1-year hard limit.</summary>
     private static void EnsureValidDateRange(DateOnly? from, DateOnly? to)
     {
         if (from.HasValue && to.HasValue && from.Value > to.Value)
             throw new ArgumentException("InvalidDateRange");
     }
 
+    /// <summary>Falls back to default date boundaries based on granularity if ranges are empty.</summary>
     private static (DateOnly? From, DateOnly? To) ResolveRangeOrDefaults(
         DateOnly? from,
         DateOnly? to,
@@ -256,6 +263,7 @@ public partial class McpService : IMcpService
         };
     }
 
+    /// <summary>Parses a month string (YYYY-MM) or returns the current month by default.</summary>
     private static DateOnly ParseMonthOrDefault(string? month)
     {
         if (string.IsNullOrWhiteSpace(month))
@@ -274,6 +282,7 @@ public partial class McpService : IMcpService
         return parsed;
     }
 
+    /// <summary>Calculates the start date of a period based on the given granular time window.</summary>
     private static DateOnly GetPeriodStart(DateOnly date, string granularity)
     {
         return granularity.ToLowerInvariant() switch
@@ -284,6 +293,7 @@ public partial class McpService : IMcpService
         };
     }
 
+    /// <summary>Formats the period start date into a human readable label.</summary>
     private static string BuildPeriodLabel(DateOnly periodStart, string granularity)
     {
         return granularity.ToLowerInvariant() switch
@@ -294,6 +304,7 @@ public partial class McpService : IMcpService
         };
     }
 
+    /// <summary>Resolves the most common project currency code to act as a default proxy.</summary>
     private static string ResolveCurrencyCode(IReadOnlyCollection<Project> projects)
     {
         return projects
@@ -305,6 +316,7 @@ public partial class McpService : IMcpService
             .FirstOrDefault() ?? "USD";
     }
 
+    /// <summary>Accumulates the total equivalent amount paid against a given obligation.</summary>
     private static decimal ComputePaidAmount(Obligation obligation)
     {
         return obligation.Payments
@@ -315,6 +327,7 @@ public partial class McpService : IMcpService
                 : payment.ExpObligationEquivalentAmount ?? payment.ExpConvertedAmount);
     }
 
+    /// <summary>Determines the standard payment status string for an obligation.</summary>
     private static string ComputeObligationStatus(Obligation obligation, decimal paid, DateOnly today)
     {
         if (paid >= obligation.OblTotalAmount) return "paid";
@@ -323,6 +336,7 @@ public partial class McpService : IMcpService
         return "open";
     }
 
+    /// <summary>Returns the chronologically latest DateTime between two optionally null dates.</summary>
     private static DateTime? MaxDate(DateTime? left, DateTime? right)
     {
         if (!left.HasValue) return right;
@@ -330,9 +344,11 @@ public partial class McpService : IMcpService
         return left > right ? left : right;
     }
 
+    /// <summary>Normalizes string values down to a lower invariant space.</summary>
     private static string? Normalize(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim().ToLowerInvariant();
 
+    /// <summary>Case-insensitive string inclusion check.</summary>
     private static bool ContainsText(string? source, string? term)
     {
         if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(term))
@@ -341,6 +357,7 @@ public partial class McpService : IMcpService
         return source.ToLowerInvariant().Contains(term.ToLowerInvariant(), StringComparison.Ordinal);
     }
 
+    /// <summary>Filters a list by string property matching with prioritization rules.</summary>
     private static List<T> FilterByNameWithPriority<T>(
         IEnumerable<T> source,
         Func<T, string?> selector,
@@ -369,6 +386,7 @@ public partial class McpService : IMcpService
             .ToList();
     }
 
+    /// <summary>Combines multiple distinct search note strings.</summary>
     private static string? CombineSearchNotes(params string?[] notes)
     {
         var values = notes
@@ -379,6 +397,7 @@ public partial class McpService : IMcpService
         return values.Count == 0 ? null : string.Join(" ", values);
     }
 
+    /// <summary>Normalizes raw granularity input into standard grouping terms.</summary>
     private static string NormalizeGranularity(string? raw) =>
         raw?.ToLowerInvariant() switch
         {
@@ -387,6 +406,7 @@ public partial class McpService : IMcpService
             _ => "month"
         };
 
+    /// <summary>Normalizes raw transaction directions into safe backend terms.</summary>
     private static string NormalizeDirection(string? raw) =>
         raw?.ToLowerInvariant() switch
         {

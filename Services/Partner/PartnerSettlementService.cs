@@ -5,6 +5,9 @@ using ProjectLedger.API.Repositories;
 
 namespace ProjectLedger.API.Services;
 
+/// <summary>
+/// Service responsible for managing peer-to-peer partner settlements, including balance offsets and multi-currency recording.
+/// </summary>
 public class PartnerSettlementService : IPartnerSettlementService
 {
     private readonly IPartnerSettlementRepository _settlementRepo;
@@ -18,10 +21,12 @@ public class PartnerSettlementService : IPartnerSettlementService
         _projectPartnerRepo = projectPartnerRepo;
     }
 
+    /// <inheritdoc />
     public async Task<(IReadOnlyList<PartnerSettlement> Items, int TotalCount)> GetPagedByProjectIdAsync(
         Guid projectId, int skip, int take, CancellationToken ct = default)
         => await _settlementRepo.GetPagedByProjectIdAsync(projectId, skip, take, ct);
 
+    /// <inheritdoc />
     public async Task<PartnerSettlement> CreateAsync(
         PartnerSettlement settlement,
         IReadOnlyList<CurrencyExchangeRequest>? currencyExchanges = null,
@@ -49,6 +54,7 @@ public class PartnerSettlementService : IPartnerSettlementService
         return (await _settlementRepo.GetActiveByIdAsync(settlement.PstId, settlement.PstProjectId, ct))!;
     }
 
+    /// <inheritdoc />
     public async Task<PartnerSettlement> UpdateAsync(
         Guid settlementId, Guid projectId,
         UpdateSettlementRequest request,
@@ -94,6 +100,7 @@ public class PartnerSettlementService : IPartnerSettlementService
         return (await _settlementRepo.GetActiveByIdAsync(settlement.PstId, settlement.PstProjectId, ct))!;
     }
 
+    /// <inheritdoc />
     public async Task SoftDeleteAsync(Guid settlementId, Guid projectId, Guid deletedByUserId, CancellationToken ct = default)
     {
         var settlement = await _settlementRepo.GetActiveByIdAsync(settlementId, projectId, ct)

@@ -2,6 +2,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository interface for Income operations.
+/// </summary>
 public interface IIncomeRepository : IRepository<Income>
 {
     Task<IEnumerable<Income>> GetByProjectIdAsync(Guid projectId, CancellationToken ct = default);

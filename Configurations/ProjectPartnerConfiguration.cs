@@ -4,8 +4,14 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Configurations;
 
+/// <summary>
+/// Entity Framework configuration for the ProjectPartner model.
+/// </summary>
 public class ProjectPartnerConfiguration : IEntityTypeConfiguration<ProjectPartner>
 {
+    /// <summary>
+    /// Configures the database schema and relationships for ProjectPartner.
+    /// </summary>
     public void Configure(EntityTypeBuilder<ProjectPartner> builder)
     {
         builder.ToTable("project_partners");
@@ -26,7 +32,7 @@ public class ProjectPartnerConfiguration : IEntityTypeConfiguration<ProjectPartn
         builder.HasIndex(p => p.PtpPartnerId);
         builder.HasIndex(p => p.PtpIsDeleted);
 
-        // Partial UNIQUE: un partner activo por proyecto
+        // Partial UNIQUE: one active partner per project
         builder.HasIndex(p => new { p.PtpProjectId, p.PtpPartnerId })
             .IsUnique()
             .HasFilter("ptp_is_deleted = false");

@@ -64,7 +64,7 @@ public class PlanAuthorizationService : IPlanAuthorizationService
         var plan = await GetUserPlanAsync(userId, ct);
         var limit = GetLimitValue(plan, limitName);
 
-        // null = ilimitado
+        // null = unlimited
         return limit is null || currentCount < limit.Value;
     }
 
@@ -135,7 +135,7 @@ public class PlanAuthorizationService : IPlanAuthorizationService
         // The OWNER's plan governs the entire project
         var ownerPlan = await GetUserPlanAsync(project.PrjOwnerUserId, ct);
 
-        // 1. El plan del owner debe permitir ediciones
+        // 1. The owner's plan must allow edits
         if (!EvaluatePermission(ownerPlan, PlanPermission.CanEditProjects))
             throw new PlanDeniedException(PlanPermission.CanEditProjects, ownerPlan.PlnName);
 
@@ -189,7 +189,7 @@ public class PlanAuthorizationService : IPlanAuthorizationService
     private static int? GetLimitValue(Plan plan, string limitName)
     {
         var limits = DeserializeLimits(plan.PlnLimits);
-        if (limits is null) return null; // Sin limits definidos → ilimitado
+        if (limits is null) return null; // No limits defined → unlimited
 
         return limitName switch
         {
@@ -235,6 +235,7 @@ public class PlanAuthorizationService : IPlanAuthorizationService
         }
     }
 
+    /// <summary>Normalizes legacy unlimited values (where -1 meant unlimited).</summary>
     private static void NormalizeLegacyUnlimitedValues(PlanLimitsDto limits)
     {
         limits.MaxProjects = NormalizeLegacyUnlimited(limits.MaxProjects);
@@ -247,9 +248,11 @@ public class PlanAuthorizationService : IPlanAuthorizationService
         limits.MaxDocumentReadsPerMonth = NormalizeLegacyUnlimited(limits.MaxDocumentReadsPerMonth);
     }
 
+    /// <summary>Converts negative integers to null (unlimited).</summary>
     private static int? NormalizeLegacyUnlimited(int? value)
         => value is < 0 ? null : value;
 
+    /// <summary>Attempts to read a property as a nullable integer from JSON.</summary>
     private static bool TryGetNullableInt(JsonElement root, string propertyName, out int? value)
     {
         value = null;

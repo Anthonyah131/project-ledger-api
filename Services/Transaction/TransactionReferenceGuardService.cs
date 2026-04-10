@@ -16,6 +16,7 @@ public class TransactionReferenceGuardService : ITransactionReferenceGuardServic
         _context = context;
     }
 
+    /// <inheritdoc />
     public async Task EnsureCategoryCanBeDeletedAsync(Guid categoryId, CancellationToken ct = default)
     {
         var hasActiveReferences = await _context.Expenses.AnyAsync(
@@ -29,6 +30,7 @@ public class TransactionReferenceGuardService : ITransactionReferenceGuardServic
         }
     }
 
+    /// <inheritdoc />
     public async Task EnsurePaymentMethodCanBeDeletedAsync(Guid paymentMethodId, CancellationToken ct = default)
     {
         var hasActiveReferences = await _context.Expenses.AnyAsync(
@@ -42,6 +44,7 @@ public class TransactionReferenceGuardService : ITransactionReferenceGuardServic
         }
     }
 
+    /// <inheritdoc />
     public async Task EnsureAlternativeCurrencyCanBeRemovedAsync(
         Guid projectId,
         string currencyCode,
@@ -65,6 +68,7 @@ public class TransactionReferenceGuardService : ITransactionReferenceGuardServic
         }
     }
 
+    /// <inheritdoc />
     public async Task EnsureProjectPaymentMethodCanBeUnlinkedAsync(
         Guid projectId,
         Guid paymentMethodId,
@@ -87,6 +91,7 @@ public class TransactionReferenceGuardService : ITransactionReferenceGuardServic
         }
     }
 
+    /// <inheritdoc />
     public async Task EnsureObligationCanBeDeletedAsync(Guid obligationId, CancellationToken ct = default)
     {
         var hasActiveExpenses = await _context.Expenses.AnyAsync(

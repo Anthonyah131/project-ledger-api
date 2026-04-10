@@ -1,8 +1,8 @@
 namespace ProjectLedger.API.Repositories;
 
 /// <summary>
-/// Repositorio genérico con operaciones CRUD base.
-/// Todas las entidades del sistema implementan este contrato.
+/// Generic repository with base CRUD operations.
+/// All domain entities in the system implement this contract.
 /// </summary>
 public interface IRepository<T> where T : class
 {
@@ -15,9 +15,9 @@ public interface IRepository<T> where T : class
     Task SaveChangesAsync(CancellationToken ct = default);
 
     /// <summary>
-    /// Ejecuta una operación dentro de una transacción explícita, compatible
-    /// con NpgsqlRetryingExecutionStrategy. Toda la operación se reintenta
-    /// como unidad atómica si ocurre un error transitorio.
+    /// Executes an operation within an explicit transaction, compatible
+    /// with NpgsqlRetryingExecutionStrategy. The entire operation is retried
+    /// as an atomic unit if a transient error occurs.
     /// </summary>
     Task ExecuteInTransactionAsync(Func<CancellationToken, Task> operation, CancellationToken ct = default);
 }

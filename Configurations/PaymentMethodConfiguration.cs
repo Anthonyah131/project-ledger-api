@@ -4,8 +4,14 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Configurations;
 
+/// <summary>
+/// Entity Framework configuration for the PaymentMethod model.
+/// </summary>
 public class PaymentMethodConfiguration : IEntityTypeConfiguration<PaymentMethod>
 {
+    /// <summary>
+    /// Configures the database schema and relationships for PaymentMethod.
+    /// </summary>
     public void Configure(EntityTypeBuilder<PaymentMethod> builder)
     {
         builder.ToTable("payment_methods");

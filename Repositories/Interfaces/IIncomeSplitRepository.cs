@@ -2,6 +2,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository interface for IncomeSplit operations.
+/// </summary>
 public interface IIncomeSplitRepository : IRepository<IncomeSplit>
 {
     Task<IEnumerable<IncomeSplit>> GetByIncomeIdAsync(Guid incomeId, CancellationToken ct = default);

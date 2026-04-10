@@ -4,6 +4,9 @@ namespace ProjectLedger.API.Repositories;
 
 using ProjectLedger.API.DTOs.Common;
 
+/// <summary>
+/// Repository interface for PartnerSettlement operations.
+/// </summary>
 public interface IPartnerSettlementRepository : IRepository<PartnerSettlement>
 {
     Task<(IReadOnlyList<PartnerSettlement> Items, int TotalCount)> GetPagedByProjectIdAsync(

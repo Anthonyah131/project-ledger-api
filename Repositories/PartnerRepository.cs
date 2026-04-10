@@ -4,6 +4,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository implementation for Partner operations.
+/// </summary>
 public class PartnerRepository : Repository<Partner>, IPartnerRepository
 {
     public PartnerRepository(AppDbContext context) : base(context) { }

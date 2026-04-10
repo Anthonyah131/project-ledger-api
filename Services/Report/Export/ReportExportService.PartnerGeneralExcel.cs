@@ -9,6 +9,7 @@ public partial class ReportExportService
     //  PARTNER GENERAL REPORT — EXCEL
     // ════════════════════════════════════════════════════════
 
+    /// <inheritdoc />
     public byte[] GeneratePartnerGeneralReportExcel(PartnerGeneralReportResponse report)
     {
         using var workbook = new XLWorkbook();
@@ -27,8 +28,9 @@ public partial class ReportExportService
         return WorkbookToBytes(workbook);
     }
 
-    // ── Hoja 1: Resumen ─────────────────────────────────────
+    // ── Sheet 1: Summary ─────────────────────────────────────
 
+    /// <summary>Adds the main partner activity summary worksheet.</summary>
     private static void AddPartnerGeneralSummarySheet(XLWorkbook workbook, PartnerGeneralReportResponse report)
     {
         var ws = workbook.Worksheets.Add("Resumen");
@@ -130,6 +132,7 @@ public partial class ReportExportService
 
     // ── Hojas por proyecto ──────────────────────────────────
 
+    /// <summary>Adds a dedicated worksheet for a specific project's partner activity.</summary>
     private static void AddPartnerProjectSheet(
         XLWorkbook workbook, PartnerProjectSummary project, string partnerName)
     {
@@ -349,8 +352,9 @@ public partial class ReportExportService
         }
     }
 
-    // ── Hoja: Métodos de Pago ───────────────────────────────
+    // ── Payment Methods sheet ───────────────────────────────
 
+    /// <summary>Adds a worksheet detailing payment method usage for the partner.</summary>
     private static void AddPartnerPaymentMethodsSheet(
         XLWorkbook workbook, PartnerGeneralReportResponse report)
     {

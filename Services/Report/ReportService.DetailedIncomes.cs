@@ -169,6 +169,7 @@ public partial class ReportService
         return report;
     }
 
+    /// <summary>Aggregates alternative currency groupings for detailed income exports.</summary>
     private static List<AlternativeCurrencyTotals> BuildIncomeAlternativeCurrencyTotals(
         List<Models.Income> incomes)
     {

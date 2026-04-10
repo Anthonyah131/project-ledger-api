@@ -174,6 +174,7 @@ internal static class ExpenseDocumentSuggestionEngine
         };
     }
 
+    /// <summary>Extracts token keywords based on the transaction payment type.</summary>
     private static IEnumerable<string> GetPaymentTypeTokens(string? paymentType)
     {
         var normalizedType = ExpenseDocumentTextUtils.Normalize(paymentType);

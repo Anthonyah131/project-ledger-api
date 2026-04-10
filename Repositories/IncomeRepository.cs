@@ -4,6 +4,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository implementation for Income operations.
+/// </summary>
 public class IncomeRepository : Repository<Income>, IIncomeRepository
 {
     public IncomeRepository(AppDbContext context) : base(context) { }

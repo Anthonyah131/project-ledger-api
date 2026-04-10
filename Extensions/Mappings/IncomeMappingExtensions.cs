@@ -5,6 +5,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Extensions.Mappings;
 
+/// <summary>
+/// Mapping extensions for Income entity-to-DTO conversions.
+/// </summary>
 public static class IncomeMappingExtensions
 {
     // ── Entity → Response ───────────────────────────────────

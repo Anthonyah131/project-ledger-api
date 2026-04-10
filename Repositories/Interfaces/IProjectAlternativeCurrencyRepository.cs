@@ -2,6 +2,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository interface for ProjectAlternativeCurrency operations.
+/// </summary>
 public interface IProjectAlternativeCurrencyRepository : IRepository<ProjectAlternativeCurrency>
 {
     Task<IEnumerable<ProjectAlternativeCurrency>> GetByProjectIdAsync(Guid projectId, CancellationToken ct = default);

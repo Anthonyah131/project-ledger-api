@@ -218,6 +218,7 @@ public class IncomeService : IIncomeService
             oldValues: new { income.IncTitle, income.IncConvertedAmount }, ct: ct);
     }
 
+    /// <summary>Loads and verifies access to the specified payment method.</summary>
     private async Task<PaymentMethod> GetLinkedPaymentMethodAsync(
         Guid projectId,
         Guid paymentMethodId,
@@ -233,6 +234,7 @@ public class IncomeService : IIncomeService
         return paymentMethod;
     }
 
+    /// <summary>Resolves the amount evaluated against the payment method's account currency.</summary>
     private static decimal ResolveAccountAmount(
         Income income,
         string paymentMethodCurrency,
@@ -250,6 +252,7 @@ public class IncomeService : IIncomeService
         throw new InvalidOperationException("AccountAmountRequiredForDistinctCurrencies");
     }
 
+    /// <summary>Ensures the income has sufficient currency data to be confirmed as active.</summary>
     private static void ValidateAccountingReadinessForActivation(Income income)
     {
         if (income.IncOriginalAmount <= 0)
@@ -364,6 +367,7 @@ public class IncomeService : IIncomeService
         return items.Select(i => i.Income).ToList();
     }
 
+    /// <summary>Resolves partner split definitions and computes equivalent balances.</summary>
     private async Task<IReadOnlyList<IncomeSplit>> BuildIncomeSplitsAsync(
         Guid incomeId,
         decimal originalAmount,

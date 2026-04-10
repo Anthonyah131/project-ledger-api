@@ -4,6 +4,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository implementation for Obligation operations.
+/// </summary>
 public class ObligationRepository : Repository<Obligation>, IObligationRepository
 {
     public ObligationRepository(AppDbContext context) : base(context) { }

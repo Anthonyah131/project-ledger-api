@@ -4,8 +4,14 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Configurations;
 
+/// <summary>
+/// Entity Framework configuration for the Workspace model.
+/// </summary>
 public class WorkspaceConfiguration : IEntityTypeConfiguration<Workspace>
 {
+    /// <summary>
+    /// Configures the database schema and relationships for Workspace.
+    /// </summary>
     public void Configure(EntityTypeBuilder<Workspace> builder)
     {
         builder.ToTable("workspaces");

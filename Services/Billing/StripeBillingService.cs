@@ -79,6 +79,7 @@ public class StripeBillingService : IStripeBillingService
         _logger = logger;
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<StripePlanSyncResult>> SyncPlansAndPaymentLinksAsync(CancellationToken ct = default)
     {
         EnsureStripeEnabled();
@@ -136,6 +137,7 @@ public class StripeBillingService : IStripeBillingService
         return results;
     }
 
+    /// <inheritdoc />
     public async Task ProcessWebhookAsync(string payload, string signatureHeader, CancellationToken ct = default)
     {
         EnsureStripeEnabled();
@@ -224,6 +226,7 @@ public class StripeBillingService : IStripeBillingService
         }
     }
 
+    /// <inheritdoc />
     public async Task<UserSubscription?> GetCurrentUserSubscriptionAsync(Guid userId, CancellationToken ct = default)
     {
         EnsureStripeEnabled();
@@ -306,6 +309,7 @@ public class StripeBillingService : IStripeBillingService
         return null;
     }
 
+    /// <inheritdoc />
     public async Task<UserSubscription?> GetCurrentUserSubscriptionReadOnlyAsync(Guid userId, CancellationToken ct = default)
     {
         // 1) Direct lookup by userId (happy path)
@@ -343,6 +347,7 @@ public class StripeBillingService : IStripeBillingService
         return byCustomer;
     }
 
+    /// <inheritdoc />
     public async Task<UserSubscription> ChangePlanAsync(
         Guid userId,
         Guid newPlanId,
@@ -416,6 +421,7 @@ public class StripeBillingService : IStripeBillingService
             ?? throw new InvalidOperationException("SubscriptionUpdatedButNotLoaded");
     }
 
+    /// <inheritdoc />
     public async Task<UserSubscription> CancelSubscriptionAsync(
         Guid userId,
         bool cancelAtPeriodEnd = true,
@@ -462,6 +468,10 @@ public class StripeBillingService : IStripeBillingService
             ?? throw new InvalidOperationException("SubscriptionCanceledButNotLoaded");
     }
 
+    /// <summary>
+    /// Attempts to reconcile a user's subscription state directly from the Stripe API.
+    /// This acts as a resilience mechanism if webhooks are missed.
+    /// </summary>
     private async Task<UserSubscription?> TryReconcileFromStripeAsync(Guid userId, User user, CancellationToken ct)
     {
         EnsureStripeSecretConfigured();
@@ -781,6 +791,9 @@ public class StripeBillingService : IStripeBillingService
         return (session.Id, session.Url);
     }
 
+    /// <summary>
+    /// Processes a successful Checkout Session, auto-linking metadata and updating subscriptions.
+    /// </summary>
     private async Task HandleCheckoutSessionCompletedAsync(Event stripeEvent, CancellationToken ct)
     {
         if (stripeEvent.Data.Object is not Session session)
@@ -818,6 +831,9 @@ public class StripeBillingService : IStripeBillingService
         await UpsertSubscriptionAsync(subscription, fallbackEmail, session.Metadata, fallbackUserId, ct);
     }
 
+    /// <summary>
+    /// Handles updates or deletions of a subscription pushed by webhooks.
+    /// </summary>
     private async Task HandleSubscriptionEventAsync(Event stripeEvent, CancellationToken ct)
     {
         if (stripeEvent.Data.Object is not Subscription subscription)
@@ -826,6 +842,10 @@ public class StripeBillingService : IStripeBillingService
         await UpsertSubscriptionAsync(subscription, null, null, null, ct);
     }
 
+    /// <summary>
+    /// Core synchronization method: Updates the local database to mirror a Stripe subscription.
+    /// Also propagates plan changes securely to the User's UsrPlanId field.
+    /// </summary>
     private async Task UpsertSubscriptionAsync(
         Subscription subscription,
         string? fallbackEmail,
@@ -928,6 +948,10 @@ public class StripeBillingService : IStripeBillingService
         await _userSubscriptionRepo.SaveChangesAsync(ct);
     }
 
+    /// <summary>
+    /// Retrieves a user's current Stripe subscription from the Stripe API, verifying state conditions.
+    /// Throws exceptions if the subscription cannot be managed automatically or is already canceled.
+    /// </summary>
     private async Task<(User User, Subscription Subscription)> GetManagedStripeSubscriptionForUserAsync(
         Guid userId,
         CancellationToken ct)
@@ -998,6 +1022,10 @@ public class StripeBillingService : IStripeBillingService
             cancellationToken: ct);
     }
 
+    /// <summary>
+    /// Mitigates race conditions by collapsing multiple active-like subscriptions locally,
+    /// keeping only the valid Stripe Subscription.
+    /// </summary>
     private async Task CollapseLocalActiveLikeSubscriptionsAsync(
         Guid userId,
         string keepStripeSubscriptionId,
@@ -1028,6 +1056,9 @@ public class StripeBillingService : IStripeBillingService
             keepStripeSubscriptionId);
     }
 
+    /// <summary>
+    /// Determines whether the local subscription state is obsolete and needs reconciliation.
+    /// </summary>
     private bool ShouldReconcileSubscription(UserSubscription subscription)
     {
         if (subscription.UssStatus is "past_due" or "incomplete")

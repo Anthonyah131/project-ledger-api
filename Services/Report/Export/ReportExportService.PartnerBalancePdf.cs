@@ -11,6 +11,7 @@ public partial class ReportExportService
     //  PARTNER BALANCE REPORT — PDF
     // ════════════════════════════════════════════════════════
 
+    /// <inheritdoc />
     public byte[] GeneratePartnerBalanceReportPdf(PartnerBalanceReportResponse report)
     {
         return Document.Create(container =>
@@ -28,6 +29,7 @@ public partial class ReportExportService
         }).GeneratePdf();
     }
 
+    /// <summary>Composes the visual header for the partner balance report.</summary>
     private static void ComposePartnerBalanceHeader(IContainer container, PartnerBalanceReportResponse report)
     {
         container.Column(col =>
@@ -68,6 +70,7 @@ public partial class ReportExportService
         });
     }
 
+    /// <summary>Composes the main body sections of the partner balance report.</summary>
     private static void ComposePartnerBalanceContent(IContainer container, PartnerBalanceReportResponse report)
     {
         container.Column(col =>

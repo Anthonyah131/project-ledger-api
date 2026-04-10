@@ -5,10 +5,10 @@ using ProjectLedger.API.DTOs.Split;
 namespace ProjectLedger.API.DTOs.Income;
 
 /// <summary>
-/// Request para importación rápida de hasta 100 ingresos.
-/// Cada item contiene todos sus campos — el frontend los llena manualmente.
-/// El backend no calcula ni deriva ningún campo.
-/// Operación all-or-nothing: si algún item falla validación, no se crea ninguno.
+/// Request for bulk import of up to 100 incomes.
+/// Each item contains all its fields — the frontend fills them manually.
+/// The backend does not calculate or derive any field.
+/// All-or-nothing operation: if any item fails validation, none are created.
 /// </summary>
 public class BulkCreateIncomeRequest
 {
@@ -19,8 +19,8 @@ public class BulkCreateIncomeRequest
 }
 
 /// <summary>
-/// Un ingreso individual dentro del lote. Contiene todos los campos que el usuario
-/// llenó manualmente en la vista de importación rápida.
+/// An individual income within the batch. Contains all fields that the user
+/// filled manually in the quick-import view.
 /// </summary>
 public class BulkIncomeItemRequest
 {
@@ -30,7 +30,7 @@ public class BulkIncomeItemRequest
     [Required]
     public Guid PaymentMethodId { get; set; }
 
-    // ── Montos ──────────────────────────────────────────────
+    // ── Amounts ─────────────────────────────────────────────
 
     [Required]
     [Range(0.01, 999999999999.99, ErrorMessage = "Original amount must be between 0.01 and 999,999,999,999.99.")]
@@ -51,7 +51,7 @@ public class BulkIncomeItemRequest
     [Range(0.01, 999999999999.99, ErrorMessage = "Account amount must be between 0.01 and 999,999,999,999.99.")]
     public decimal? AccountAmount { get; set; }
 
-    // ── Datos descriptivos ──────────────────────────────────
+    // ── Descriptive data ────────────────────────────────────
 
     [Required]
     [StringLength(255, MinimumLength = 1, ErrorMessage = "Title must be between 1 and 255 characters.")]
@@ -65,14 +65,14 @@ public class BulkIncomeItemRequest
     public string? Notes { get; set; }
 
     /// <summary>
-    /// Conversiones a monedas alternativas del proyecto.
-    /// El frontend calcula y envía el monto convertido para cada moneda.
+    /// Currency conversions to the project's alternative currencies.
+    /// The frontend calculates and sends the converted amount for each currency.
     /// </summary>
     public List<CurrencyExchangeRequest>? CurrencyExchanges { get; set; }
 
     /// <summary>
-    /// Splits entre partners. Si el proyecto tiene partners_enabled = true
-    /// y el usuario configuró splits manualmente, se envían aquí.
+    /// Partner splits. If the project has partners_enabled = true
+    /// and the user configured splits manually, they are sent here.
     /// </summary>
     public List<SplitInputDto>? Splits { get; set; }
 }

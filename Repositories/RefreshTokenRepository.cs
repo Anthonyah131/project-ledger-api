@@ -4,6 +4,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository implementation for RefreshToken operations.
+/// </summary>
 public class RefreshTokenRepository : Repository<RefreshToken>, IRefreshTokenRepository
 {
     public RefreshTokenRepository(AppDbContext context) : base(context) { }

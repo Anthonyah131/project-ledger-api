@@ -4,8 +4,14 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Configurations;
 
+/// <summary>
+/// Entity Framework configuration for the ProjectAlternativeCurrency model.
+/// </summary>
 public class ProjectAlternativeCurrencyConfiguration : IEntityTypeConfiguration<ProjectAlternativeCurrency>
 {
+    /// <summary>
+    /// Configures the database schema and relationships for ProjectAlternativeCurrency.
+    /// </summary>
     public void Configure(EntityTypeBuilder<ProjectAlternativeCurrency> builder)
     {
         builder.ToTable("project_alternative_currencies");
@@ -17,11 +23,11 @@ public class ProjectAlternativeCurrencyConfiguration : IEntityTypeConfiguration<
         builder.Property(e => e.PacCurrencyCode).HasColumnName("pac_currency_code").HasMaxLength(3).IsRequired();
         builder.Property(e => e.PacCreatedAt).HasColumnName("pac_created_at").HasDefaultValueSql("now()");
 
-        // Índices
+        // Indexes
         builder.HasIndex(e => e.PacProjectId);
         builder.HasIndex(e => new { e.PacProjectId, e.PacCurrencyCode }).IsUnique();
 
-        // Relaciones
+        // Relationships
         builder.HasOne(e => e.Project)
             .WithMany(p => p.AlternativeCurrencies)
             .HasForeignKey(e => e.PacProjectId)

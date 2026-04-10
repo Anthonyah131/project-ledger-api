@@ -29,15 +29,18 @@ public class CategoryService : ICategoryService
         _transactionReferenceGuard = transactionReferenceGuard;
     }
 
+    /// <inheritdoc />
     public async Task<Category?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         var category = await _categoryRepo.GetByIdAsync(id, ct);
         return category is { CatIsDeleted: false } ? category : null;
     }
 
+    /// <inheritdoc />
     public async Task<IEnumerable<Category>> GetByProjectIdAsync(Guid projectId, CancellationToken ct = default)
         => await _categoryRepo.GetByProjectIdAsync(projectId, ct);
 
+    /// <inheritdoc />
     public async Task<Category> CreateAsync(Category category, CancellationToken ct = default)
     {
         // Validate project category limit
@@ -60,6 +63,7 @@ public class CategoryService : ICategoryService
         return category;
     }
 
+    /// <inheritdoc />
     public async Task UpdateAsync(Category category, Guid performedByUserId, CancellationToken ct = default)
     {
         category.CatUpdatedAt = DateTime.UtcNow;
@@ -70,6 +74,7 @@ public class CategoryService : ICategoryService
             newValues: new { category.CatName, category.CatDescription }, ct: ct);
     }
 
+    /// <inheritdoc />
     public async Task SoftDeleteAsync(Guid id, Guid deletedByUserId, CancellationToken ct = default)
     {
         var category = await _categoryRepo.GetByIdAsync(id, ct)

@@ -68,6 +68,7 @@ internal static class ExpenseDocumentDraftFactory
         };
     }
 
+    /// <summary>Builds a synthesized title using merchant, amount, or fallback logic.</summary>
     private static string BuildTitle(
         string merchantName,
         string documentKind,
@@ -98,6 +99,7 @@ internal static class ExpenseDocumentDraftFactory
             : $"{movementNoun} from receipt";
     }
 
+    /// <summary>Generates a comprehensive descriptive fallback for the expense object.</summary>
     private static string BuildDescription(
         string transactionKind,
         string merchantName,
@@ -130,6 +132,7 @@ internal static class ExpenseDocumentDraftFactory
         return ExpenseDocumentTextUtils.Truncate(description, 1000);
     }
 
+    /// <summary>Returns appropriate movement noun ("expense" or "income").</summary>
     private static string ResolveMovementNoun(string? transactionKind)
     {
         var normalized = ExpenseDocumentTextUtils.Normalize(transactionKind);
@@ -140,6 +143,7 @@ internal static class ExpenseDocumentDraftFactory
         };
     }
 
+    /// <summary>Returns appropriate movement noun for the title ("Expense" or "Income").</summary>
     private static string ResolveMovementTitle(string? transactionKind)
     {
         var normalized = ExpenseDocumentTextUtils.Normalize(transactionKind);
@@ -150,6 +154,7 @@ internal static class ExpenseDocumentDraftFactory
         };
     }
 
+    /// <summary>Beautifies the system receipt type string.</summary>
     private static string? HumanizeReceiptType(string? receiptType)
     {
         var normalizedType = ExpenseDocumentTextUtils.Normalize(receiptType);

@@ -4,6 +4,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository implementation for SplitCurrencyExchange operations.
+/// </summary>
 public class SplitCurrencyExchangeRepository : Repository<SplitCurrencyExchange>, ISplitCurrencyExchangeRepository
 {
     public SplitCurrencyExchangeRepository(AppDbContext context) : base(context) { }

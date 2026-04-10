@@ -3,6 +3,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Extensions.Mappings;
 
+/// <summary>
+/// Mapping extensions for PartnerSettlement entity-to-DTO conversions.
+/// </summary>
 public static class PartnerSettlementMappingExtensions
 {
     public static SettlementResponse ToResponse(this PartnerSettlement s)

@@ -3,6 +3,9 @@ using ProjectLedger.API.DTOs.ProjectBudget;
 
 namespace ProjectLedger.API.Extensions.Mappings;
 
+/// <summary>
+/// Mapping extensions for ProjectBudget entity-to-DTO conversions with computed alert levels.
+/// </summary>
 public static class ProjectBudgetMappingExtensions
 {
     // ── Entity → Response ───────────────────────────────────

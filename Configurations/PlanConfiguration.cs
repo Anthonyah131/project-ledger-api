@@ -4,8 +4,14 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Configurations;
 
+/// <summary>
+/// Entity Framework configuration for the Plan model.
+/// </summary>
 public class PlanConfiguration : IEntityTypeConfiguration<Plan>
 {
+    /// <summary>
+    /// Configures the database schema and relationships for Plan.
+    /// </summary>
     public void Configure(EntityTypeBuilder<Plan> builder)
     {
         builder.ToTable("plans");
@@ -25,7 +31,7 @@ public class PlanConfiguration : IEntityTypeConfiguration<Plan>
         builder.Property(p => p.PlnStripePaymentLinkId).HasColumnName("pln_stripe_payment_link_id").HasMaxLength(255);
         builder.Property(p => p.PlnStripePaymentLinkUrl).HasColumnName("pln_stripe_payment_link_url");
 
-        // Permisos
+        // Permissions
         builder.Property(p => p.PlnCanCreateProjects).HasColumnName("pln_can_create_projects").HasDefaultValue(true);
         builder.Property(p => p.PlnCanEditProjects).HasColumnName("pln_can_edit_projects").HasDefaultValue(true);
         builder.Property(p => p.PlnCanDeleteProjects).HasColumnName("pln_can_delete_projects").HasDefaultValue(true);
@@ -38,7 +44,7 @@ public class PlanConfiguration : IEntityTypeConfiguration<Plan>
         builder.Property(p => p.PlnCanSetBudgets).HasColumnName("pln_can_set_budgets").HasDefaultValue(true);
         builder.Property(p => p.PlnCanUsePartners).HasColumnName("pln_can_use_partners").HasDefaultValue(false);
 
-        // Límites JSONB
+        // JSONB Limits
         builder.Property(p => p.PlnLimits).HasColumnName("pln_limits").HasColumnType("jsonb");
 
         builder.Property(p => p.PlnCreatedAt).HasColumnName("pln_created_at").HasDefaultValueSql("now()");

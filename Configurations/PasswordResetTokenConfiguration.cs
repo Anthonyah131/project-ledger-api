@@ -4,8 +4,14 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Configurations;
 
+/// <summary>
+/// Entity Framework configuration for the PasswordResetToken model.
+/// </summary>
 public class PasswordResetTokenConfiguration : IEntityTypeConfiguration<PasswordResetToken>
 {
+    /// <summary>
+    /// Configures the database schema and relationships for PasswordResetToken.
+    /// </summary>
     public void Configure(EntityTypeBuilder<PasswordResetToken> builder)
     {
         builder.ToTable("password_reset_tokens");

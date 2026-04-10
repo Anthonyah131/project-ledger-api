@@ -4,8 +4,14 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Configurations;
 
+/// <summary>
+/// Entity Framework configuration for the User model.
+/// </summary>
 public class UserConfiguration : IEntityTypeConfiguration<User>
 {
+    /// <summary>
+    /// Configures the database schema and relationships for User.
+    /// </summary>
     public void Configure(EntityTypeBuilder<User> builder)
     {
         builder.ToTable("users");

@@ -212,12 +212,15 @@ public class ChatbotService : IChatbotService
 
     // ── Stream event helpers ──────────────────────────────────────────────────
 
+    /// <summary>Creates a stream chunk event containing response text.</summary>
     private static ChatbotStreamEvent ChunkEvent(string content) =>
         new() { Type = "chunk", Content = content };
 
+    /// <summary>Creates the final 'done' event to signal stream completion.</summary>
     private static ChatbotStreamEvent DoneEvent() =>
         new() { Type = "done" };
 
+    /// <summary>Creates a metadata event detailing the provider and execution stats.</summary>
     private static ChatbotStreamEvent MetaEvent(IChatProvider provider, bool usedFinancialContext, int toolCalls) =>
         new()
         {
@@ -230,11 +233,16 @@ public class ChatbotService : IChatbotService
 
     // ── Provider selector ────────────────────────────────────────────────────
 
+    /// <summary>Selects a provider from the enabled list using the rotated start index and offset.</summary>
     private static IChatProvider GetProvider(List<IChatProvider> enabled, int startIndex, int offset) =>
         enabled[(startIndex + offset) % enabled.Count];
 
     // ── Intent Parser ────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Attempts to parse the LLM's raw response string into a structured ParsedIntent JSON object.
+    /// Defaults to context_only/none upon parsing failure.
+    /// </summary>
     private ParsedIntent ParseIntent(string response)
     {
         try
@@ -269,6 +277,7 @@ public class ChatbotService : IChatbotService
 
     // ── Message building ─────────────────────────────────────────────────────
 
+    /// <summary>Constructs the list of conversation messages linking the system prompt, history, and the new user message.</summary>
     private static List<TcMessage> BuildMessagesList(
         string systemPrompt,
         IReadOnlyList<ChatbotHistoryEntry>? history,
@@ -298,6 +307,7 @@ public class ChatbotService : IChatbotService
 
     // ── Parser system prompt ─────────────────────────────────────────────────
 
+    /// <summary>Builds the comprehensive system prompt for the intent parser LLM call.</summary>
     private static string BuildParserSystemPrompt(DateTime today, string contextSummary)
     {
         var sb = new StringBuilder();
@@ -340,6 +350,7 @@ public class ChatbotService : IChatbotService
 
     // ── Context pre-loading (unchanged) ──────────────────────────────────────
 
+    /// <summary>Fetch the user's monthly overview and overdue payments to inject into context.</summary>
     private async Task<(string Summary, bool UsedFinancialContext)> BuildContextSummaryAsync(
         Guid userId,
         CancellationToken ct)

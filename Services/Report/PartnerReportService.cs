@@ -99,6 +99,7 @@ public class PartnerReportService : IPartnerReportService
         };
     }
 
+    /// <summary>Assembles the consolidated financial summary for a partner within a specific project.</summary>
     private async Task<PartnerProjectSummary> BuildProjectSummaryAsync(
         Guid partnerId, Guid projectId, string projectName, string currencyCode,
         DateOnly? from, DateOnly? to, CancellationToken ct)

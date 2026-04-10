@@ -16,21 +16,27 @@ public class WorkspaceService : IWorkspaceService
         _workspaceRepo = workspaceRepo;
     }
 
+    /// <inheritdoc />
     public async Task<Workspace?> GetByIdAsync(Guid id, CancellationToken ct = default)
         => await _workspaceRepo.GetByIdAsync(id, ct);
 
+    /// <inheritdoc />
     public async Task<Workspace?> GetByIdWithDetailsAsync(Guid id, CancellationToken ct = default)
         => await _workspaceRepo.GetByIdWithDetailsAsync(id, ct);
 
+    /// <inheritdoc />
     public async Task<IEnumerable<Workspace>> GetByMemberUserIdAsync(Guid userId, CancellationToken ct = default)
         => await _workspaceRepo.GetByMemberUserIdAsync(userId, ct);
 
+    /// <inheritdoc />
     public async Task<string?> GetMemberRoleAsync(Guid workspaceId, Guid userId, CancellationToken ct = default)
         => await _workspaceRepo.GetMemberRoleAsync(workspaceId, userId, ct);
 
+    /// <inheritdoc />
     public async Task<int> CountProjectsAsync(Guid workspaceId, CancellationToken ct = default)
         => await _workspaceRepo.CountProjectsAsync(workspaceId, ct);
 
+    /// <inheritdoc />
     public async Task<Workspace> CreateAsync(Workspace workspace, CancellationToken ct = default)
     {
         workspace.WksCreatedAt = DateTime.UtcNow;
@@ -53,6 +59,7 @@ public class WorkspaceService : IWorkspaceService
         return workspace;
     }
 
+    /// <inheritdoc />
     public async Task UpdateAsync(Workspace workspace, CancellationToken ct = default)
     {
         workspace.WksUpdatedAt = DateTime.UtcNow;
@@ -60,6 +67,7 @@ public class WorkspaceService : IWorkspaceService
         await _workspaceRepo.SaveChangesAsync(ct);
     }
 
+    /// <inheritdoc />
     public async Task SoftDeleteAsync(Guid id, Guid deletedByUserId, CancellationToken ct = default)
     {
         var workspace = await _workspaceRepo.GetByIdAsync(id, ct)
@@ -78,6 +86,7 @@ public class WorkspaceService : IWorkspaceService
         await _workspaceRepo.SaveChangesAsync(ct);
     }
 
+    /// <inheritdoc />
     public async Task<Workspace?> GetGeneralWorkspaceForUserAsync(Guid userId, CancellationToken ct = default)
         => await _workspaceRepo.GetGeneralWorkspaceForUserAsync(userId, ct);
 }

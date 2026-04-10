@@ -16,6 +16,7 @@ public class SearchService : ISearchService
         _repo = repo;
     }
 
+    /// <inheritdoc />
     public async Task<GlobalSearchResponse> SearchAsync(
         Guid userId, string query, string types, int pageSize, CancellationToken ct = default)
     {

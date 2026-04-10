@@ -249,6 +249,7 @@ public partial class McpService
         };
     }
 
+    /// <summary>Applies standard sorting logic for received payments.</summary>
     private static IEnumerable<McpReceivedPaymentItemResponse> ApplyReceivedPaymentsSorting(
         IEnumerable<McpReceivedPaymentItemResponse> source,
         string? sortBy,

@@ -22,29 +22,29 @@ public class ChatbotSettings
 }
 
 /// <summary>
-/// Configuración de un proveedor individual de IA.
+/// Configuration for an individual AI provider.
 /// </summary>
 public class ChatbotProviderSettings
 {
-    /// <summary>Habilita o deshabilita el proveedor sin eliminar su configuración.</summary>
+    /// <summary>Enables or disables the provider without removing its configuration.</summary>
     public bool Enabled { get; set; } = true;
 
-    /// <summary>API key del proveedor (placeholder ${ENV_VAR} resuelto en startup).</summary>
+    /// <summary>Provider's API key (can be a placeholder like ${ENV_VAR} resolved at startup).</summary>
     public string ApiKey { get; set; } = string.Empty;
 
-    /// <summary>URL base de la API compatible con OpenAI (sin trailing slash).</summary>
+    /// <summary>Base URL for the OpenAI-compatible API (without trailing slash).</summary>
     public string BaseUrl { get; set; } = string.Empty;
 
-    /// <summary>Identificador del modelo a usar en este proveedor.</summary>
+    /// <summary>Identifier of the model to use for this provider.</summary>
     public string Model { get; set; } = string.Empty;
 
-    /// <summary>Timeout en segundos para las llamadas HTTP.</summary>
+    /// <summary>Timeout in seconds for HTTP calls to the provider.</summary>
     public int TimeoutSeconds { get; set; } = 30;
 
     /// <summary>
-    /// Indica si este proveedor soporta tool calling (function calling) de OpenAI.
-    /// Habilitar solo en proveedores/modelos que lo soporten de forma confiable.
-    /// Cuando es false, el proveedor solo usa inyección de contexto (Fase 2).
+    /// Indicates whether this provider supports OpenAI-style tool calling (function calling).
+    /// Enable only for providers/models that support it reliably.
+    /// When false, the provider only uses context injection (Phase 2).
     /// </summary>
     public bool SupportsToolCalling { get; set; }
 }

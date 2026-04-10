@@ -4,9 +4,9 @@ namespace ProjectLedger.API.Repositories;
 
 public interface IPasswordResetTokenRepository : IRepository<PasswordResetToken>
 {
-    /// <summary>Busca un token activo (no usado, no expirado) por hash del código.</summary>
+    /// <summary>Finds an active config (unused, not expired) by code hash.</summary>
     Task<PasswordResetToken?> GetActiveByCodeHashAsync(string codeHash, CancellationToken ct = default);
 
-    /// <summary>Invalida (marca como usados) todos los tokens activos del usuario.</summary>
+    /// <summary>Invalidates (marks as used) all active tokens for the user.</summary>
     Task InvalidateAllByUserIdAsync(Guid userId, CancellationToken ct = default);
 }

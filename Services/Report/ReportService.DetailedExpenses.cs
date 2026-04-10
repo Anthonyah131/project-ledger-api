@@ -267,6 +267,7 @@ public partial class ReportService
         return report;
     }
 
+    /// <summary>Aggregates alternative currency groupings for detailed expense exports.</summary>
     private static List<AlternativeCurrencyTotals> BuildAlternativeCurrencyTotals(
         List<Models.Expense> expenses, List<Models.Income> incomes)
     {
@@ -305,6 +306,7 @@ public partial class ReportService
         }).OrderBy(a => a.CurrencyCode).ToList();
     }
 
+    /// <summary>Determines the human-readable payment status of an obligation record.</summary>
     private static string ComputeObligationStatus(Models.Obligation o, decimal paid, DateOnly today)
     {
         if (paid >= o.OblTotalAmount) return "paid";

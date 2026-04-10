@@ -9,6 +9,7 @@ public partial class ReportExportService
     //  WORKSPACE REPORT — EXCEL
     // ════════════════════════════════════════════════════════
 
+    /// <inheritdoc />
     public byte[] GenerateWorkspaceReportExcel(WorkspaceReportResponse report)
     {
         using var workbook = new XLWorkbook();
@@ -31,6 +32,7 @@ public partial class ReportExportService
         return WorkbookToBytes(workbook);
     }
 
+    /// <summary>Adds the consolidated workspace summary worksheet.</summary>
     private static void AddWorkspaceSummarySheet(XLWorkbook workbook, WorkspaceReportResponse report)
     {
         var ws = workbook.Worksheets.Add("Resumen");
@@ -140,6 +142,7 @@ public partial class ReportExportService
         FinalizeSheetLayout(ws, headerRow, row, headers.Length, headerRow, maxColumnWidth: 40);
     }
 
+    /// <summary>Adds a worksheet for category-based summary across all projects in the workspace.</summary>
     private static void AddWorkspaceCategorySheet(XLWorkbook workbook, WorkspaceReportResponse report)
     {
         var ws = workbook.Worksheets.Add("Categorías");
@@ -178,6 +181,7 @@ public partial class ReportExportService
         FinalizeSheetLayout(ws, 1, Math.Max(1, row), headers.Length, 1, maxColumnWidth: 36);
     }
 
+    /// <summary>Adds a worksheet for monthly trend tracking at the workspace level.</summary>
     private static void AddWorkspaceTrendSheet(XLWorkbook workbook, WorkspaceReportResponse report)
     {
         var ws = workbook.Worksheets.Add("Tendencia Mensual");
@@ -231,6 +235,7 @@ public partial class ReportExportService
         FinalizeSheetLayout(ws, 1, Math.Max(1, row), headers.Length, 1);
     }
 
+    /// <summary>Adds a worksheet for detailed monthly breakdown by project.</summary>
     private static void AddWorkspaceMonthlyByProjectSheet(XLWorkbook workbook, WorkspaceReportResponse report)
     {
         var ws = workbook.Worksheets.Add("Desglose por Proyecto");

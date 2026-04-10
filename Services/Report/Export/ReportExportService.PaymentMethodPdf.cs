@@ -11,6 +11,7 @@ public partial class ReportExportService
     //  PAYMENT METHOD REPORT — PDF
     // ════════════════════════════════════════════════════════
 
+    /// <inheritdoc />
     public byte[] GeneratePaymentMethodReportPdf(PaymentMethodReportResponse report)
     {
         return Document.Create(container =>
@@ -28,6 +29,7 @@ public partial class ReportExportService
         }).GeneratePdf();
     }
 
+    /// <summary>Composes the visual header for the payment method report.</summary>
     private static void ComposePaymentMethodHeader(IContainer container, PaymentMethodReportResponse report)
     {
         container.Column(col =>
@@ -51,6 +53,7 @@ public partial class ReportExportService
         });
     }
 
+    /// <summary>Composes the main body sections of the payment method report.</summary>
     private static void ComposePaymentMethodContent(IContainer container, PaymentMethodReportResponse report)
     {
         container.Column(col =>
@@ -70,6 +73,7 @@ public partial class ReportExportService
         });
     }
 
+    /// <summary>Composes a detailed summary section for a specific payment method.</summary>
     private static void ComposePaymentMethodSection(ColumnDescriptor col, PaymentMethodReportRow pm)
     {
         // ── Encabezado del método ──
@@ -251,6 +255,7 @@ public partial class ReportExportService
         col.Item().PaddingTop(8).LineHorizontal(0.5f).LineColor(Colors.Grey.Lighten2);
     }
 
+    /// <summary>Composes the monthly trend analysis section for payment methods.</summary>
     private static void ComposePaymentMethodMonthlyTrendSection(ColumnDescriptor col, PaymentMethodReportResponse report)
     {
         col.Item().PaddingTop(12).Text("Tendencia Mensual por Método")

@@ -4,6 +4,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository implementation for Workspace operations.
+/// </summary>
 public class WorkspaceRepository : Repository<Workspace>, IWorkspaceRepository
 {
     public WorkspaceRepository(AppDbContext context) : base(context) { }

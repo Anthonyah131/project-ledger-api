@@ -4,6 +4,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository implementation for ExpenseSplit operations.
+/// </summary>
 public class ExpenseSplitRepository : Repository<ExpenseSplit>, IExpenseSplitRepository
 {
     public ExpenseSplitRepository(AppDbContext context) : base(context) { }

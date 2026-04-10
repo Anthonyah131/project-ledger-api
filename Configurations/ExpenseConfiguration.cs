@@ -4,8 +4,14 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Configurations;
 
+/// <summary>
+/// Entity Framework configuration for the Expense model.
+/// </summary>
 public class ExpenseConfiguration : IEntityTypeConfiguration<Expense>
 {
+    /// <summary>
+    /// Configures the database schema and relationships for Expense.
+    /// </summary>
     public void Configure(EntityTypeBuilder<Expense> builder)
     {
         builder.ToTable("expenses");
@@ -19,7 +25,7 @@ public class ExpenseConfiguration : IEntityTypeConfiguration<Expense>
         builder.Property(e => e.ExpCreatedByUserId).HasColumnName("exp_created_by_user_id").IsRequired();
         builder.Property(e => e.ExpObligationId).HasColumnName("exp_obligation_id");
 
-        // Montos y moneda
+        // Amounts and currency
         builder.Property(e => e.ExpOriginalAmount).HasColumnName("exp_original_amount").HasColumnType("numeric(14,2)").IsRequired();
         builder.Property(e => e.ExpOriginalCurrency).HasColumnName("exp_original_currency").HasMaxLength(3).IsRequired();
         builder.Property(e => e.ExpExchangeRate).HasColumnName("exp_exchange_rate").HasColumnType("numeric(18,6)").HasDefaultValue(1.000000m);
@@ -28,27 +34,27 @@ public class ExpenseConfiguration : IEntityTypeConfiguration<Expense>
         builder.Property(e => e.ExpAccountCurrency).HasColumnName("exp_account_currency").HasMaxLength(3);
         builder.Property(e => e.ExpObligationEquivalentAmount).HasColumnName("exp_obligation_equivalent_amount").HasColumnType("numeric(14,2)");
 
-        // Datos descriptivos
+        // Descriptive data
         builder.Property(e => e.ExpTitle).HasColumnName("exp_title").HasMaxLength(255).IsRequired();
         builder.Property(e => e.ExpDescription).HasColumnName("exp_description");
         builder.Property(e => e.ExpExpenseDate).HasColumnName("exp_expense_date").IsRequired();
         builder.Property(e => e.ExpReceiptNumber).HasColumnName("exp_receipt_number").HasMaxLength(100);
         builder.Property(e => e.ExpNotes).HasColumnName("exp_notes");
 
-        // Plantilla
+        // Template
         builder.Property(e => e.ExpIsTemplate).HasColumnName("exp_is_template").HasDefaultValue(false);
 
-        // Estado contable
+        // Accounting status
         builder.Property(e => e.ExpIsActive).HasColumnName("exp_is_active").HasDefaultValue(true);
 
-        // Timestamps y soft delete
+        // Timestamps and soft delete
         builder.Property(e => e.ExpCreatedAt).HasColumnName("exp_created_at").HasDefaultValueSql("now()");
         builder.Property(e => e.ExpUpdatedAt).HasColumnName("exp_updated_at").HasDefaultValueSql("now()");
         builder.Property(e => e.ExpIsDeleted).HasColumnName("exp_is_deleted").HasDefaultValue(false);
         builder.Property(e => e.ExpDeletedAt).HasColumnName("exp_deleted_at");
         builder.Property(e => e.ExpDeletedByUserId).HasColumnName("exp_deleted_by_user_id");
 
-        // Índices
+        // Indexes
         builder.HasIndex(e => e.ExpProjectId);
         builder.HasIndex(e => e.ExpCategoryId);
         builder.HasIndex(e => e.ExpPaymentMethodId);
@@ -59,7 +65,7 @@ public class ExpenseConfiguration : IEntityTypeConfiguration<Expense>
         builder.HasIndex(e => e.ExpIsTemplate);
         builder.HasIndex(e => e.ExpIsActive);
 
-        // Relaciones
+        // Relationships
         builder.HasOne(e => e.Project)
             .WithMany(p => p.Expenses)
             .HasForeignKey(e => e.ExpProjectId)

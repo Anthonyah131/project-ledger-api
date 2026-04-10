@@ -4,6 +4,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Repositories;
 
+/// <summary>
+/// Repository implementation for PasswordResetToken operations.
+/// </summary>
 public class PasswordResetTokenRepository : Repository<PasswordResetToken>, IPasswordResetTokenRepository
 {
     public PasswordResetTokenRepository(AppDbContext context) : base(context) { }

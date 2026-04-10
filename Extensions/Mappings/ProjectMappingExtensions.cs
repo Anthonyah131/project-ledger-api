@@ -3,6 +3,9 @@ using ProjectLedger.API.DTOs.Project;
 
 namespace ProjectLedger.API.Extensions.Mappings;
 
+/// <summary>
+/// Mapping extensions for Project and ProjectMember entity-to-DTO conversions.
+/// </summary>
 public static class ProjectMappingExtensions
 {
     // ── Entity → Response ───────────────────────────────────

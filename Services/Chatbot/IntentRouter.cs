@@ -26,6 +26,7 @@ public class IntentRouter : IIntentRouter
         _logger     = logger;
     }
 
+    /// <inheritdoc />
     public async Task<string> ExecuteAsync(Guid userId, ParsedIntent intent, CancellationToken ct)
     {
         var f = intent.Filters;
@@ -224,6 +225,9 @@ public class IntentRouter : IIntentRouter
         }
     }
 
+    /// <summary>
+    /// Parses a date string into a DateOnly, returning null if invalid or whitespace.
+    /// </summary>
     private static DateOnly? ParseDate(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return null;

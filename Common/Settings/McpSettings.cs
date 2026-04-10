@@ -8,5 +8,6 @@ public class McpSettings
 {
     public const string SectionName = "Mcp";
 
+    /// <summary>Auth token required for services calling MCP endpoints.</summary>
     public string ServiceToken { get; set; } = string.Empty;
 }

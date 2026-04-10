@@ -23,6 +23,7 @@ public class UserReportService : IUserReportService
         _paymentMethodService = paymentMethodService;
     }
 
+    /// <inheritdoc />
     public async Task<PaymentMethodReportResponse> GetPaymentMethodReportAsync(
         Guid userId, DateOnly? from, DateOnly? to,
         List<Guid>? paymentMethodIds, int? maxMovementsPerMethod,
