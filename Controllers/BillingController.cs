@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
@@ -12,32 +12,32 @@ using ProjectLedger.API.Services;
 namespace ProjectLedger.API.Controllers;
 
 /// <summary>
-/// Controlador de facturación / suscripciones Stripe.
+/// Billing / Stripe subscriptions controller.
 ///
 /// ═══════════════════════════════════════════════════════════════
-///  ARQUITECTURA DE SUSCRIPCIONES
+///  SUBSCRIPTION ARCHITECTURE
 /// ═══════════════════════════════════════════════════════════════
 ///
-///  Flujo de pago:
-///    1. Frontend llama POST /api/billing/stripe/create-checkout-session
-///       con el PlanId deseado.
-///    2. Backend crea una Stripe Checkout Session con:
-///       - ClientReferenceId = userId (para vincular en el webhook)
-///       - Customer = Stripe customer (creado o reutilizado)
-///       - Metadata con app_user_id y plan_slug
-///    3. Frontend redirige al usuario al CheckoutUrl devuelto.
-///    4. Stripe procesa el pago → envía webhook checkout.session.completed.
-///    5. Webhook crea/actualiza registro en user_subscriptions.
-///    6. Frontend llega a /billing/success y hace polling a
-///       GET /api/billing/subscription/me hasta obtener 200.
+///  Payment flow:
+///    1. Frontend calls POST /api/billing/stripe/create-checkout-session
+///       with the desired PlanId.
+///    2. Backend creates a Stripe Checkout Session with:
+///       - ClientReferenceId = userId (to link in the webhook)
+///       - Customer = Stripe customer (created or reused)
+///       - Metadata with app_user_id and plan_slug
+///    3. Frontend redirects the user to the returned CheckoutUrl.
+///    4. Stripe processes the payment → sends checkout.session.completed webhook.
+///    5. Webhook creates/updates record in user_subscriptions.
+///    6. Frontend arrives at /billing/success and polls
+///       GET /api/billing/subscription/me until it gets a 200.
 ///
-///  Almacenamiento:
-///    - user_subscriptions: fuente de verdad para datos Stripe
-///      (status, período, stripe IDs, etc.)
-///    - User.UsrPlanId: caché rápido del plan actual, usado por
-///      PlanAuthorizationService y PlanPermissionHandler para
-///      evaluar permisos en cada request.
-///    - Ambos se mantienen sincronizados por UpsertSubscriptionAsync.
+///  Storage:
+///    - user_subscriptions: source of truth for Stripe data
+///      (status, period, stripe IDs, etc.)
+///    - User.UsrPlanId: fast cache of the current plan, used by
+///      PlanAuthorizationService and PlanPermissionHandler to
+///      evaluate permissions on each request.
+///    - Both are kept synchronized by UpsertSubscriptionAsync.
 ///
 /// ═══════════════════════════════════════════════════════════════
 /// </summary>
@@ -114,11 +114,11 @@ public class BillingController : ControllerBase
     }
 
     /// <summary>
-    /// Crea una Stripe Checkout Session vinculada al usuario autenticado.
-    /// El frontend debe redirigir al CheckoutUrl devuelto.
+    /// Creates a Stripe Checkout Session linked to the authenticated user.
+    /// The frontend must redirect to the returned CheckoutUrl.
     /// 
-    /// Ventaja sobre Payment Links: garantiza client_reference_id = userId,
-    /// lo que permite al webhook vincular la suscripción de forma determinista.
+    /// Advantage over Payment Links: guarantees client_reference_id = userId,
+    /// which allows the webhook to deterministically link the subscription.
     /// </summary>
     [HttpPost("stripe/create-checkout-session")]
     [Authorize]

@@ -1,7 +1,10 @@
-﻿using ProjectLedger.API.DTOs.Report;
+using ProjectLedger.API.DTOs.Report;
 
 namespace ProjectLedger.API.Services;
 
+/// <summary>
+/// Partial implementation of ReportService focusing on month-over-month comparisons.
+/// </summary>
 public partial class ReportService
 {
     public async Task<MonthComparisonResponse> GetMonthComparisonAsync(

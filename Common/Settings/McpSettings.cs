@@ -1,8 +1,8 @@
 namespace ProjectLedger.API.Common.Settings;
 
 /// <summary>
-/// Configuración del canal MCP para autenticación service-to-service.
-/// El token se resuelve desde la variable de entorno MCP_SERVICE_TOKEN.
+/// MCP channel configuration for service-to-service authentication.
+/// The token is resolved from the MCP_SERVICE_TOKEN environment variable.
 /// </summary>
 public class McpSettings
 {

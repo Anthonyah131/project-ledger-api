@@ -1,8 +1,8 @@
 namespace ProjectLedger.API.Common.Exceptions;
 
 /// <summary>
-/// Excepción lanzada cuando el plan del usuario no permite ejecutar una acción.
-/// El GlobalExceptionHandler la convierte en un 403 con mensaje descriptivo.
+/// Exception thrown when the user's plan does not allow an action.
+/// The GlobalExceptionHandler converts it into a 403 with a descriptive message.
 /// </summary>
 public class PlanDeniedException : Exception
 {

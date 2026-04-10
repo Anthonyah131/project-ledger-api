@@ -5,8 +5,8 @@ namespace ProjectLedger.API.DTOs.Obligation;
 // ── Requests ────────────────────────────────────────────────
 
 /// <summary>
-/// Request para crear una obligación/deuda.
-/// NO incluye ProjectId (viene de la ruta) ni CreatedByUserId (viene del JWT).
+/// Request to create an obligation/debt.
+/// DOES NOT include ProjectId (comes from route) nor CreatedByUserId (comes from JWT).
 /// </summary>
 public class CreateObligationRequest
 {
@@ -28,7 +28,7 @@ public class CreateObligationRequest
     public DateOnly? DueDate { get; set; }
 }
 
-/// <summary>Request para actualizar una obligación.</summary>
+/// <summary>Request to update an obligation.</summary>
 public class UpdateObligationRequest
 {
     [Required]
@@ -46,7 +46,7 @@ public class UpdateObligationRequest
 
 // ── Responses ───────────────────────────────────────────────
 
-/// <summary>Respuesta con los datos de una obligación/deuda.</summary>
+/// <summary>Response with the data of an obligation/debt.</summary>
 public class ObligationResponse
 {
     public Guid Id { get; set; }
@@ -58,7 +58,7 @@ public class ObligationResponse
     public string Currency { get; set; } = null!;
     public DateOnly? DueDate { get; set; }
 
-    // ── Campos calculados (app-level) ───────────────────────
+    // ── Calculated fields (app-level) ───────────────────────
     public decimal PaidAmount { get; set; }
     public decimal RemainingAmount { get; set; }
     public string Status { get; set; } = null!;                 // open, partially_paid, paid, overdue

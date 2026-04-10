@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
 using ProjectLedger.API.DTOs.Common;
@@ -12,12 +12,12 @@ using ProjectLedger.API.Services;
 namespace ProjectLedger.API.Controllers;
 
 /// <summary>
-/// Controlador de métodos de pago del usuario autenticado.
+/// Authenticated user's payment methods controller.
 /// 
-/// Ruta: /api/payment-methods
-/// - OwnerUserId se obtiene SIEMPRE del JWT, nunca del body.
-/// - Plan valida MaxPaymentMethods al crear.
-/// - Solo el dueño puede ver/editar/eliminar sus payment methods.
+/// Route: /api/payment-methods
+/// - OwnerUserId is ALWAYS obtained from the JWT, never from the body.
+/// - Plan validates MaxPaymentMethods upon creation.
+/// - Only the owner can view/edit/delete their payment methods.
 /// </summary>
 [ApiController]
 [Route("api/payment-methods")]
@@ -46,12 +46,47 @@ public class PaymentMethodController : ControllerBase
         _localizer = localizer;
     }
 
+    // ── GET /api/payment-methods/lookup ────────────────────────
+
+    /// <summary>
+    /// Lista ligera y paginada de métodos de pago del usuario autenticado.
+    /// Diseñado para command palette, formularios de gastos/ingresos y selectores.
+    /// </summary>
+    /// <response code="200">Lookup paginado de métodos de pago.</response>
+    [HttpGet("lookup")]
+    [ProducesResponseType(typeof(PaymentMethodLookupResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetLookup(
+        [FromQuery] LookupRequest request,
+        CancellationToken ct)
+    {
+        var userId = User.GetRequiredUserId();
+
+        var (items, totalCount) = await _paymentMethodService.GetLookupAsync(
+            userId, request.Search, request.Skip, request.PageSize, ct);
+
+        var itemList = items.Select(pm => new PaymentMethodLookupItem
+        {
+            Id = pm.PmtId,
+            Name = pm.PmtName,
+            Type = pm.PmtType,
+            Currency = pm.PmtCurrency
+        }).ToList();
+
+        return Ok(new PaymentMethodLookupResponse
+        {
+            Items = itemList,
+            Page = request.Page,
+            PageSize = request.PageSize,
+            TotalCount = totalCount
+        });
+    }
+
     // ── GET /api/payment-methods ────────────────────────────
 
     /// <summary>
-    /// Lista todos los métodos de pago del usuario autenticado.
+    /// Lists all of the authenticated user's payment methods.
     /// </summary>
-    /// <response code="200">Lista de métodos de pago.</response>
+    /// <response code="200">List of payment methods.</response>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<PaymentMethodResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMyPaymentMethods(CancellationToken ct)
@@ -64,10 +99,10 @@ public class PaymentMethodController : ControllerBase
     // ── GET /api/payment-methods/{id} ───────────────────────
 
     /// <summary>
-    /// Obtiene un método de pago por ID. Solo el dueño puede verlo.
+    /// Gets a payment method by ID. Only the owner can view it.
     /// </summary>
-    /// <response code="200">Método de pago encontrado.</response>
-    /// <response code="404">No encontrado o no pertenece al usuario.</response>
+    /// <response code="200">Payment method found.</response>
+    /// <response code="404">Not found or does not belong to the user.</response>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(PaymentMethodResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -85,12 +120,12 @@ public class PaymentMethodController : ControllerBase
     // ── POST /api/payment-methods ───────────────────────────
 
     /// <summary>
-    /// Crea un método de pago para el usuario autenticado.
-    /// Valida límite MaxPaymentMethods del plan.
-    /// OwnerUserId viene del JWT — NUNCA del body.
+    /// Creates a payment method for the authenticated user.
+    /// Validates the plan's MaxPaymentMethods limit.
+    /// OwnerUserId comes from the JWT — NEVER from the body.
     /// </summary>
-    /// <response code="201">Método de pago creado.</response>
-    /// <response code="403">Límite del plan excedido.</response>
+    /// <response code="201">Payment method created.</response>
+    /// <response code="403">Plan limit exceeded.</response>
     [HttpPost]
     [ProducesResponseType(typeof(PaymentMethodResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -116,10 +151,10 @@ public class PaymentMethodController : ControllerBase
     // ── PUT /api/payment-methods/{id} ───────────────────────
 
     /// <summary>
-    /// Actualiza un método de pago. Solo el dueño puede editarlo.
+    /// Updates a payment method. Only the owner can edit it.
     /// </summary>
-    /// <response code="200">Método de pago actualizado.</response>
-    /// <response code="404">No encontrado o no pertenece al usuario.</response>
+    /// <response code="200">Payment method updated.</response>
+    /// <response code="404">Not found or does not belong to the user.</response>
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(PaymentMethodResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -147,11 +182,11 @@ public class PaymentMethodController : ControllerBase
     // ── POST /api/payment-methods/{id}/partner ──────────────
 
     /// <summary>
-    /// Enlaza un partner a un método de pago. Solo el dueño puede hacerlo.
+    /// Links a partner to a payment method. Only the owner can do this.
     /// </summary>
-    /// <response code="200">Partner enlazado.</response>
-    /// <response code="404">Método de pago o partner no encontrado.</response>
-    /// <response code="409">El método de pago ya tiene este partner enlazado.</response>
+    /// <response code="200">Partner linked.</response>
+    /// <response code="404">Payment method or partner not found.</response>
+    /// <response code="409">The payment method already has this partner linked.</response>
     [HttpPost("{id:guid}/partner")]
     [ProducesResponseType(typeof(PaymentMethodResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -185,11 +220,11 @@ public class PaymentMethodController : ControllerBase
     // ── DELETE /api/payment-methods/{id}/partner ─────────────
 
     /// <summary>
-    /// Desenlaza el partner de un método de pago. Solo el dueño puede hacerlo.
+    /// Unlinks the partner from a payment method. Only the owner can do this.
     /// </summary>
-    /// <response code="200">Partner desenlazado.</response>
-    /// <response code="404">Método de pago no encontrado.</response>
-    /// <response code="409">El método de pago no tiene un partner enlazado.</response>
+    /// <response code="200">Partner unlinked.</response>
+    /// <response code="404">Payment method not found.</response>
+    /// <response code="409">The payment method does not have a linked partner.</response>
     [HttpDelete("{id:guid}/partner")]
     [ProducesResponseType(typeof(PaymentMethodResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -216,11 +251,11 @@ public class PaymentMethodController : ControllerBase
     // ── DELETE /api/payment-methods/{id} ────────────────────
 
     /// <summary>
-    /// Soft-delete de un método de pago. Solo el dueño puede eliminarlo.
+    /// Soft-deletes a payment method. Only the owner can delete it.
     /// </summary>
-    /// <response code="400">El método de pago no se puede eliminar porque tiene movimientos activos relacionados.</response>
-    /// <response code="204">Método de pago eliminado.</response>
-    /// <response code="404">No encontrado o no pertenece al usuario.</response>
+    /// <response code="400">The payment method cannot be deleted because it has active related movements.</response>
+    /// <response code="204">Payment method deleted.</response>
+    /// <response code="404">Not found or does not belong to the user.</response>
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -240,11 +275,11 @@ public class PaymentMethodController : ControllerBase
     // ── GET /api/payment-methods/{id}/expenses ────────────
 
     /// <summary>
-    /// Obtiene todos los movimientos (gastos) de un método de pago (paginado),
-    /// cruzando todos los proyectos del usuario.
+    /// Gets all the movements (expenses) of a payment method (paginated),
+    /// crossing all the user's projects.
     /// </summary>
-    /// <response code="200">Lista paginada de gastos asociados al método de pago.</response>
-    /// <response code="404">Método de pago no encontrado.</response>
+    /// <response code="200">Paginated list of expenses associated with the payment method.</response>
+    /// <response code="404">Payment method not found.</response>
     [HttpGet("{id:guid}/expenses")]
     [ProducesResponseType(typeof(PagedWithTotalsResponse<ExpenseResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -280,11 +315,11 @@ public class PaymentMethodController : ControllerBase
     // ── GET /api/payment-methods/{id}/incomes ─────────────
 
     /// <summary>
-    /// Obtiene todos los movimientos (ingresos) de un método de pago (paginado),
-    /// cruzando todos los proyectos del usuario.
+    /// Gets all the movements (incomes) of a payment method (paginated),
+    /// crossing all the user's projects.
     /// </summary>
-    /// <response code="200">Lista paginada de ingresos asociados al método de pago.</response>
-    /// <response code="404">Método de pago no encontrado.</response>
+    /// <response code="200">Paginated list of incomes associated with the payment method.</response>
+    /// <response code="404">Payment method not found.</response>
     [HttpGet("{id:guid}/incomes")]
     [ProducesResponseType(typeof(PagedWithTotalsResponse<IncomeResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -320,10 +355,10 @@ public class PaymentMethodController : ControllerBase
     // ── GET /api/payment-methods/{id}/projects ────────────
 
     /// <summary>
-    /// Obtiene los proyectos vinculados al método de pago.
+    /// Gets the projects linked to the payment method.
     /// </summary>
-    /// <response code="200">Lista de proyectos relacionados al método de pago.</response>
-    /// <response code="404">Método de pago no encontrado.</response>
+    /// <response code="200">List of projects related to the payment method.</response>
+    /// <response code="404">Payment method not found.</response>
     [HttpGet("{id:guid}/projects")]
     [ProducesResponseType(typeof(PaymentMethodProjectsResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -363,10 +398,10 @@ public class PaymentMethodController : ControllerBase
     // ── GET /api/payment-methods/{id}/summary ─────────────
 
     /// <summary>
-    /// Retorna métricas agregadas de uso para el método de pago.
+    /// Returns aggregated usage metrics for the payment method.
     /// </summary>
-    /// <response code="200">Resumen de gastos, ingresos y proyectos relacionados.</response>
-    /// <response code="404">Método de pago no encontrado.</response>
+    /// <response code="200">Summary of expenses, incomes, and related projects.</response>
+    /// <response code="404">Payment method not found.</response>
     [HttpGet("{id:guid}/summary")]
     [ProducesResponseType(typeof(PaymentMethodSummaryResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -404,12 +439,12 @@ public class PaymentMethodController : ControllerBase
     // ── GET /api/payment-methods/{id}/balance ──────────────
 
     /// <summary>
-    /// Devuelve el balance de la cuenta en un proyecto específico (en moneda de la cuenta).
-    /// Solo gastos e ingresos activos (no recordatorios) cuentan en el balance.
+    /// Returns the account balance in a specific project (in the account's currency).
+    /// Only active expenses and incomes (not drafts) count in the balance.
     /// </summary>
-    /// <response code="200">Balance de la cuenta en el proyecto.</response>
-    /// <response code="400">project_id es requerido.</response>
-    /// <response code="404">Cuenta no encontrada o no vinculada al proyecto.</response>
+    /// <response code="200">Account balance in the project.</response>
+    /// <response code="400">project_id is required.</response>
+    /// <response code="404">Account not found or not linked to the project.</response>
     [HttpGet("{id:guid}/balance")]
     [ProducesResponseType(typeof(PaymentMethodBalanceResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

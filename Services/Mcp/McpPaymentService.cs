@@ -2,6 +2,9 @@ using ProjectLedger.API.DTOs.Mcp;
 
 namespace ProjectLedger.API.Services;
 
+/// <summary>
+/// Partial implementation of McpService focusing on pending payments, received funds, and payment method usage analytics.
+/// </summary>
 public partial class McpService
 {
     public async Task<McpPagedResponse<McpPaymentObligationItemResponse>> GetPendingPaymentsAsync(

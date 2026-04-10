@@ -3,44 +3,44 @@ using ProjectLedger.API.DTOs.Report;
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Contrato para la generación de reportes en distintos formatos (Excel, PDF).
+/// Contract for generating reports in different formats (Excel, PDF).
 /// </summary>
 public interface IReportExportService
 {
     // ── Excel ────────────────────────────────────────────────────────────────
 
-    /// <summary>Genera el reporte detallado de gastos en formato Excel (.xlsx).</summary>
+    /// <summary>Generates the detailed expense report in Excel (.xlsx) format.</summary>
     byte[] GenerateExpenseReportExcel(DetailedExpenseReportResponse report);
 
-    /// <summary>Genera el reporte de métodos de pago en formato Excel (.xlsx).</summary>
+    /// <summary>Generates the payment method report in Excel (.xlsx) format.</summary>
     byte[] GeneratePaymentMethodReportExcel(PaymentMethodReportResponse report);
 
-    /// <summary>Genera el reporte detallado de ingresos en formato Excel (.xlsx).</summary>
+    /// <summary>Generates the detailed income report in Excel (.xlsx) format.</summary>
     byte[] GenerateIncomeReportExcel(DetailedIncomeReportResponse report);
 
-    /// <summary>Genera el reporte de balances de partners en formato Excel (.xlsx).</summary>
+    /// <summary>Generates the partner balance report in Excel (.xlsx) format.</summary>
     byte[] GeneratePartnerBalanceReportExcel(PartnerBalanceReportResponse report);
 
-    /// <summary>Genera el reporte de workspace en formato Excel (.xlsx).</summary>
+    /// <summary>Generates the workspace report in Excel (.xlsx) format.</summary>
     byte[] GenerateWorkspaceReportExcel(WorkspaceReportResponse report);
 
-    /// <summary>Genera el reporte general del partner en formato Excel (.xlsx).</summary>
+    /// <summary>Generates the partner general report in Excel (.xlsx) format.</summary>
     byte[] GeneratePartnerGeneralReportExcel(PartnerGeneralReportResponse report);
 
     // ── PDF ──────────────────────────────────────────────────────────────────
 
-    /// <summary>Genera el reporte detallado de gastos en formato PDF.</summary>
+    /// <summary>Generates the detailed expense report in PDF format.</summary>
     byte[] GenerateExpenseReportPdf(DetailedExpenseReportResponse report);
 
-    /// <summary>Genera el reporte de métodos de pago en formato PDF.</summary>
+    /// <summary>Generates the payment method report in PDF format.</summary>
     byte[] GeneratePaymentMethodReportPdf(PaymentMethodReportResponse report);
 
-    /// <summary>Genera el reporte detallado de ingresos en formato PDF.</summary>
+    /// <summary>Generates the detailed income report in PDF format.</summary>
     byte[] GenerateIncomeReportPdf(DetailedIncomeReportResponse report);
 
-    /// <summary>Genera el reporte de balances de partners en formato PDF.</summary>
+    /// <summary>Generates the partner balance report in PDF format.</summary>
     byte[] GeneratePartnerBalanceReportPdf(PartnerBalanceReportResponse report);
 
-    /// <summary>Genera el reporte de workspace en formato PDF.</summary>
+    /// <summary>Generates the workspace report in PDF format.</summary>
     byte[] GenerateWorkspaceReportPdf(WorkspaceReportResponse report);
 }

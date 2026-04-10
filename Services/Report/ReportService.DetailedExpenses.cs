@@ -1,8 +1,11 @@
-﻿using ProjectLedger.API.DTOs.Report;
+using ProjectLedger.API.DTOs.Report;
 using ProjectLedger.API.Extensions.Mappings;
 
 namespace ProjectLedger.API.Services;
 
+/// <summary>
+/// Partial implementation of ReportService focusing on detailed expense reporting.
+/// </summary>
 public partial class ReportService
 {
     public async Task<DetailedExpenseReportResponse> GetDetailedExpensesAsync(

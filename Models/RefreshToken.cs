@@ -1,8 +1,8 @@
 namespace ProjectLedger.API.Models;
 
 /// <summary>
-/// Refresh token para JWT authentication.
-/// El token real nunca se almacena: solo su hash SHA-256.
+/// Refresh token for JWT authentication.
+/// The real token is never stored: only its SHA-256 hash.
 /// </summary>
 public class RefreshToken
 {

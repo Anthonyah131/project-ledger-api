@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ProjectLedger.API.DTOs.Auth;
 
-/// <summary>Request para login con email y contraseña.</summary>
+/// <summary>Request for login with email and password.</summary>
 public class LoginRequest
 {
     [Required]
@@ -15,7 +15,7 @@ public class LoginRequest
     public string Password { get; set; } = null!;
 }
 
-/// <summary>Request para registro de nuevo usuario.</summary>
+/// <summary>Request for a new user registration.</summary>
 public class RegisterRequest
 {
     [Required]
@@ -33,21 +33,21 @@ public class RegisterRequest
     public string FullName { get; set; } = null!;
 }
 
-/// <summary>Request para renovar el access token usando un refresh token.</summary>
+/// <summary>Request to renew the access token using a refresh token.</summary>
 public class RefreshTokenRequest
 {
     [Required]
     public string RefreshToken { get; set; } = null!;
 }
 
-/// <summary>Request para revocar el refresh token activo (logout).</summary>
+/// <summary>Request to revoke the active refresh token (logout).</summary>
 public class RevokeTokenRequest
 {
     [Required]
     public string RefreshToken { get; set; } = null!;
 }
 
-/// <summary>Respuesta de autenticación exitosa.</summary>
+/// <summary>Successful authentication response.</summary>
 public class AuthResponse
 {
     public string AccessToken { get; set; } = null!;
@@ -56,7 +56,7 @@ public class AuthResponse
     public UserAuthInfo User { get; set; } = null!;
 }
 
-/// <summary>Request para iniciar el flujo de restablecimiento de contraseña.</summary>
+/// <summary>Request to initiate the password reset flow.</summary>
 public class ForgotPasswordRequest
 {
     [Required]
@@ -65,7 +65,7 @@ public class ForgotPasswordRequest
     public string Email { get; set; } = null!;
 }
 
-/// <summary>Request para verificar si un código OTP es válido sin consumirlo.</summary>
+/// <summary>Request to verify if an OTP code is valid without consuming it.</summary>
 public class VerifyOtpRequest
 {
     [Required]
@@ -79,7 +79,7 @@ public class VerifyOtpRequest
     public string OtpCode { get; set; } = null!;
 }
 
-/// <summary>Request para restablecer la contraseña con código OTP.</summary>
+/// <summary>Request to reset the password with an OTP code.</summary>
 public class ResetPasswordRequest
 {
     [Required]
@@ -98,7 +98,7 @@ public class ResetPasswordRequest
     public string NewPassword { get; set; } = null!;
 }
 
-/// <summary>Datos mínimos del usuario incluidos en la respuesta de auth.</summary>
+/// <summary>Minimal user data included in the auth response.</summary>
 public class UserAuthInfo
 {
     public Guid Id { get; set; }

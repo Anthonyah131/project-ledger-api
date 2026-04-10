@@ -39,9 +39,9 @@ public class ProjectPaymentMethodController : ControllerBase
     }
 
     /// <summary>
-    /// Métodos de pago que se pueden enlazar al proyecto: pertenecen a un partner asignado
-    /// al proyecto y aún no están vinculados al mismo.
-    /// No incluye métodos sin partner ni de partners no asignados al proyecto.
+    /// Payment methods that can be linked to the project: they belong to an assigned partner
+    /// in the project and are not yet linked to it.
+    /// It does not include unpartnered methods or methods from unassigned partners.
     /// </summary>
     [HttpGet("linkable")]
     [Authorize(Policy = "ProjectViewer")]
@@ -68,7 +68,7 @@ public class ProjectPaymentMethodController : ControllerBase
         return Ok(result);
     }
 
-    /// <summary>Lista los métodos de pago vinculados a un proyecto.</summary>
+    /// <summary>Lists the payment methods linked to a project.</summary>
     [HttpGet]
     [Authorize(Policy = "ProjectViewer")]
     [ProducesResponseType(typeof(IEnumerable<ProjectPaymentMethodResponse>), StatusCodes.Status200OK)]
@@ -78,7 +78,7 @@ public class ProjectPaymentMethodController : ControllerBase
         return Ok(links.ToResponse());
     }
 
-    /// <summary>Vincula un método de pago al proyecto (solo owner).</summary>
+    /// <summary>Links a payment method to the project (owner only).</summary>
     [HttpPost]
     [Authorize(Policy = "ProjectOwner")]
     [ProducesResponseType(typeof(ProjectPaymentMethodResponse), StatusCodes.Status201Created)]
@@ -107,7 +107,7 @@ public class ProjectPaymentMethodController : ControllerBase
         {
             var created = await _ppmService.LinkAsync(link, ct);
 
-            // Recargar con includes para la respuesta
+            // Reload with includes for the response
             var links = await _ppmService.GetByProjectIdAsync(projectId, ct);
             var full = links.FirstOrDefault(l => l.PpmId == created.PpmId);
 
@@ -126,7 +126,7 @@ public class ProjectPaymentMethodController : ControllerBase
         }
     }
 
-    /// <summary>Desvincula un método de pago del proyecto (solo owner). Usa el <c>id</c> del vínculo devuelto por GET.</summary>
+    /// <summary>Unlinks a payment method from the project (owner only). Uses the link's <c>id</c> returned by GET.</summary>
     [HttpDelete("{id:guid}")]
     [Authorize(Policy = "ProjectOwner")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

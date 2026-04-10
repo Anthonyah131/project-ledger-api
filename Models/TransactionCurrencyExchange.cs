@@ -1,8 +1,8 @@
 namespace ProjectLedger.API.Models;
 
 /// <summary>
-/// Conversión de una transacción (gasto o ingreso) a una moneda alternativa.
-/// Usa FKs explícitas: tce_expense_id XOR tce_income_id debe ser NOT NULL.
+/// Conversion of a transaction (expense or income) to an alternative currency.
+/// Uses explicit FKs: tce_expense_id XOR tce_income_id must be NOT NULL.
 /// </summary>
 public class TransactionCurrencyExchange
 {

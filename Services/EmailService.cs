@@ -5,9 +5,9 @@ using Microsoft.Extensions.Options;
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Implementación de IEmailService con soporte dual:
-/// - UseFakeProvider = true  → solo loguea en consola (desarrollo)
-/// - UseFakeProvider = false → envía vía SMTP de Gmail (producción)
+/// Implementation of IEmailService with dual support:
+/// - UseFakeProvider = true  → log to console only (development)
+/// - UseFakeProvider = false → send via SMTP (production)
 /// </summary>
 public class EmailService : IEmailService
 {
@@ -24,15 +24,15 @@ public class EmailService : IEmailService
 
     public async Task SendWelcomeEmailAsync(string toEmail, string fullName, CancellationToken ct = default)
     {
-        var subject = "¡Bienvenido a Project Ledger!";
+        var subject = "Welcome to Project Ledger!";
         var body = $"""
-            <h2>¡Hola {fullName}!</h2>
-            <p>Tu cuenta en <strong>Project Ledger</strong> ha sido creada exitosamente.</p>
-            <p>Tu cuenta está pendiente de activación por un administrador.
-            Mientras tanto puedes iniciar sesión y explorar la plataforma en modo lectura.</p>
-            <p>Recibirás un correo cuando tu cuenta sea activada.</p>
+            <h2>Hello {fullName}!</h2>
+            <p>Your account at <strong>Project Ledger</strong> has been successfully created.</p>
+            <p>Your account is pending activation by an administrator.
+            In the meantime, you can log in and explore the platform in read-only mode.</p>
+            <p>You will receive an email once your account is activated.</p>
             <br/>
-            <p>— El equipo de Project Ledger</p>
+            <p>— The Project Ledger Team</p>
             """;
 
         await SendAsync(toEmail, subject, body, ct);
@@ -48,13 +48,13 @@ public class EmailService : IEmailService
             return;
         }
 
-        var subject = $"Nuevo usuario registrado: {fullName}";
+        var subject = $"New user registered: {fullName}";
         var body = $"""
-            <h2>Nuevo registro en Project Ledger</h2>
-            <p><strong>Nombre:</strong> {fullName}</p>
+            <h2>New registration in Project Ledger</h2>
+            <p><strong>Name:</strong> {fullName}</p>
             <p><strong>Email:</strong> {userEmail}</p>
-            <p>El usuario ha sido creado en estado <strong>desactivado</strong>.
-            Accede al panel de administración para revisarlo y activarlo.</p>
+            <p>The user has been created in a <strong>deactivated</strong> state.
+            Access the admin panel to review and activate them.</p>
             """;
 
         await SendAsync(_settings.AdminEmail, subject, body, ct);
@@ -64,13 +64,13 @@ public class EmailService : IEmailService
 
     public async Task SendAccountActivatedEmailAsync(string toEmail, string fullName, CancellationToken ct = default)
     {
-        var subject = "Tu cuenta ha sido activada — Project Ledger";
+        var subject = "Your account has been activated — Project Ledger";
         var body = $"""
-            <h2>¡Buenas noticias, {fullName}!</h2>
-            <p>Tu cuenta en <strong>Project Ledger</strong> ha sido <strong>activada</strong> por un administrador.</p>
-            <p>Ahora puedes crear proyectos, registrar gastos y usar todas las funcionalidades de tu plan.</p>
+            <h2>Great news, {fullName}!</h2>
+            <p>Your account at <strong>Project Ledger</strong> has been <strong>activated</strong> by an administrator.</p>
+            <p>Now you can create projects, register expenses, and use all the features of your plan.</p>
             <br/>
-            <p>— El equipo de Project Ledger</p>
+            <p>— The Project Ledger Team</p>
             """;
 
         await SendAsync(toEmail, subject, body, ct);
@@ -80,15 +80,15 @@ public class EmailService : IEmailService
 
     public async Task SendAccountDeactivatedEmailAsync(string toEmail, string fullName, CancellationToken ct = default)
     {
-        var subject = "Tu cuenta ha sido desactivada — Project Ledger";
+        var subject = "Your account has been deactivated — Project Ledger";
         var body = $"""
-            <h2>Hola {fullName}</h2>
-            <p>Tu cuenta en <strong>Project Ledger</strong> ha sido <strong>desactivada</strong> por un administrador.</p>
-            <p>Aún puedes iniciar sesión y consultar tus datos, pero no podrás crear ni modificar información
-            hasta que tu cuenta sea reactivada.</p>
-            <p>Si crees que esto es un error, contacta al administrador.</p>
+            <h2>Hello {fullName}</h2>
+            <p>Your account at <strong>Project Ledger</strong> has been <strong>deactivated</strong> by an administrator.</p>
+            <p>You can still log in and view your data, but you won't be able to create or modify information
+            until your account is reactivated.</p>
+            <p>If you believe this is an error, please contact the administrator.</p>
             <br/>
-            <p>— El equipo de Project Ledger</p>
+            <p>— The Project Ledger Team</p>
             """;
 
         await SendAsync(toEmail, subject, body, ct);
@@ -103,18 +103,18 @@ public class EmailService : IEmailService
         var roleName = role switch
         {
             "editor" => "Editor",
-            "viewer" => "Lector",
+            "viewer" => "Viewer",
             _ => role
         };
 
-        var subject = $"Te han compartido un proyecto — Project Ledger";
+        var subject = $"A project has been shared with you — Project Ledger";
         var body = $"""
-            <h2>¡Hola {fullName}!</h2>
-            <p><strong>{sharedByName}</strong> te ha agregado al proyecto
-            <strong>{projectName}</strong> con el rol de <strong>{roleName}</strong>.</p>
-            <p>Inicia sesión en Project Ledger para ver el proyecto.</p>
+            <h2>Hello {fullName}!</h2>
+            <p><strong>{sharedByName}</strong> has added you to the project
+            <strong>{projectName}</strong> with the role of <strong>{roleName}</strong>.</p>
+            <p>Log in to Project Ledger to view the project.</p>
             <br/>
-            <p>— El equipo de Project Ledger</p>
+            <p>— The Project Ledger Team</p>
             """;
 
         await SendAsync(toEmail, subject, body, ct);
@@ -126,14 +126,14 @@ public class EmailService : IEmailService
         string toEmail, string fullName, string projectName,
         string revokedByName, CancellationToken ct = default)
     {
-        var subject = $"Se ha revocado tu acceso a un proyecto — Project Ledger";
+        var subject = $"Your access to a project has been revoked — Project Ledger";
         var body = $"""
-            <h2>Hola {fullName}</h2>
-            <p><strong>{revokedByName}</strong> ha revocado tu acceso al proyecto
+            <h2>Hello {fullName}</h2>
+            <p><strong>{revokedByName}</strong> has revoked your access to the project
             <strong>{projectName}</strong>.</p>
-            <p>Si crees que esto es un error, contacta al dueño del proyecto.</p>
+            <p>If you believe this is an error, please contact the project owner.</p>
             <br/>
-            <p>— El equipo de Project Ledger</p>
+            <p>— The Project Ledger Team</p>
             """;
 
         await SendAsync(toEmail, subject, body, ct);
@@ -144,15 +144,15 @@ public class EmailService : IEmailService
     public async Task SendPasswordResetEmailAsync(
         string toEmail, string fullName, string otpCode, CancellationToken ct = default)
     {
-        var subject = "Código para restablecer tu contraseña — Project Ledger";
+        var subject = "Code to reset your password — Project Ledger";
         var body = $"""
-            <h2>Hola {fullName}</h2>
-            <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta.</p>
-            <p>Usa el siguiente código de verificación. Es válido por <strong>15 minutos</strong>.</p>
+            <h2>Hello {fullName}</h2>
+            <p>We received a request to reset the password for your account.</p>
+            <p>Use the following verification code. It is valid for <strong>15 minutes</strong>.</p>
             <h1 style="letter-spacing: 8px; font-size: 48px; color: #2563EB;">{otpCode}</h1>
-            <p>Si no solicitaste este cambio, ignora este correo. Tu contraseña no será modificada.</p>
+            <p>If you did not request this change, please ignore this email. Your password will not be modified.</p>
             <br/>
-            <p>— El equipo de Project Ledger</p>
+            <p>— The Project Ledger Team</p>
             """;
 
         await SendAsync(toEmail, subject, body, ct);
@@ -163,15 +163,15 @@ public class EmailService : IEmailService
     public async Task SendPasswordChangedEmailAsync(
         string toEmail, string fullName, CancellationToken ct = default)
     {
-        var subject = "Tu contraseña ha sido actualizada — Project Ledger";
+        var subject = "Your password has been updated — Project Ledger";
         var body = $"""
-            <h2>Hola {fullName}</h2>
-            <p>Te informamos que la contraseña de tu cuenta en <strong>Project Ledger</strong>
-            ha sido cambiada exitosamente.</p>
-            <p>Si no realizaste este cambio, contacta al soporte de inmediato y cambia tu contraseña
-            desde la opción <em>¿Olvidaste tu contraseña?</em> en la pantalla de inicio de sesión.</p>
+            <h2>Hello {fullName}</h2>
+            <p>We inform you that the password for your account at <strong>Project Ledger</strong>
+            has been successfully changed.</p>
+            <p>If you did not make this change, please contact support immediately and change your password
+            using the <em>Forgot your password?</em> option on the login screen.</p>
             <br/>
-            <p>— El equipo de Project Ledger</p>
+            <p>— The Project Ledger Team</p>
             """;
 
         await SendAsync(toEmail, subject, body, ct);

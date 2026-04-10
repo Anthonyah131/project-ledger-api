@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Localization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.Admin;
@@ -10,15 +10,15 @@ using ProjectLedger.API.Services;
 namespace ProjectLedger.API.Controllers;
 
 /// <summary>
-/// Controlador de administración de usuarios.
-/// Solo accesible por Administradores Globales (is_admin = true).
+/// User administration controller.
+/// Only accessible by Global Administrators (is_admin = true).
 /// 
-/// Funcionalidades:
-/// - Listar todos los usuarios
-/// - Ver detalle de un usuario
-/// - Activar / desactivar usuario (con notificación por correo)
-/// - Editar información básica de un usuario
-/// - Eliminar (soft-delete) un usuario
+/// Features:
+/// - List all users
+/// - View user details
+/// - Activate / deactivate user (with email notification)
+/// - Edit basic user information
+/// - Soft-delete a user
 /// </summary>
 [ApiController]
 [Route("api/admin/users")]
@@ -48,12 +48,12 @@ public class AdminUserController : ControllerBase
     // ── GET /api/admin/users ────────────────────────────────
 
     /// <summary>
-    /// Lista todos los usuarios del sistema con paginación (solo admin).
+    /// Lists all system users with pagination (admin only).
     /// </summary>
-    /// <param name="pagination">Parámetros de paginación (page, pageSize, sortBy, sortDirection).</param>
-    /// <param name="includeDeleted">Si true, incluye usuarios con soft-delete.</param>
-    /// <response code="200">Lista paginada de usuarios.</response>
-    /// <response code="403">No es administrador.</response>
+    /// <param name="pagination">Pagination parameters (page, pageSize, sortBy, sortDirection).</param>
+    /// <param name="includeDeleted">If true, includes soft-deleted users.</param>
+    /// <response code="200">Paginated list of users.</response>
+    /// <response code="403">Not an administrator.</response>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResponse<AdminUserResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -78,11 +78,11 @@ public class AdminUserController : ControllerBase
     // ── GET /api/admin/users/{id} ───────────────────────────
 
     /// <summary>
-    /// Obtiene el detalle completo de un usuario (solo admin).
+    /// Retrieves full details of a user (admin only).
     /// </summary>
-    /// <response code="200">Detalle del usuario.</response>
-    /// <response code="403">No es administrador.</response>
-    /// <response code="404">Usuario no encontrado.</response>
+    /// <response code="200">User details.</response>
+    /// <response code="403">Not an administrator.</response>
+    /// <response code="404">User not found.</response>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(AdminUserResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -102,11 +102,11 @@ public class AdminUserController : ControllerBase
     // ── PUT /api/admin/users/{id}/activate ──────────────────
 
     /// <summary>
-    /// Activa un usuario. Envía notificación por correo al usuario.
+    /// Activates a user. Sends an email notification to the user.
     /// </summary>
-    /// <response code="200">Usuario activado.</response>
-    /// <response code="403">No es administrador.</response>
-    /// <response code="404">Usuario no encontrado.</response>
+    /// <response code="200">User activated successfully.</response>
+    /// <response code="403">Not an administrator.</response>
+    /// <response code="404">User not found.</response>
     [HttpPut("{id:guid}/activate")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -126,11 +126,11 @@ public class AdminUserController : ControllerBase
     // ── PUT /api/admin/users/{id}/deactivate ────────────────
 
     /// <summary>
-    /// Desactiva un usuario. Envía notificación por correo al usuario.
+    /// Deactivates a user. Sends an email notification to the user.
     /// </summary>
-    /// <response code="200">Usuario desactivado.</response>
-    /// <response code="403">No es administrador.</response>
-    /// <response code="404">Usuario no encontrado.</response>
+    /// <response code="200">User deactivated successfully.</response>
+    /// <response code="403">Not an administrator.</response>
+    /// <response code="404">User not found.</response>
     [HttpPut("{id:guid}/deactivate")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -150,11 +150,11 @@ public class AdminUserController : ControllerBase
     // ── PUT /api/admin/users/{id} ───────────────────────────
 
     /// <summary>
-    /// Edita información básica de un usuario (solo admin).
+    /// Edits basic information of a user (admin only).
     /// </summary>
-    /// <response code="200">Usuario actualizado.</response>
-    /// <response code="403">No es administrador.</response>
-    /// <response code="404">Usuario no encontrado.</response>
+    /// <response code="200">User updated successfully.</response>
+    /// <response code="403">Not an administrator.</response>
+    /// <response code="404">User not found.</response>
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(AdminUserResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -184,11 +184,11 @@ public class AdminUserController : ControllerBase
     // ── DELETE /api/admin/users/{id} ────────────────────────
 
     /// <summary>
-    /// Elimina (soft-delete) un usuario. Solo admin.
+    /// Performs a soft-delete on a user. Admin only.
     /// </summary>
-    /// <response code="204">Usuario eliminado.</response>
-    /// <response code="403">No es administrador.</response>
-    /// <response code="404">Usuario no encontrado.</response>
+    /// <response code="204">User deleted successfully.</response>
+    /// <response code="403">Not an administrator.</response>
+    /// <response code="404">User not found.</response>
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]

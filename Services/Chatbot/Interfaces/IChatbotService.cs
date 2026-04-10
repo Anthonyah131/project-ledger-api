@@ -3,8 +3,8 @@ using ProjectLedger.API.DTOs.Chatbot;
 namespace ProjectLedger.API.Services.Chatbot.Interfaces;
 
 /// <summary>
-/// Servicio principal del chatbot: orquesta la rotación de proveedores,
-/// inyecta contexto financiero real del usuario e incluye el historial de conversación.
+/// Main chatbot service: orchestrates provider rotation,
+/// injects real user financial context and includes conversation history.
 /// </summary>
 public interface IChatbotService
 {

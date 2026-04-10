@@ -2,7 +2,7 @@ namespace ProjectLedger.API.DTOs.Report;
 
 // ── Project Summary ─────────────────────────────────────────
 
-/// <summary>Resumen financiero del proyecto.</summary>
+/// <summary>Financial summary of the project.</summary>
 public class ProjectReportResponse
 {
     public Guid ProjectId { get; set; }
@@ -16,7 +16,7 @@ public class ProjectReportResponse
     public int ExpenseCount { get; set; }
     public decimal AverageExpenseAmount { get; set; }
 
-    // ── Ingresos ────────────────────────────────────────────
+    // ── Incomes ────────────────────────────────────────────
     public decimal TotalIncome { get; set; }
     public int IncomeCount { get; set; }
     public decimal NetBalance { get; set; }
@@ -49,7 +49,7 @@ public class TopExpenseInfo
     public DateOnly ExpenseDate { get; set; }
 }
 
-/// <summary>Desglose por categoría.</summary>
+/// <summary>Breakdown by category.</summary>
 public class CategoryBreakdown
 {
     public Guid CategoryId { get; set; }
@@ -60,7 +60,7 @@ public class CategoryBreakdown
     public decimal AverageAmount { get; set; }
 }
 
-/// <summary>Desglose por método de pago.</summary>
+/// <summary>Breakdown by payment method.</summary>
 public class PaymentMethodBreakdown
 {
     public Guid PaymentMethodId { get; set; }
@@ -71,7 +71,7 @@ public class PaymentMethodBreakdown
     public decimal AverageAmount { get; set; }
 }
 
-/// <summary>Desglose por partner (splits).</summary>
+/// <summary>Breakdown by partner (splits).</summary>
 public class PartnerBreakdown
 {
     public Guid PartnerId { get; set; }
@@ -86,7 +86,7 @@ public class PartnerBreakdown
     public int SettlementCount { get; set; }
 }
 
-/// <summary>Totales convertidos a una moneda alternativa del proyecto.</summary>
+/// <summary>Totals converted to an alternative project currency.</summary>
 public class AlternativeCurrencyTotal
 {
     public string CurrencyCode { get; set; } = null!;

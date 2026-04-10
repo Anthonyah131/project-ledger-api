@@ -4,7 +4,7 @@ namespace ProjectLedger.API.DTOs.ProjectPartner;
 
 // ── Requests ────────────────────────────────────────────────
 
-/// <summary>Request para asignar un partner a un proyecto.</summary>
+/// <summary>Request to assign a partner to a project.</summary>
 public class AddProjectPartnerRequest
 {
     [Required]
@@ -13,7 +13,7 @@ public class AddProjectPartnerRequest
 
 // ── Responses ───────────────────────────────────────────────
 
-/// <summary>Partner asignado a un proyecto.</summary>
+/// <summary>Partner assigned to a project.</summary>
 public class ProjectPartnerResponse
 {
     public Guid Id { get; set; }
@@ -23,17 +23,17 @@ public class ProjectPartnerResponse
     public DateTime AddedAt { get; set; }
 }
 
-/// <summary>Métodos de pago disponibles en un proyecto, agrupados por partner.</summary>
+/// <summary>Available payment methods in a project, grouped by partner.</summary>
 public class AvailablePaymentMethodsResponse
 {
     public Guid ProjectId { get; set; }
-    /// <summary>Métodos de pago del usuario que no tienen partner asignado — disponibles en cualquier proyecto.</summary>
+    /// <summary>User payment methods with no assigned partner — available in any project.</summary>
     public IReadOnlyList<ProjectPaymentMethodItem> UnpartneredPaymentMethods { get; set; } = [];
-    /// <summary>Partners asignados al proyecto con sus métodos de pago.</summary>
+    /// <summary>Partners assigned to the project with their payment methods.</summary>
     public IReadOnlyList<PartnerWithPaymentMethods> Partners { get; set; } = [];
 }
 
-/// <summary>Partner con sus métodos de pago disponibles en el contexto del proyecto.</summary>
+/// <summary>Partner with their available payment methods in the project context.</summary>
 public class PartnerWithPaymentMethods
 {
     public Guid PartnerId { get; set; }
@@ -41,7 +41,7 @@ public class PartnerWithPaymentMethods
     public IReadOnlyList<ProjectPaymentMethodItem> PaymentMethods { get; set; } = [];
 }
 
-/// <summary>Método de pago disponible en el proyecto.</summary>
+/// <summary>Payment method available in the project.</summary>
 public class ProjectPaymentMethodItem
 {
     public Guid Id { get; set; }
@@ -52,8 +52,8 @@ public class ProjectPaymentMethodItem
 }
 
 /// <summary>
-/// Método de pago enlazable al proyecto: pertenece a un partner asignado al proyecto
-/// y aún no está vinculado al mismo.
+/// Linkable payment method to the project: belongs to a partner assigned to the project
+/// and is not yet linked to it.
 /// </summary>
 public class LinkablePaymentMethodResponse
 {

@@ -2,6 +2,9 @@ using ProjectLedger.API.DTOs.Mcp;
 
 namespace ProjectLedger.API.Services;
 
+/// <summary>
+/// Partial implementation of McpService focusing on recent financial movements (expenses and incomes).
+/// </summary>
 public partial class McpService
 {
     public async Task<McpRecentMovementsResponse> GetRecentMovementsAsync(

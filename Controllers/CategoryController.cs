@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Localization;
 using ProjectLedger.API.DTOs.Common;
 using ProjectLedger.API.Resources;
 using Microsoft.AspNetCore.Authorization;
@@ -10,12 +10,12 @@ using ProjectLedger.API.Services;
 namespace ProjectLedger.API.Controllers;
 
 /// <summary>
-/// Controlador de categorías de un proyecto.
+/// Project categories controller.
 /// 
-/// Ruta anidada: /api/projects/{projectId}/categories
-/// - ProjectId viene SIEMPRE de la ruta, nunca del body.
-/// - Viewer+ puede listar/ver. Editor+ puede crear/editar/eliminar.
-/// - Plan valida MaxCategoriesPerProject al crear.
+/// Nested route: /api/projects/{projectId}/categories
+/// - ProjectId ALWAYS comes from the route, never from the body.
+/// - Viewer+ can list/view. Editor+ can create/edit/delete.
+/// - Plan validates MaxCategoriesPerProject on creation.
 /// </summary>
 [ApiController]
 [Route("api/projects/{projectId:guid}/categories")]
@@ -44,10 +44,10 @@ public class CategoryController : ControllerBase
     // ── GET /api/projects/{projectId}/categories ────────────
 
     /// <summary>
-    /// Lista todas las categorías del proyecto.
+    /// Lists all project categories.
     /// </summary>
-    /// <response code="200">Lista de categorías.</response>
-    /// <response code="403">Sin acceso al proyecto.</response>
+    /// <response code="200">List of categories.</response>
+    /// <response code="403">No access to the project.</response>
     [HttpGet]
     [Authorize(Policy = "ProjectViewer")]
     [ProducesResponseType(typeof(IEnumerable<CategoryResponse>), StatusCodes.Status200OK)]
@@ -61,10 +61,10 @@ public class CategoryController : ControllerBase
     // ── GET /api/projects/{projectId}/categories/{categoryId}
 
     /// <summary>
-    /// Obtiene una categoría por ID.
+    /// Gets a category by ID.
     /// </summary>
-    /// <response code="200">Categoría encontrada.</response>
-    /// <response code="404">Categoría no encontrada o no pertenece al proyecto.</response>
+    /// <response code="200">Category found.</response>
+    /// <response code="404">Category not found or does not belong to the project.</response>
     [HttpGet("{categoryId:guid}")]
     [Authorize(Policy = "ProjectViewer")]
     [ProducesResponseType(typeof(CategoryResponse), StatusCodes.Status200OK)]
@@ -81,11 +81,11 @@ public class CategoryController : ControllerBase
     // ── POST /api/projects/{projectId}/categories ───────────
 
     /// <summary>
-    /// Crea una categoría en el proyecto. Requiere editor+.
-    /// Valida límite MaxCategoriesPerProject del plan del owner.
+    /// Creates a category in the project. Requires editor+.
+    /// Validates the owner's plan MaxCategoriesPerProject limit.
     /// </summary>
-    /// <response code="201">Categoría creada.</response>
-    /// <response code="403">Sin permisos o límite del plan excedido.</response>
+    /// <response code="201">Category created.</response>
+    /// <response code="403">No permissions or plan limit exceeded.</response>
     [HttpPost]
     [Authorize(Policy = "ProjectEditor")]
     [ProducesResponseType(typeof(CategoryResponse), StatusCodes.Status201Created)]
@@ -114,10 +114,10 @@ public class CategoryController : ControllerBase
     // ── PUT /api/projects/{projectId}/categories/{categoryId}
 
     /// <summary>
-    /// Actualiza una categoría. Requiere editor+.
+    /// Updates a category. Requires editor+.
     /// </summary>
-    /// <response code="200">Categoría actualizada.</response>
-    /// <response code="404">Categoría no encontrada.</response>
+    /// <response code="200">Category updated.</response>
+    /// <response code="404">Category not found.</response>
     [HttpPut("{categoryId:guid}")]
     [Authorize(Policy = "ProjectEditor")]
     [ProducesResponseType(typeof(CategoryResponse), StatusCodes.Status200OK)]
@@ -148,11 +148,11 @@ public class CategoryController : ControllerBase
     // ── DELETE /api/projects/{projectId}/categories/{categoryId}
 
     /// <summary>
-    /// Soft-delete de una categoría. Requiere editor+.
+    /// Soft-deletes a category. Requires editor+.
     /// </summary>
-    /// <response code="400">La categoría no se puede eliminar porque tiene movimientos activos relacionados.</response>
-    /// <response code="204">Categoría eliminada.</response>
-    /// <response code="404">Categoría no encontrada.</response>
+    /// <response code="400">The category cannot be deleted because it has related active transactions.</response>
+    /// <response code="204">Category deleted.</response>
+    /// <response code="404">Category not found.</response>
     [HttpDelete("{categoryId:guid}")]
     [Authorize(Policy = "ProjectEditor")]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

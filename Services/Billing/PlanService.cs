@@ -4,7 +4,7 @@ using ProjectLedger.API.Repositories;
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Servicio de planes. Solo lectura (los planes se gestionan por seed/admin).
+/// Plans service. Read-only (plans are managed via seed/admin).
 /// </summary>
 public class PlanService : IPlanService
 {

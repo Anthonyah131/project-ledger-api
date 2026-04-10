@@ -1,7 +1,10 @@
-﻿using ProjectLedger.API.DTOs.Report;
+using ProjectLedger.API.DTOs.Report;
 
 namespace ProjectLedger.API.Services;
 
+/// <summary>
+/// Partial implementation of ReportService focusing on category growth analysis.
+/// </summary>
 public partial class ReportService
 {
     public async Task<CategoryGrowthEnvelopeResponse> GetCategoryGrowthAsync(

@@ -4,6 +4,9 @@ using ProjectLedger.API.DTOs.Report;
 
 namespace ProjectLedger.API.Services;
 
+/// <summary>
+/// Partial implementation of ReportService focusing on partner balance reporting.
+/// </summary>
 public partial class ReportService
 {
     public async Task<PartnerBalanceReportResponse> GetPartnerBalancesAsync(
@@ -15,12 +18,12 @@ public partial class ReportService
         if (!project.PrjPartnersEnabled)
             throw new InvalidOperationException("PartnersNotEnabled");
 
-        // Delegar al mismo servicio que usa el endpoint /partners/balance
-        // Garantiza consistencia total con lo que ve el frontend
+        // Delegate to the same service used by the /partners/balance endpoint.
+        // This ensures total consistency with what the frontend displays.
         var balances = await _partnerBalanceService.GetBalancesAsync(
             projectId, project.PrjCurrencyCode, ct);
 
-        // Cargar settlements para incluirlos como detalle exportable
+        // Load settlements to include them as exportable detail
         var allSettlements = await _settlementRepo.GetByProjectIdAsync(projectId, ct);
         var settlements = allSettlements
             .Where(s => from is null || s.PstSettlementDate >= from.Value)

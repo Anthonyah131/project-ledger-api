@@ -2,24 +2,24 @@
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Servicio de verificación de permisos y límites según el plan del usuario.
+/// Service for verifying permissions and limits based on the user's plan.
 /// 
-/// Dos modos de uso:
-/// 1. IMPERATIVO (en servicios/controllers):
+/// Two modes of use:
+/// 1. IMPERATIVE (in services/controllers):
 ///    <code>await _planAuth.ValidatePermissionAsync(userId, PlanPermission.CanExportData);</code>
-///    Lanza PlanDeniedException si no tiene el permiso.
+///    Throws PlanDeniedException if the user doesn't have the permission.
 /// 
-/// 2. DECLARATIVO (en controllers con Authorization Policies):
+/// 2. DECLARATIVO (in controllers with Authorization Policies):
 ///    <code>[Authorize(Policy = "Plan:CanExportData")]</code>
-///    El PlanPermissionHandler resuelve automáticamente.
+///    Handled automatically by the PlanPermissionHandler.
 /// </summary>
 public interface IPlanAuthorizationService
 {
-    // ── Permisos booleanos ──────────────────────────────────
+    // ── Boolean Permissions ──────────────────────────────────
 
     /// <summary>
-    /// Verifica si el plan del usuario permite la acción indicada.
-    /// Retorna true/false sin lanzar excepción.
+    /// Verifies if the user's plan allows the specified action.
+    /// Returns true/false without throwing an exception.
     /// </summary>
     Task<bool> HasPermissionAsync(
         Guid userId,
@@ -27,19 +27,19 @@ public interface IPlanAuthorizationService
         CancellationToken ct = default);
 
     /// <summary>
-    /// Igual que HasPermissionAsync pero lanza PlanDeniedException si no tiene permiso.
-    /// Ideal para validación imperativa en servicios.
+    /// Same as HasPermissionAsync but throws PlanDeniedException if permission is missing.
+    /// Ideal for imperative validation in services.
     /// </summary>
     Task ValidatePermissionAsync(
         Guid userId,
         PlanPermission permission,
         CancellationToken ct = default);
 
-    // ── Límites numéricos ───────────────────────────────────
+    // ── Numeric Limits ───────────────────────────────────
 
     /// <summary>
-    /// Verifica si el usuario puede crear más entidades del tipo indicado
-    /// según los límites de su plan. Si el límite es null → ilimitado.
+    /// Verifies if the user can create more entities of the specified type
+    /// based on their plan's limits. If the limit is null, it is considered unlimited.
     /// </summary>
     Task<bool> IsWithinLimitAsync(
         Guid userId,
@@ -48,7 +48,7 @@ public interface IPlanAuthorizationService
         CancellationToken ct = default);
 
     /// <summary>
-    /// Igual que IsWithinLimitAsync pero lanza PlanLimitExceededException si excede.
+    /// Same as IsWithinLimitAsync but throws PlanLimitExceededException if exceeded.
     /// </summary>
     Task ValidateLimitAsync(
         Guid userId,
@@ -56,29 +56,29 @@ public interface IPlanAuthorizationService
         int currentCount,
         CancellationToken ct = default);
 
-    // ── Validación de escritura en proyecto ─────────────────
+    // ── Project Write Access Validation ─────────────────
 
     /// <summary>
-    /// Valida que el plan del dueño del proyecto permite operaciones de escritura.
+    /// Validates that the plan of the project owner allows write operations.
     /// <list type="bullet">
-    ///   <item>Siempre verifica <see cref="PlanPermission.CanEditProjects"/> del owner.</item>
-    ///   <item>Si el usuario que actúa NO es el owner (miembro compartido),
-    ///         también verifica <see cref="PlanPermission.CanShareProjects"/>.</item>
+    ///   <item>Always verifies <see cref="PlanPermission.CanEditProjects"/> for the owner.</item>
+    ///   <item>If the acting user is NOT the owner (shared member), 
+    ///         it also verifies <see cref="PlanPermission.CanShareProjects"/>.</item>
     /// </list>
-    /// Lanza <see cref="PlanDeniedException"/> si no cumple.
-    /// Escenario clave: si el owner hizo downgrade a Free, los miembros compartidos
-    /// ya no pueden crear/editar/eliminar recursos del proyecto.
+    /// Throws <see cref="PlanDeniedException"/> if requirements are not met.
+    /// Key scenario: if the owner downgraded to Free, shared members 
+    /// can no longer create/edit/delete resources in that project.
     /// </summary>
     Task ValidateProjectWriteAccessAsync(
         Guid projectId,
         Guid actingUserId,
         CancellationToken ct = default);
 
-    // ── Carga completa del plan ─────────────────────────────
+    // ── Full Plan Capability Retrieval ───────────────────
 
     /// <summary>
-    /// Obtiene un resumen completo de permisos y límites del plan del usuario.
-    /// Útil para el frontend (mostrar qué features tiene disponibles).
+    /// Retrieves a complete summary of permissions and limits for the user's plan.
+    /// Useful for the frontend to show/hide available features.
     /// </summary>
     Task<PlanCapabilities> GetCapabilitiesAsync(
         Guid userId,
@@ -86,17 +86,17 @@ public interface IPlanAuthorizationService
 }
 
 /// <summary>
-/// Resumen de las capacidades del plan de un usuario.
-/// Se devuelve al frontend para mostrar/ocultar features.
+/// Summary of a user's plan capabilities.
+/// Returned to the frontend to control feature visibility.
 /// </summary>
 public class PlanCapabilities
 {
     public string PlanName { get; set; } = null!;
     public string PlanSlug { get; set; } = null!;
 
-    // ── Permisos ────────────────────────────────────────────
+    // ── Permissions ────────────────────────────────────────────
     public Dictionary<string, bool> Permissions { get; set; } = new();
 
-    // ── Límites (null = ilimitado) ──────────────────────────
+    // ── Limits (null = unlimited) ──────────────────────────
     public Dictionary<string, int?> Limits { get; set; } = new();
 }

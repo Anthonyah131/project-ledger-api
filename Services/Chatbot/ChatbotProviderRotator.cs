@@ -1,27 +1,27 @@
 namespace ProjectLedger.API.Services.Chatbot;
 
 /// <summary>
-/// Singleton que mantiene el índice de rotación entre proveedores.
-/// Cada llamada a <see cref="GetNext"/> avanza el puntero de forma atómica
-/// y thread-safe, distribuyendo las peticiones en round-robin.
+/// Singleton that maintains the rotation index between providers.
+/// Each call to <see cref="GetNext"/> advances the pointer atomically
+/// and in a thread-safe manner, distributing the requests in a round-robin fashion.
 /// </summary>
 public sealed class ChatbotProviderRotator
 {
-    // Empieza en -1 para que el primer Increment devuelva 0
+    // Starts at -1 so the first Increment returns 0
     private int _index = -1;
 
     /// <summary>
-    /// Devuelve el índice de inicio para la próxima petición y avanza el puntero.
-    /// El módulo garantiza que el índice siempre esté en [0, count).
+    /// Returns the starting index for the next request and advances the pointer.
+    /// The modulo operator ensures the index is always in [0, count).
     /// </summary>
     public int GetNext(int count)
     {
         if (count <= 0) return 0;
 
-        // Interlocked.Increment es atómico — seguro para acceso concurrente
+        // Interlocked.Increment is atomic — safe for concurrent access
         var next = Interlocked.Increment(ref _index);
 
-        // Módulo unsigned para evitar negativos tras overflow de int
+        // Unsigned modulo to avoid negative numbers after int overflow
         return (int)((uint)next % (uint)count);
     }
 }

@@ -6,7 +6,7 @@ using ProjectLedger.API.Repositories;
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Gestión de valores de tipo de cambio por transacción (gasto/ingreso).
+/// Manages exchange rate values per transaction (expense/income).
 /// </summary>
 public class TransactionCurrencyExchangeService : ITransactionCurrencyExchangeService
 {
@@ -55,10 +55,10 @@ public class TransactionCurrencyExchangeService : ITransactionCurrencyExchangeSe
     public async Task ReplaceExchangesAsync(
         string entityType, Guid entityId, List<CurrencyExchangeRequest> exchanges, CancellationToken ct = default)
     {
-        // Eliminar exchanges existentes
+        // Delete existing exchanges
         await _repo.DeleteByEntityAsync(entityType, entityId, ct);
 
-        // Insertar nuevos
+        // Insert new ones
         foreach (var exchange in exchanges)
         {
             var entity = exchange.ToEntity(entityType, entityId);

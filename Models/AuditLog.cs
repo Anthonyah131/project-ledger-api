@@ -1,13 +1,13 @@
 namespace ProjectLedger.API.Models;
 
 /// <summary>
-/// Registro de auditoría inmutable.
-/// Almacena snapshots JSONB del estado anterior y nuevo de cada entidad.
+/// Immutable audit log.
+/// Stores JSONB snapshots of the old and new state of each entity.
 /// </summary>
 public class AuditLog
 {
     public Guid AudId { get; set; }
-    public string AudEntityName { get; set; } = null!;         // ej: "expenses", "obligations"
+    public string AudEntityName { get; set; } = null!;         // e.g. "expenses", "obligations"
     public Guid AudEntityId { get; set; }
     public string AudActionType { get; set; } = null!;         // 'create', 'update', 'delete', 'status_change', 'associate'
     public Guid AudPerformedByUserId { get; set; }

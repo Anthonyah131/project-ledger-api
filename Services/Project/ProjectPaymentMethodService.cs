@@ -4,8 +4,8 @@ using ProjectLedger.API.Repositories;
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Servicio para vincular/desvincular métodos de pago a proyectos.
-/// Permite que miembros de un proyecto compartido usen los métodos vinculados.
+/// Service to link/unlink payment methods to projects.
+/// Allows members of a shared project to use linked methods.
 /// </summary>
 public class ProjectPaymentMethodService : IProjectPaymentMethodService
 {
@@ -34,14 +34,14 @@ public class ProjectPaymentMethodService : IProjectPaymentMethodService
     public async Task<ProjectPaymentMethod> LinkAsync(
         ProjectPaymentMethod link, CancellationToken ct = default)
     {
-        // Verificar que el método de pago existe y no está eliminado
+        // Verify that the payment method exists and is not deleted
         var pm = await _pmRepo.GetByIdAsync(link.PpmPaymentMethodId, ct)
             ?? throw new KeyNotFoundException("PaymentMethodNotFound");
 
         if (pm.PmtIsDeleted)
             throw new KeyNotFoundException("PaymentMethodNotFound");
 
-        // Verificar que no esté ya vinculado
+        // Verify that it is not already linked
         var existing = await _ppmRepo.GetByProjectAndPaymentMethodAsync(
             link.PpmProjectId, link.PpmPaymentMethodId, ct);
 

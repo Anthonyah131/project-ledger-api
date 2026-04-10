@@ -2,6 +2,9 @@ using ProjectLedger.API.DTOs.Mcp;
 
 namespace ProjectLedger.API.Services;
 
+/// <summary>
+/// Partial implementation of McpService focusing on income tracking and project-level income data.
+/// </summary>
 public partial class McpService
 {
     public async Task<McpIncomeByPeriodResponse> GetIncomeByPeriodAsync(

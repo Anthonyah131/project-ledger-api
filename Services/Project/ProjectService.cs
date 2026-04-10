@@ -1,12 +1,12 @@
-﻿using ProjectLedger.API.Models;
+using ProjectLedger.API.Models;
 using ProjectLedger.API.Repositories;
 
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Servicio de proyectos. CRUD con soft delete.
-/// Crea automáticamente un ProjectMember(owner) al crear el proyecto.
-/// Valida permisos del plan antes de crear.
+/// Projects service. CRUD with soft delete.
+/// Automatically creates a ProjectMember (owner) when creating a project.
+/// Validates plan permissions before creation.
 /// </summary>
 public class ProjectService : IProjectService
 {
@@ -106,11 +106,11 @@ public class ProjectService : IProjectService
 
     public async Task<Project> CreateAsync(Project project, CancellationToken ct = default)
     {
-        // Validar permiso del plan
+        // Validate plan permission
         await _planAuth.ValidatePermissionAsync(
             project.PrjOwnerUserId, PlanPermission.CanCreateProjects, ct);
 
-        // Validar límite de proyectos
+        // Validate projects limit
         var ownedProjects = await _projectRepo.GetByOwnerUserIdAsync(project.PrjOwnerUserId, ct);
         await _planAuth.ValidateLimitAsync(
             project.PrjOwnerUserId, PlanLimits.MaxProjects, ownedProjects.Count(), ct);
@@ -120,7 +120,7 @@ public class ProjectService : IProjectService
 
         await _projectRepo.AddAsync(project, ct);
 
-        // Crear membership "owner" automáticamente
+        // Automatically create "owner" membership
         var ownerMember = new ProjectMember
         {
             PrmId = Guid.NewGuid(),
@@ -134,7 +134,7 @@ public class ProjectService : IProjectService
 
         await _memberRepo.AddAsync(ownerMember, ct);
 
-        // Crear categoría por defecto "General"
+        // Create default "General" category
         var defaultCategory = new Category
         {
             CatId = Guid.NewGuid(),
@@ -157,7 +157,7 @@ public class ProjectService : IProjectService
 
     public async Task UpdateAsync(Project project, CancellationToken ct = default)
     {
-        // Validar que el plan del owner permite editar proyectos
+        // Validate that the owner's plan allows editing projects
         await _planAuth.ValidatePermissionAsync(
             project.PrjOwnerUserId, PlanPermission.CanEditProjects, ct);
 
@@ -189,7 +189,7 @@ public class ProjectService : IProjectService
         var project = await _projectRepo.GetByIdAsync(id, ct)
             ?? throw new KeyNotFoundException("ProjectNotFound");
 
-        // Validar que el plan del owner permite eliminar proyectos
+        // Validate that the owner's plan allows deleting projects
         await _planAuth.ValidatePermissionAsync(
             project.PrjOwnerUserId, PlanPermission.CanDeleteProjects, ct);
 
@@ -203,6 +203,29 @@ public class ProjectService : IProjectService
 
         await _auditLog.LogAsync("Project", id, "delete", deletedByUserId,
             oldValues: new { project.PrjName }, ct: ct);
+    }
+
+    public async Task<(IEnumerable<ProjectMember> PinnedFiltered, int PinnedTotalCount, IEnumerable<Project> Items, int TotalCount)>
+        GetProjectsLookupAsync(Guid userId, string? search, int page, int skip, int take, CancellationToken ct = default)
+    {
+        // Una query: todos los pineados (máx 6). IDs para excluir de items[]
+        var allPinned = await _memberRepo.GetPinnedByUserIdAsync(userId, ct);
+        var pinnedList = allPinned.ToList();
+        var pinnedIds = pinnedList.Select(m => m.PrmProjectId).ToList();
+
+        // Filtrar por búsqueda en memoria (máx 6, siempre barato). Solo en página 1
+        IEnumerable<ProjectMember> pinnedFiltered = [];
+        if (page == 1)
+        {
+            pinnedFiltered = string.IsNullOrWhiteSpace(search)
+                ? pinnedList
+                : pinnedList.Where(m => m.Project.PrjName.Contains(search, StringComparison.OrdinalIgnoreCase));
+        }
+
+        var (items, totalCount) = await _projectRepo.GetByUserIdPagedExcludingWithSearchAsync(
+            userId, pinnedIds, search, skip, take, ct);
+
+        return (pinnedFiltered, pinnedList.Count, items, totalCount);
     }
 
     public async Task UpdateSettingsAsync(Guid projectId, bool? partnersEnabled, CancellationToken ct = default)
@@ -222,7 +245,7 @@ public class ProjectService : IProjectService
             }
             else
             {
-                // No se puede desactivar si ya hay movimientos con splits registrados
+                // Cannot be disabled if there are already movements with registered splits
                 var hasExpenseSplits = await _expenseSplitRepo.ExistsForProjectAsync(projectId, ct);
                 var hasIncomeSplits = await _incomeSplitRepo.ExistsForProjectAsync(projectId, ct);
                 if (hasExpenseSplits || hasIncomeSplits)

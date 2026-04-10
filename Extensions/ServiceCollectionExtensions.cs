@@ -10,20 +10,20 @@ using ProjectLedger.API.Services.Report;
 namespace ProjectLedger.API.Extensions;
 
 /// <summary>
-/// Extensiones para registrar servicios de la aplicación en el contenedor DI.
+/// Extensions for registering application services in the DI container.
 /// </summary>
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Registra AppDbContext con Npgsql (compatible con CockroachDB).
-    /// La contraseña se resuelve desde la variable de entorno DB_PASSWORD.
+    /// Registers AppDbContext with Npgsql (compatible with CockroachDB).
+    /// The password is resolved from the DB_PASSWORD environment variable.
     /// </summary>
     public static IServiceCollection AddDatabase(this IServiceCollection services, IConfiguration configuration)
     {
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-        // Sustituir placeholder ${DB_PASSWORD} con la variable de entorno real
+        // Replace placeholder ${DB_PASSWORD} with the real environment variable
         var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD") ?? string.Empty;
         connectionString = connectionString.Replace("${DB_PASSWORD}", dbPassword);
 
@@ -41,7 +41,7 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Registra todas las implementaciones concretas de repositorios.
+    /// Registers all concrete repository implementations.
     /// </summary>
     public static IServiceCollection AddRepositories(this IServiceCollection services)
     {
@@ -72,19 +72,19 @@ public static class ServiceCollectionExtensions
         // Partners
         services.AddScoped<IPartnerRepository, PartnerRepository>();
 
-        // Workspaces (Fase 2b)
+        // Workspaces (Phase 2b)
         services.AddScoped<IWorkspaceRepository, WorkspaceRepository>();
 
-        // ProjectPartners (Fase 2c)
+        // ProjectPartners (Phase 2c)
         services.AddScoped<IProjectPartnerRepository, ProjectPartnerRepository>();
 
-        // Splits (Fase 3a)
+        // Splits (Phase 3a)
         services.AddScoped<IExpenseSplitRepository, ExpenseSplitRepository>();
         services.AddScoped<IIncomeSplitRepository, IncomeSplitRepository>();
         services.AddScoped<ISplitCurrencyExchangeRepository, SplitCurrencyExchangeRepository>();
         services.AddScoped<ISplitCurrencyExchangeService, SplitCurrencyExchangeService>();
 
-        // Partner Settlements & Balances (Fase 3c)
+        // Partner Settlements & Balances (Phase 3c)
         services.AddScoped<IPartnerSettlementRepository, PartnerSettlementRepository>();
         services.AddScoped<IPartnerBalanceRepository, PartnerBalanceRepository>();
 
@@ -95,21 +95,21 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Registra las implementaciones concretas de servicios de la aplicación.
+    /// Registers concrete implementations of application services.
     /// </summary>
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         // Email
         services.AddScoped<IEmailService, EmailService>();
 
-        // Autenticación y tokens
+        // Authentication and tokens
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IAuthService, AuthService>();
 
-        // Autorización multi-tenant
+        // Multi-tenant authorization
         services.AddScoped<IProjectAccessService, ProjectAccessService>();
 
-        // Autorización por plan (feature gates + límites)
+        // Plan authorization (feature gates + limits)
         services.AddScoped<IPlanAuthorizationService, PlanAuthorizationService>();
         services.AddScoped<IStripeBillingService, StripeBillingService>();
 
@@ -127,7 +127,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProjectPaymentMethodService, ProjectPaymentMethodService>();
         services.AddScoped<ITransactionReferenceGuardService, TransactionReferenceGuardService>();
 
-        // Reportes
+        // Reports
         services.AddScoped<IReportExportService, ReportExportService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IReportService, ReportService>();
@@ -161,10 +161,10 @@ public static class ServiceCollectionExtensions
         // Global Search
         services.AddScoped<ISearchService, SearchService>();
 
-        // Chatbot IA (rotación de proveedores gratuitos)
-        // Singleton: el rotador mantiene el índice entre peticiones
+        // AI Chatbot (free provider rotation)
+        // Singleton: the rotator maintains the index between requests
         services.AddSingleton<ChatbotProviderRotator>();
-        // Los proveedores se registran como IEnumerable<IChatProvider> para inyectarlos todos
+        // Providers are registered as IEnumerable<IChatProvider> to inject them all
         services.AddScoped<IChatProvider, OpenRouterChatProvider>();
         services.AddScoped<IChatProvider, GroqChatProvider>();
         services.AddScoped<IChatProvider, CerebrasChatProvider>();

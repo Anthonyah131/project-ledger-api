@@ -20,6 +20,20 @@ public class PaymentMethodRepository : Repository<PaymentMethod>, IPaymentMethod
             .OrderBy(pm => pm.PmtName)
             .ToListAsync(ct);
 
+    public async Task<(IEnumerable<PaymentMethod> Items, int TotalCount)> GetByOwnerUserIdPagedWithSearchAsync(
+        Guid userId, string? search, int skip, int take, CancellationToken ct = default)
+    {
+        var query = DbSet
+            .Where(pm => pm.PmtOwnerUserId == userId && !pm.PmtIsDeleted);
+
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(pm => pm.PmtName.ToLower().Contains(search.ToLower()));
+
+        var total = await query.CountAsync(ct);
+        var items = await query.OrderBy(pm => pm.PmtName).Skip(skip).Take(take).ToListAsync(ct);
+        return (items, total);
+    }
+
     public async Task<bool> IsLinkedToAnyProjectAsync(Guid pmtId, CancellationToken ct = default)
         => await Context.Set<ProjectPaymentMethod>()
             .AnyAsync(ppm => ppm.PpmPaymentMethodId == pmtId, ct);

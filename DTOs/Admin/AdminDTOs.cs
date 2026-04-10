@@ -4,7 +4,7 @@ namespace ProjectLedger.API.DTOs.Admin;
 
 // ── Requests ────────────────────────────────────────────────
 
-/// <summary>Request para que el admin edite información de un usuario.</summary>
+/// <summary>Request for the admin to edit a user's information.</summary>
 public class AdminUpdateUserRequest
 {
     [Required]
@@ -16,13 +16,13 @@ public class AdminUpdateUserRequest
 
     public Guid? PlanId { get; set; }
 
-    /// <summary>Si se envía, otorga o revoca permisos de administrador global.</summary>
+    /// <summary>If provided, grants or revokes global administrator permissions.</summary>
     public bool? IsAdmin { get; set; }
 }
 
 // ── Responses ───────────────────────────────────────────────
 
-/// <summary>Respuesta completa de usuario para el admin.</summary>
+/// <summary>Full user response object for the admin.</summary>
 public class AdminUserResponse
 {
     public Guid Id { get; set; }
@@ -38,7 +38,7 @@ public class AdminUserResponse
     public AdminUserPlanDto? Plan { get; set; }
 }
 
-/// <summary>Resumen del plan en respuesta admin.</summary>
+/// <summary>Plan summary in the admin response.</summary>
 public class AdminUserPlanDto
 {
     public Guid Id { get; set; }

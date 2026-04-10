@@ -5,13 +5,13 @@ using ProjectLedger.API.Common.Settings;
 namespace ProjectLedger.API.Services.Chatbot.Providers;
 
 /// <summary>
-/// Proveedor Cerebras: chips de IA de alto rendimiento (WSE).
-/// Capa gratuita disponible con límites por minuto/día.
-/// Documentación: https://inference-docs.cerebras.ai/introduction
+/// Cerebras Provider: High-performance AI chips (WSE).
+/// Free tier available with minute/day limits.
+/// Documentation: https://inference-docs.cerebras.ai/introduction
 /// </summary>
 public class CerebrasChatProvider : OpenAiCompatibleChatProvider
 {
-    // Modelo gratuito de Cerebras con contexto amplio
+    // Cerebras free high-capacity model with broad context
     private const string DefaultModel = "llama3.1-8b";
 
     private readonly ChatbotProviderSettings _settings;

@@ -26,7 +26,7 @@ public static class AuditLogMappingExtensions
         NewValues = DeserializeJson(entity.AudNewValues)
     };
 
-    // ── Factory (para crear AuditLog desde el servicio) ─────
+    // ── Factory (to create AuditLog from the service) ───────
 
     public static AuditLog Create(
         string entityName,
@@ -67,7 +67,7 @@ public static class AuditLogMappingExtensions
         }
         catch
         {
-            return json; // fallback: devolver el string crudo
+            return json; // fallback: return the raw string
         }
     }
 }

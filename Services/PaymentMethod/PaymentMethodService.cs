@@ -7,8 +7,8 @@ using ProjectLedger.API.Resources;
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Servicio de métodos de pago. CRUD con soft delete.
-/// Valida límite de payment methods según el plan del usuario.
+/// Payment methods service. CRUD with soft delete.
+/// Validates the payment methods limit according to the user's plan.
 /// </summary>
 public class PaymentMethodService : IPaymentMethodService
 {
@@ -154,4 +154,8 @@ public class PaymentMethodService : IPaymentMethodService
 
         return pm;
     }
+
+    public async Task<(IEnumerable<PaymentMethod> Items, int TotalCount)>
+        GetLookupAsync(Guid userId, string? search, int skip, int take, CancellationToken ct = default)
+        => await _paymentMethodRepo.GetByOwnerUserIdPagedWithSearchAsync(userId, search, skip, take, ct);
 }

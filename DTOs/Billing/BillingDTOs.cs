@@ -18,17 +18,17 @@ public class BillingUnavailableResponse
 
 public class CreateCheckoutSessionRequest
 {
-    /// <summary>ID del plan al que el usuario desea suscribirse.</summary>
+    /// <summary>ID of the plan the user wishes to subscribe to.</summary>
     [Required]
     public Guid PlanId { get; set; }
 }
 
 public class CreateCheckoutSessionResponse
 {
-    /// <summary>URL de Stripe Checkout a la que el frontend debe redirigir al usuario.</summary>
+    /// <summary>Stripe Checkout URL to which the frontend should redirect the user.</summary>
     public string CheckoutUrl { get; set; } = null!;
 
-    /// <summary>ID de la Checkout Session creada (para referencia / debugging).</summary>
+    /// <summary>ID of the created Checkout Session (for reference / debugging).</summary>
     public string SessionId { get; set; } = null!;
 }
 
@@ -36,13 +36,13 @@ public class CreateCheckoutSessionResponse
 
 public class ChangeSubscriptionPlanRequest
 {
-    /// <summary>ID del nuevo plan al que se moverá la suscripción actual.</summary>
+    /// <summary>ID of the new plan to which the current subscription will be moved.</summary>
     [Required]
     public Guid PlanId { get; set; }
 
     /// <summary>
-    /// Si es true, Stripe calcula prorrateo inmediato por el cambio de plan.
-    /// Si es false, no se aplica ajuste de prorrateo.
+    /// If true, Stripe calculates immediate proration for the plan change.
+    /// If false, no proration adjustment is applied.
     /// </summary>
     public bool Prorate { get; set; } = true;
 }
@@ -50,8 +50,8 @@ public class ChangeSubscriptionPlanRequest
 public class CancelSubscriptionRequest
 {
     /// <summary>
-    /// true: cancela al final del período actual.
-    /// false: cancela inmediatamente.
+    /// true: cancels at the end of the current period.
+    /// false: cancels immediately.
     /// </summary>
     public bool CancelAtPeriodEnd { get; set; } = true;
 }

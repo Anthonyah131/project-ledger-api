@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Options;
 using Stripe;
 using Stripe.Checkout;
@@ -17,36 +17,36 @@ public class StripeBillingService : IStripeBillingService
     // ═══════════════════════════════════════════════════════════
     //
     //  ┌─────────────────────────────────────────────────────────┐
-    //  │  FUENTE DE VERDAD: tabla "user_subscriptions"          │
+    //  │  SOURCE OF TRUTH: "user_subscriptions" table           │
     //  │                                                        │
-    //  │  Contiene el registro Stripe con:                      │
-    //  │    UssUserId  → FK al usuario dueño                    │
-    //  │    UssPlanId  → FK al plan contratado                  │
-    //  │    UssStripeSubscriptionId  → sub_xxx de Stripe        │
-    //  │    UssStripeCustomerId      → cus_xxx de Stripe        │
+    //  │  Contains the Stripe record with:                      │
+    //  │    UssUserId  → FK to the owner user                   │
+    //  │    UssPlanId  → FK to the contracted plan              │
+    //  │    UssStripeSubscriptionId  → Stripe's sub_xxx         │
+    //  │    UssStripeCustomerId      → Stripe's cus_xxx         │
     //  │    UssStatus  → active | trialing | canceled | ...     │
-    //  │    UssCurrentPeriodStart / End → fechas del ciclo      │
+    //  │    UssCurrentPeriodStart / End → cycle dates           │
     //  │                                                        │
-    //  │  Se crea/actualiza vía webhooks:                       │
-    //  │    • checkout.session.completed → primera creación      │
-    //  │    • customer.subscription.updated → cambios            │
-    //  │    • customer.subscription.deleted → cancelación        │
+    //  │  Created/updated via webhooks:                         │
+    //  │    • checkout.session.completed → first creation       │
+    //  │    • customer.subscription.updated → changes           │
+    //  │    • customer.subscription.deleted → cancellation      │
     //  └─────────────────────────────────────────────────────────┘
     //
     //  ┌─────────────────────────────────────────────────────────┐
-    //  │  CACHÉ RÁPIDO: campo User.UsrPlanId                    │
+    //  │  FAST CACHE: User.UsrPlanId field                      │
     //  │                                                        │
-    //  │  Se sincroniza automáticamente en UpsertSubscription:   │
-    //  │    • Status activo → UsrPlanId = plan contratado       │
-    //  │    • Status cancelado → UsrPlanId = plan "free"        │
+    //  │  Synchronized automatically in UpsertSubscription:     │
+    //  │    • Active status → UsrPlanId = contracted plan       │
+    //  │    • Canceled status → UsrPlanId = "free" plan         │
     //  │                                                        │
-    //  │  PlanAuthorizationService y PlanPermissionHandler       │
-    //  │  leen UsrPlanId para evaluar permisos del plan.         │
+    //  │  PlanAuthorizationService and PlanPermissionHandler    │
+    //  │  read UsrPlanId to evaluate plan permissions.          │
     //  └─────────────────────────────────────────────────────────┘
     //
-    //  Endpoint /subscription/me lee de user_subscriptions.
-    //  Authorization handlers leen de User.UsrPlanId.
-    //  Ambos se mantienen sincronizados por UpsertSubscriptionAsync.
+    //  Endpoint /subscription/me reads from user_subscriptions.
+    //  Authorization handlers read from User.UsrPlanId.
+    //  Both are kept synchronized by UpsertSubscriptionAsync.
     // ═══════════════════════════════════════════════════════════
 
     private static readonly HashSet<string> HandledEventTypes = new(StringComparer.Ordinal)
@@ -248,7 +248,7 @@ public class StripeBillingService : IStripeBillingService
 
         var user = await _userRepo.GetByIdAsync(userId, ct);
 
-        // 2) Fallback: buscar clientes Stripe por email del usuario y reclamar
+        // 2) Fallback: search Stripe customers by user email and claim
         if (user is not null && !string.IsNullOrWhiteSpace(user.UsrEmail))
         {
             EnsureStripeSecretConfigured();
@@ -276,7 +276,7 @@ public class StripeBillingService : IStripeBillingService
                         byCustId.UssUpdatedAt = DateTime.UtcNow;
                         _userSubscriptionRepo.Update(byCustId);
 
-                        // Vincular StripeCustomerId al usuario para futuras búsquedas
+                        // Link StripeCustomerId to user for future lookups
                         user.UsrStripeCustomerId = customer.Id;
                         if (byCustId.UssPlanId is not null && IsActiveSubscriptionStatus(byCustId.UssStatus))
                             user.UsrPlanId = byCustId.UssPlanId.Value;
@@ -294,8 +294,8 @@ public class StripeBillingService : IStripeBillingService
             }
         }
 
-        // 3) Fallback de resiliencia: reconciliar directamente desde Stripe.
-        // Esto cubre el caso donde el webhook no llega (ej. entorno local sin forwarder).
+        // 3) Resilience fallback: reconcile directly from Stripe.
+        // This covers cases where the webhook doesn't arrive (e.g., local env without forwarder).
         if (user is not null)
         {
             var reconciled = await TryReconcileFromStripeAsync(userId, user, ct);
@@ -308,12 +308,12 @@ public class StripeBillingService : IStripeBillingService
 
     public async Task<UserSubscription?> GetCurrentUserSubscriptionReadOnlyAsync(Guid userId, CancellationToken ct = default)
     {
-        // 1) Búsqueda directa por userId (camino feliz)
+        // 1) Direct lookup by userId (happy path)
         var byUserId = await _userSubscriptionRepo.GetCurrentByUserIdAsync(userId, ct);
         if (byUserId is not null)
             return byUserId;
 
-        // 2) Fallback local por StripeCustomerId (sin consultar Stripe)
+        // 2) Local fallback by StripeCustomerId (without querying Stripe)
         var user = await _userRepo.GetByIdAsync(userId, ct);
         if (user is null || string.IsNullOrWhiteSpace(user.UsrStripeCustomerId))
             return null;
@@ -322,7 +322,7 @@ public class StripeBillingService : IStripeBillingService
         if (byCustomer is null)
             return null;
 
-        // Auto-vincular la suscripción huérfana al usuario
+        // Auto-link the orphaned subscription to the user
         _logger.LogInformation(
             "Auto-claiming orphaned subscription {SubId} for user {UserId} via StripeCustomerId {CustomerId} (read-only path).",
             byCustomer.UssStripeSubscriptionId, userId, user.UsrStripeCustomerId);
@@ -331,7 +331,7 @@ public class StripeBillingService : IStripeBillingService
         byCustomer.UssUpdatedAt = DateTime.UtcNow;
         _userSubscriptionRepo.Update(byCustomer);
 
-        // Sincronizar UsrPlanId si la suscripción está activa
+        // Synchronize UsrPlanId if the subscription is active
         if (byCustomer.UssPlanId is not null && IsActiveSubscriptionStatus(byCustomer.UssStatus))
         {
             user.UsrPlanId = byCustomer.UssPlanId.Value;
@@ -359,7 +359,7 @@ public class StripeBillingService : IStripeBillingService
         if (!targetPlan.PlnIsActive)
             throw new InvalidOperationException("PlanNotActive");
 
-        // Bajar a free = cancelar suscripción paga al final del período.
+        // Downgrade to free = cancel paid subscription at the end of the period.
         if (targetPlan.PlnMonthlyPrice <= 0)
             return await CancelSubscriptionAsync(userId, cancelAtPeriodEnd: true, ct);
 
@@ -713,7 +713,7 @@ public class StripeBillingService : IStripeBillingService
 
         try
         {
-            // Re-fetch bajo lock para evitar carreras de creación de customer para el mismo usuario.
+            // Re-fetch under lock to avoid race conditions creating customers for the same user.
             var user = await _userRepo.GetByIdAsync(userId, ct)
                 ?? throw new KeyNotFoundException("UserNotFound");
 
@@ -745,7 +745,7 @@ public class StripeBillingService : IStripeBillingService
             Mode = "subscription",
             Customer = stripeCustomerId,
             ClientReferenceId = userId.ToString(),
-            CustomerEmail = null, // No usar CustomerEmail si ya enviamos Customer
+            CustomerEmail = null, // Do not use CustomerEmail if we already use Customer
             LineItems =
             [
                 new SessionLineItemOptions
@@ -862,7 +862,7 @@ public class StripeBillingService : IStripeBillingService
             UssCreatedAt = DateTime.UtcNow
         };
 
-        // En Stripe.net v49+ (API 2025), CurrentPeriodStart/End están en SubscriptionItem, no en Subscription
+        // In Stripe.net v49+ (API 2025), CurrentPeriodStart/End are in SubscriptionItem, not in Subscription
         var firstItem = subscription.Items?.Data?.FirstOrDefault();
 
         entity.UssUserId = user?.UsrId ?? existing?.UssUserId;

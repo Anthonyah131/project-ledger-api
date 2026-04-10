@@ -1,9 +1,9 @@
 namespace ProjectLedger.API.Models;
 
 /// <summary>
-/// Categoría de gastos dentro de un proyecto.
-/// cat_is_default marca la categoría "General" creada automáticamente.
-/// Soporta presupuesto opcional por categoría.
+/// Expense category within a project.
+/// cat_is_default marks the "General" category created automatically.
+/// Supports optional budget per category.
 /// </summary>
 public class Category
 {
@@ -12,7 +12,7 @@ public class Category
     public string CatName { get; set; } = null!;
     public string? CatDescription { get; set; }
     public bool CatIsDefault { get; set; }
-    public decimal? CatBudgetAmount { get; set; }              // NULL = sin presupuesto
+    public decimal? CatBudgetAmount { get; set; }              // NULL = no budget
     public DateTime CatCreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime CatUpdatedAt { get; set; } = DateTime.UtcNow;
 

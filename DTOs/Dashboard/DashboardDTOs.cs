@@ -143,8 +143,8 @@ public class DashboardAlertResponse
 // ── Dashboard Project Selector ──────────────────────────────
 
 /// <summary>
-/// Proyecto ligero para el selector del dashboard.
-/// Solo expone los campos necesarios para la UI del picker.
+/// Lightweight project for the dashboard selector.
+/// Exposes only the fields needed for the picker UI.
 /// </summary>
 public record DashboardProjectItemDto
 {
@@ -156,9 +156,9 @@ public record DashboardProjectItemDto
 }
 
 /// <summary>
-/// Respuesta paginada del endpoint GET /api/dashboard/projects.
-/// Página 1: incluye proyectos pineados + ítems no pineados.
-/// Páginas > 1: pinned[] vacío, solo ítems no pineados.
+/// Paginated response from GET /api/dashboard/projects.
+/// Page 1: includes pinned projects + non-pinned items.
+/// Pages > 1: pinned[] empty, only non-pinned items.
 /// </summary>
 public record DashboardProjectsPagedResponse
 {

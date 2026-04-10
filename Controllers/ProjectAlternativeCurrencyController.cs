@@ -7,10 +7,10 @@ using ProjectLedger.API.Services;
 namespace ProjectLedger.API.Controllers;
 
 /// <summary>
-/// Gestión de monedas alternativas por proyecto.
-/// Permite agregar/quitar monedas para visualización multi-divisa.
+/// Project alternative currencies management.
+/// Allows adding/removing currencies for multi-currency visualization.
 /// 
-/// Ruta anidada: /api/projects/{projectId}/alternative-currencies
+/// Nested route: /api/projects/{projectId}/alternative-currencies
 /// </summary>
 [ApiController]
 [Route("api/projects/{projectId:guid}/alternative-currencies")]
@@ -33,7 +33,7 @@ public class ProjectAlternativeCurrencyController : ControllerBase
     // ── GET /api/projects/{projectId}/alternative-currencies ──
 
     /// <summary>
-    /// Lista las monedas alternativas configuradas para el proyecto.
+    /// Lists the alternative currencies configured for the project.
     /// </summary>
     [HttpGet]
     [Authorize(Policy = "ProjectViewer")]
@@ -48,7 +48,7 @@ public class ProjectAlternativeCurrencyController : ControllerBase
     // ── POST /api/projects/{projectId}/alternative-currencies ──
 
     /// <summary>
-    /// Agrega una moneda alternativa al proyecto.
+    /// Adds an alternative currency to the project.
     /// </summary>
     [HttpPost]
     [Authorize(Policy = "ProjectEditor")]
@@ -69,11 +69,11 @@ public class ProjectAlternativeCurrencyController : ControllerBase
     // ── DELETE /api/projects/{projectId}/alternative-currencies/{code} ──
 
     /// <summary>
-    /// Elimina una moneda alternativa del proyecto.
+    /// Removes an alternative currency from the project.
     /// </summary>
-    /// <param name="projectId">ID del proyecto.</param>
-    /// <param name="code">Código ISO 4217 de la moneda a eliminar (e.g. USD, EUR).</param>
-    /// <param name="ct">Token de cancelación.</param>
+    /// <param name="projectId">Project ID.</param>
+    /// <param name="code">ISO 4217 code of the currency to remove (e.g. USD, EUR).</param>
+    /// <param name="ct">Cancellation token.</param>
     [HttpDelete("{code}")]
     [Authorize(Policy = "ProjectEditor")]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

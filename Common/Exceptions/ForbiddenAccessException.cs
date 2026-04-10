@@ -1,9 +1,9 @@
 ﻿namespace ProjectLedger.API.Common.Exceptions;
 
 /// <summary>
-/// Excepción lanzada cuando un usuario intenta acceder a un recurso
-/// para el cual no tiene permisos suficientes.
-/// Capturada por el GlobalExceptionHandlerMiddleware → HTTP 403.
+/// Exception thrown when a user attempts to access a resource
+/// for which they do not have sufficient permissions.
+/// Caught by GlobalExceptionHandlerMiddleware → HTTP 403.
 /// </summary>
 public class ForbiddenAccessException : Exception
 {

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
 using ProjectLedger.API.DTOs.Project;
@@ -11,12 +11,12 @@ using ProjectLedger.API.Services;
 namespace ProjectLedger.API.Controllers;
 
 /// <summary>
-/// Controlador de miembros de un proyecto.
+/// Project members controller.
 /// 
-/// Ruta anidada: /api/projects/{projectId}/members
-/// - Viewer+ puede listar miembros.
-/// - Owner puede agregar/cambiar rol/remover miembros.
-/// - Plan valida CanShareProjects y MaxTeamMembersPerProject.
+/// Nested route: /api/projects/{projectId}/members
+/// - Viewer+ can list members.
+/// - Owner can add/change role/remove members.
+/// - Plan validates CanShareProjects and MaxTeamMembersPerProject.
 /// </summary>
 [ApiController]
 [Route("api/projects/{projectId:guid}/members")]
@@ -51,9 +51,9 @@ public class ProjectMemberController : ControllerBase
     // ── GET /api/projects/{projectId}/members ───────────────
 
     /// <summary>
-    /// Lista todos los miembros del proyecto con su rol.
+    /// Lists all project members with their role.
     /// </summary>
-    /// <response code="200">Lista de miembros.</response>
+    /// <response code="200">List of members.</response>
     [HttpGet]
     [Authorize(Policy = "ProjectViewer")]
     [ProducesResponseType(typeof(IEnumerable<ProjectMemberResponse>), StatusCodes.Status200OK)]
@@ -66,13 +66,13 @@ public class ProjectMemberController : ControllerBase
     // ── POST /api/projects/{projectId}/members ──────────────
 
     /// <summary>
-    /// Agrega un miembro al proyecto por email. Solo el owner puede invitar.
-    /// Valida Plan:CanShareProjects y MaxTeamMembersPerProject.
+    /// Adds a member to the project by email. Only the owner can invite.
+    /// Validates Plan:CanShareProjects and MaxTeamMembersPerProject.
     /// </summary>
-    /// <response code="201">Miembro agregado.</response>
-    /// <response code="400">Usuario ya es miembro.</response>
-    /// <response code="403">Sin permisos o límite del plan excedido.</response>
-    /// <response code="404">Usuario con ese email no encontrado.</response>
+    /// <response code="201">Member added.</response>
+    /// <response code="400">User is already a member.</response>
+    /// <response code="403">No permissions or plan limit exceeded.</response>
+    /// <response code="404">User with that email not found.</response>
     [HttpPost]
     [Authorize(Policy = "ProjectOwner")]
     [ProducesResponseType(typeof(ProjectMemberResponse), StatusCodes.Status201Created)]
@@ -87,12 +87,12 @@ public class ProjectMemberController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        // Buscar usuario por email
+        // Find user by email
         var targetUser = await _userService.GetByEmailAsync(request.Email, ct);
         if (targetUser is null)
             return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["UserEmailNotFound"]));
 
-        // Validar que el rol sea válido (solo editor/viewer, no owner)
+        // Validate that the role is valid (only editor/viewer, not owner)
         var role = request.Role.ToLowerInvariant();
         if (role is not (ProjectRoles.Editor or ProjectRoles.Viewer))
             return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["InvalidRole"]));
@@ -107,15 +107,15 @@ public class ProjectMemberController : ControllerBase
 
         await _memberService.AddMemberAsync(member, ct);
 
-        // Enviar notificación por correo (fire-and-forget)
+        // Send email notification (fire-and-forget)
         var project = await _projectService.GetByIdAsync(projectId, ct);
         var ownerUser = await _userService.GetByIdAsync(User.GetRequiredUserId(), ct);
         _ = _emailService.SendProjectSharedEmailAsync(
             targetUser.UsrEmail, targetUser.UsrFullName,
-            project?.PrjName ?? "Proyecto", role,
+            project?.PrjName ?? "Project", role,
             ownerUser?.UsrFullName ?? "Un usuario", ct);
 
-        // Reload para obtener nav properties
+        // Reload to get nav properties
         var members = await _memberService.GetByProjectIdAsync(projectId, ct);
         var added = members.FirstOrDefault(m => m.PrmUserId == targetUser.UsrId);
 
@@ -128,12 +128,12 @@ public class ProjectMemberController : ControllerBase
     // ── PUT /api/projects/{projectId}/members/{memberId}/role
 
     /// <summary>
-    /// Cambia el rol de un miembro. Solo el owner puede cambiar roles.
-    /// No se puede cambiar el rol del owner.
+    /// Changes a member's role. Only the owner can change roles.
+    /// The owner's role cannot be changed.
     /// </summary>
-    /// <response code="204">Rol actualizado.</response>
-    /// <response code="400">Rol inválido o intento de cambiar al owner.</response>
-    /// <response code="404">Miembro no encontrado.</response>
+    /// <response code="204">Role updated.</response>
+    /// <response code="400">Invalid role or attempt to change the owner.</response>
+    /// <response code="404">Member not found.</response>
     [HttpPut("{memberId:guid}/role")]
     [Authorize(Policy = "ProjectOwner")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -159,12 +159,12 @@ public class ProjectMemberController : ControllerBase
     // ── DELETE /api/projects/{projectId}/members/{memberId} ─
 
     /// <summary>
-    /// Remueve un miembro del proyecto. Solo el owner puede remover.
-    /// No se puede remover al owner.
+    /// Removes a member from the project. Only the owner can remove.
+    /// The owner cannot be removed.
     /// </summary>
-    /// <response code="204">Miembro removido.</response>
-    /// <response code="400">Intento de remover al owner.</response>
-    /// <response code="404">Miembro no encontrado.</response>
+    /// <response code="204">Member removed.</response>
+    /// <response code="400">Attempt to remove the owner.</response>
+    /// <response code="404">Member not found.</response>
     [HttpDelete("{memberId:guid}")]
     [Authorize(Policy = "ProjectOwner")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -177,20 +177,20 @@ public class ProjectMemberController : ControllerBase
     {
         var userId = User.GetRequiredUserId();
 
-        // Obtener datos del miembro ANTES de eliminarlo (para el correo)
+        // Get member data BEFORE deleting it (for the email)
         var membersBeforeRemoval = await _memberService.GetByProjectIdAsync(projectId, ct);
         var removedMember = membersBeforeRemoval.FirstOrDefault(m => m.PrmId == memberId);
 
         await _memberService.RemoveMemberAsync(memberId, userId, ct);
 
-        // Enviar notificación por correo (fire-and-forget)
+        // Send email notification (fire-and-forget)
         if (removedMember?.User is not null)
         {
             var project = await _projectService.GetByIdAsync(projectId, ct);
             var ownerUser = await _userService.GetByIdAsync(userId, ct);
             _ = _emailService.SendProjectAccessRevokedEmailAsync(
                 removedMember.User.UsrEmail, removedMember.User.UsrFullName,
-                project?.PrjName ?? "Proyecto",
+                project?.PrjName ?? "Project",
                 ownerUser?.UsrFullName ?? "Un usuario", ct);
         }
 

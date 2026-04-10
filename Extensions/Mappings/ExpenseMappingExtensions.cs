@@ -115,8 +115,8 @@ public static class ExpenseMappingExtensions
     // ── Create from template ────────────────────────────────
 
     /// <summary>
-    /// Crea un gasto real (IsTemplate = false) a partir de una plantilla.
-    /// Reutiliza categoría, método de pago, moneda, descripción, exchange rate y alt currency.
+    /// Creates a real expense (IsTemplate = false) from a template.
+    /// Reuses category, payment method, currency, description, exchange rate and alt currency.
     /// </summary>
     public static Expense ToEntityFromTemplate(
         this Expense template,

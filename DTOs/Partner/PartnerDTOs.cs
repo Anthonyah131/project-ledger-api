@@ -4,7 +4,7 @@ namespace ProjectLedger.API.DTOs.Partner;
 
 // ── Requests ────────────────────────────────────────────────
 
-/// <summary>Request para crear un partner.</summary>
+/// <summary>Request to create a partner.</summary>
 public class CreatePartnerRequest
 {
     [Required]
@@ -21,7 +21,7 @@ public class CreatePartnerRequest
     public string? Notes { get; set; }
 }
 
-/// <summary>Request para actualizar un partner.</summary>
+/// <summary>Request to update a partner.</summary>
 public class UpdatePartnerRequest
 {
     [Required]
@@ -40,7 +40,7 @@ public class UpdatePartnerRequest
 
 // ── Responses ───────────────────────────────────────────────
 
-/// <summary>Respuesta con los datos de un partner.</summary>
+/// <summary>Response with the data of a partner.</summary>
 public class PartnerResponse
 {
     public Guid Id { get; set; }
@@ -52,7 +52,7 @@ public class PartnerResponse
     public DateTime UpdatedAt { get; set; }
 }
 
-/// <summary>Respuesta de un partner con sus métodos de pago y proyectos relacionados.</summary>
+/// <summary>Response of a partner with their payment methods and related projects.</summary>
 public class PartnerDetailResponse
 {
     public Guid Id { get; set; }
@@ -63,11 +63,11 @@ public class PartnerDetailResponse
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public IReadOnlyList<PartnerPaymentMethodResponse> PaymentMethods { get; set; } = [];
-    /// <summary>Proyectos donde al menos un método de pago del partner está vinculado.</summary>
+    /// <summary>Projects where at least one of the partner's payment methods is linked.</summary>
     public IReadOnlyList<PartnerProjectResponse> Projects { get; set; } = [];
 }
 
-/// <summary>Proyecto relacionado al partner (a través de sus métodos de pago).</summary>
+/// <summary>Project related to the partner (through their payment methods).</summary>
 public class PartnerProjectResponse
 {
     public Guid Id { get; set; }
@@ -78,7 +78,7 @@ public class PartnerProjectResponse
     public string? WorkspaceName { get; set; }
 }
 
-/// <summary>Método de pago simplificado dentro del contexto de un partner.</summary>
+/// <summary>Simplified payment method within the context of a partner.</summary>
 public class PartnerPaymentMethodResponse
 {
     public Guid Id { get; set; }

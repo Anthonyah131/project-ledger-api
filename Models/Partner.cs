@@ -1,9 +1,9 @@
 namespace ProjectLedger.API.Models;
 
 /// <summary>
-/// Contacto financiero del usuario.
-/// Puede representar al propio usuario, un socio, familiar, etc.
-/// Es dueño de métodos de pago y puede asignarse a proyectos.
+/// User's financial contact.
+/// Can represent the user themselves, a partner, family member, etc.
+/// Owns payment methods and can be assigned to projects.
 /// </summary>
 public class Partner
 {

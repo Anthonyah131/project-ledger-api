@@ -2,31 +2,31 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ProjectLedger.API.DTOs.Chatbot;
 
-/// <summary>Request para enviar un mensaje al chatbot.</summary>
+/// <summary>Request to send a message to the chatbot.</summary>
 public class ChatbotMessageRequest
 {
-    /// <summary>Texto del mensaje del usuario.</summary>
+    /// <summary>User message text.</summary>
     [Required]
     [MinLength(1)]
     [MaxLength(4000)]
     public string Message { get; set; } = string.Empty;
 
     /// <summary>
-    /// Historial de mensajes anteriores de la sesión (role: "user" | "assistant").
-    /// El cliente es responsable de mantener y enviar el historial en cada request.
-    /// Se trunca automáticamente a los últimos 20 mensajes antes de enviarlo al LLM.
+    /// Previous session message history (role: "user" | "assistant").
+    /// The client is responsible for maintaining and sending the history in each request.
+    /// It is automatically truncated to the last 20 messages before sending to the LLM.
     /// </summary>
     public List<ChatbotHistoryEntry>? History { get; set; }
 }
 
-/// <summary>Entrada del historial de conversación.</summary>
+/// <summary>Conversation history entry.</summary>
 public class ChatbotHistoryEntry
 {
-    /// <summary>Rol del mensaje: "user" o "assistant".</summary>
+    /// <summary>Message role: "user" or "assistant".</summary>
     [Required]
     public string Role { get; set; } = string.Empty;
 
-    /// <summary>Contenido del mensaje.</summary>
+    /// <summary>Message content.</summary>
     [Required]
     [MaxLength(8000)]
     public string Content { get; set; } = string.Empty;

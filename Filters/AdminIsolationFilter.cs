@@ -4,34 +4,34 @@ using ProjectLedger.API.Common.Exceptions;
 namespace ProjectLedger.API.Filters;
 
 /// <summary>
-/// Filtro global que restringe al Administrador Global a rutas de administración
-/// (/api/admin/*) y rutas públicas (/api/auth/*, /api/health*, /api/plans*, /api/currencies*).
-/// Garantiza aislamiento multi-tenant estricto: el admin NO puede ver proyectos,
-/// categorías, gastos, obligaciones ni reportes financieros.
+/// Global filter that restricts the Global Administrator to administration routes
+/// (/api/admin/*) and public routes (/api/auth/*, /api/health*, /api/plans*, /api/currencies*).
+/// Guarantees strict multi-tenant isolation: the admin CANNOT see projects,
+/// categories, expenses, obligations or financial reports.
 /// </summary>
 public class AdminIsolationFilter : IAsyncActionFilter
 {
     /// <summary>
-    /// Prefijos de ruta que un administrador tiene permitido acceder.
+    /// Route prefixes that an administrator is allowed to access.
     /// </summary>
     private static readonly string[] AllowedPrefixes =
     [
-        "/api/admin",       // Gestión de usuarios
+        "/api/admin",       // User management
         "/api/auth",        // Login / register / refresh
         "/api/health",      // Health check
-        "/api/plans",       // Consulta de planes (público)
-        "/api/currencies",  // Consulta de monedas (público)
+        "/api/plans",       // Plan queries (public)
+        "/api/currencies",  // Currency queries (public)
         "/api/billing",     // Billing (Stripe sync/webhooks/subscriptions)
-        "/api/users",       // Perfil propio (self-service)
-        "/api/dashboard",   // Dashboard (respuestas vacías para admin)
-        "/swagger"          // Documentación
+        "/api/users",       // Own profile (self-service)
+        "/api/dashboard",   // Dashboard (empty responses for admin)
+        "/swagger"          // Documentation
     ];
 
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
         var user = context.HttpContext.User;
 
-        // Solo aplica a usuarios autenticados que son admin
+        // Only applies to authenticated users who are admin
         if (user.Identity?.IsAuthenticated != true)
         {
             await next();
@@ -45,7 +45,7 @@ public class AdminIsolationFilter : IAsyncActionFilter
             return;
         }
 
-        // Admin autenticado → verificar si la ruta está permitida
+        // Authenticated admin → verify if the route is allowed
         var path = context.HttpContext.Request.Path.Value ?? string.Empty;
 
         foreach (var prefix in AllowedPrefixes)
@@ -57,7 +57,7 @@ public class AdminIsolationFilter : IAsyncActionFilter
             }
         }
 
-        // Ruta NO permitida para admin → 403
+        // Route NOT allowed for admin → 403
         throw new ForbiddenAccessException("AdminIsolation");
     }
 }

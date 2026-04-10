@@ -2,7 +2,7 @@ namespace ProjectLedger.API.DTOs.Plan;
 
 // ── Responses ───────────────────────────────────────────────
 
-/// <summary>Respuesta pública de un plan (listado).</summary>
+/// <summary>Public plan response (listing).</summary>
 public class PlanResponse
 {
     public Guid Id { get; set; }
@@ -17,7 +17,7 @@ public class PlanResponse
     public PlanLimitsDto? Limits { get; set; }
 }
 
-/// <summary>Permisos del plan (flags booleanos).</summary>
+/// <summary>Plan permissions (boolean flags).</summary>
 public class PlanPermissionsDto
 {
     public bool CanCreateProjects { get; set; }
@@ -33,7 +33,7 @@ public class PlanPermissionsDto
     public bool CanUsePartners { get; set; }
 }
 
-/// <summary>Límites numéricos del plan (deserializados del JSONB).</summary>
+/// <summary>Plan numerical limits (deserialized from JSONB).</summary>
 public class PlanLimitsDto
 {
     public int? MaxProjects { get; set; }

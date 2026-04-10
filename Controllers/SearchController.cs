@@ -21,11 +21,11 @@ public class SearchController : ControllerBase
     }
 
     /// <summary>
-    /// Búsqueda global de gastos e ingresos del usuario autenticado.
+    /// Global search of expenses and incomes of the authenticated user.
     /// </summary>
-    /// <param name="q">Texto a buscar (mínimo 2 caracteres).</param>
-    /// <param name="types">Tipos a buscar: expenses, incomes, o all. Separados por coma. Default: all.</param>
-    /// <param name="pageSize">Resultados máximos por tipo. Default: 5.</param>
+    /// <param name="q">Text to search (minimum 2 characters).</param>
+    /// <param name="types">Types to search: expenses, incomes, or all. Comma separated. Default: all.</param>
+    /// <param name="pageSize">Maximum results per type. Default: 5.</param>
     [HttpGet]
     [ProducesResponseType(typeof(GlobalSearchResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

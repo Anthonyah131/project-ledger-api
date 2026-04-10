@@ -7,8 +7,8 @@ using ProjectLedger.API.Resources;
 namespace ProjectLedger.API.Middleware;
 
 /// <summary>
-/// Middleware global para capturar excepciones no controladas y retornar
-/// una respuesta JSON estandarizada con el código HTTP apropiado.
+/// Global middleware to catch unhandled exceptions and return
+/// a standardized JSON response with the appropriate HTTP code.
 /// </summary>
 public class GlobalExceptionHandlerMiddleware
 {
@@ -94,7 +94,7 @@ public class GlobalExceptionHandlerMiddleware
 }
 
 /// <summary>
-/// Extension method para registrar el middleware en el pipeline.
+/// Extension method to register the middleware in the pipeline.
 /// </summary>
 public static class GlobalExceptionHandlerMiddlewareExtensions
 {

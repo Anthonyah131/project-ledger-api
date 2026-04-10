@@ -3,45 +3,45 @@ using ProjectLedger.API.DTOs.Auth;
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Servicio de autenticación: registro, login, refresh y revocación de tokens.
+/// Authentication service: registration, login, token refresh and revocation.
 /// </summary>
 public interface IAuthService
 {
-    /// <summary>Registra un nuevo usuario. Retorna null si el email ya existe.</summary>
+    /// <summary>Registers a new user. Returns null if the email already exists.</summary>
     Task<AuthResponse?> RegisterAsync(RegisterRequest request, CancellationToken ct = default);
 
-    /// <summary>Autentica al usuario con email/password. Retorna null si las credenciales son inválidas.</summary>
+    /// <summary>Authenticates the user with email/password. Returns null if credentials are invalid.</summary>
     Task<AuthResponse?> LoginAsync(LoginRequest request, CancellationToken ct = default);
 
-    /// <summary>Autentica o vincula un usuario usando identidad de Google y retorna un JWT.</summary>
+    /// <summary>Authenticates or links a user using Google identity and returns a JWT.</summary>
     Task<string?> LoginWithGoogleAsync(string providerUserId, string email, string fullName, string? avatarUrl, CancellationToken ct = default);
 
-    /// <summary>Genera un nuevo access token a partir de un refresh token válido.</summary>
+    /// <summary>Generates a new access token from a valid refresh token.</summary>
     Task<AuthResponse?> RefreshTokenAsync(string refreshToken, CancellationToken ct = default);
 
-    /// <summary>Revoca el refresh token (logout).</summary>
+    /// <summary>Revokes the refresh token (logout).</summary>
     Task<bool> RevokeTokenAsync(string refreshToken, CancellationToken ct = default);
 
-    /// <summary>Revoca todos los refresh tokens del usuario (logout de todos los dispositivos).</summary>
+    /// <summary>Revokes all user refresh tokens (logout from all devices).</summary>
     Task RevokeAllTokensAsync(Guid userId, CancellationToken ct = default);
 
     /// <summary>
-    /// Verifica si un código OTP de restablecimiento es válido sin consumirlo.
-    /// Permite al frontend avanzar al paso de nueva contraseña solo si el código es válido.
-    /// Retorna false si el código es inválido, expirado o ya fue usado.
+    /// Verifies if a reset OTP code is valid without consuming it.
+    /// Allows the frontend to proceed to the new password step only if the code is valid.
+    /// Returns false if the code is invalid, expired, or already used.
     /// </summary>
     Task<bool> VerifyOtpAsync(string email, string otpCode, CancellationToken ct = default);
 
     /// <summary>
-    /// Inicia el flujo de restablecimiento de contraseña.
-    /// Genera un OTP de 6 dígitos, lo guarda hasheado y envía el correo.
-    /// Siempre retorna true para no revelar si el email existe.
+    /// Initiates the password reset flow.
+    /// Generates a 6-digit OTP, stores its hash, and sends the email.
+    /// Always returns true to not reveal if the email exists.
     /// </summary>
     Task<bool> ForgotPasswordAsync(string email, CancellationToken ct = default);
 
     /// <summary>
-    /// Restablece la contraseña usando el código OTP recibido por correo.
-    /// Retorna false si el código es inválido, expirado o ya fue usado.
+    /// Resets the password using the OTP code received by email.
+    /// Returns false if the code is invalid, expired, or already used.
     /// </summary>
     Task<bool> ResetPasswordAsync(ResetPasswordRequest request, CancellationToken ct = default);
 }

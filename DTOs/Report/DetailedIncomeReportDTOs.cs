@@ -5,9 +5,9 @@ namespace ProjectLedger.API.DTOs.Report;
 // ── Detailed Income Report ───────────────────────────────────
 
 /// <summary>
-/// Reporte detallado de ingresos del proyecto.
-/// Basic: secciones de ingresos + totales.
-/// Premium: + análisis de categorías + resumen de partners.
+/// Detailed project income report.
+/// Basic: income sections + totals.
+/// Premium: + category analysis + partners summary.
 /// </summary>
 public class DetailedIncomeReportResponse
 {
@@ -25,18 +25,18 @@ public class DetailedIncomeReportResponse
     public PeakMonthInfo? PeakMonth { get; set; }
     public LargestIncomeInfo? LargestIncome { get; set; }
 
-    /// <summary>Totales calculados en monedas alternativas.</summary>
+    /// <summary>Totals calculated in alternative currencies.</summary>
     public List<AlternativeCurrencyTotals>? AlternativeCurrencies { get; set; }
 
-    /// <summary>Ingresos agrupados por mes, ordenados del más viejo al más nuevo.</summary>
+    /// <summary>Incomes grouped by month, ordered from oldest to newest.</summary>
     public List<MonthlyIncomeSection> Sections { get; set; } = [];
 
-    // ── Solo con CanUseAdvancedReports ──────────────────────
+    // ── Only with CanUseAdvancedReports ──────────────────────
 
-    /// <summary>Análisis por categoría. null si plan básico.</summary>
+    /// <summary>Analysis by category. null if basic plan.</summary>
     public List<CategoryIncomeAnalysisRow>? CategoryAnalysis { get; set; }
 
-    /// <summary>Análisis por método de pago. null si plan básico.</summary>
+    /// <summary>Analysis by payment method. null if basic plan.</summary>
     public List<PaymentMethodIncomeAnalysisRow>? PaymentMethodAnalysis { get; set; }
 }
 

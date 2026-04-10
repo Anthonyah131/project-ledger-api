@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Localization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.Common;
@@ -12,11 +12,11 @@ using ProjectLedger.API.Services;
 namespace ProjectLedger.API.Controllers;
 
 /// <summary>
-/// Controlador de ingresos con autorización multi-tenant.
+/// Income controller with multi-tenant authorization.
 /// 
-/// Ruta anidada: /api/projects/{projectId}/incomes
-/// El projectId viene SIEMPRE de la ruta, nunca del body.
-/// El userId viene SIEMPRE del JWT, nunca del body.
+/// Nested route: /api/projects/{projectId}/incomes
+/// projectId ALWAYS comes from the route, never from the body.
+/// userId ALWAYS comes from the JWT, never from the body.
 /// </summary>
 [ApiController]
 [Route("api/projects/{projectId:guid}/incomes")]
@@ -61,7 +61,7 @@ public class IncomeController : ControllerBase
     // ── GET /api/projects/{projectId}/incomes ───────────────
 
     /// <summary>
-    /// Lista todos los ingresos del proyecto con paginación.
+    /// Lists all project incomes with pagination.
     /// </summary>
     [HttpGet]
     [Authorize(Policy = "ProjectViewer")]
@@ -99,7 +99,7 @@ public class IncomeController : ControllerBase
     // ── GET /api/projects/{projectId}/incomes/{incomeId} ────
 
     /// <summary>
-    /// Obtiene un ingreso por ID.
+    /// Gets an income by ID.
     /// </summary>
     [HttpGet("{incomeId:guid}")]
     [Authorize(Policy = "ProjectViewer")]
@@ -117,7 +117,7 @@ public class IncomeController : ControllerBase
     // ── POST /api/projects/{projectId}/incomes ──────────────
 
     /// <summary>
-    /// Crea un ingreso en el proyecto. Requiere rol editor+.
+    /// Creates an income in the project. Requires editor+ role.
     /// </summary>
     [HttpPost]
     [Authorize(Policy = "ProjectEditor")]
@@ -144,11 +144,11 @@ public class IncomeController : ControllerBase
         )).ToList();
         await _incomeService.CreateAsync(income, splits, ct);
 
-        // Guardar exchange values para monedas alternativas
+        // Save exchange values for alternative currencies
         if (request.CurrencyExchanges?.Count > 0)
         {
             await _exchangeService.SaveExchangesAsync("income", income.IncId, request.CurrencyExchanges, ct);
-            // Re-fetch para incluir exchanges en la respuesta
+            // Re-fetch to include exchanges in response
             income = (await _incomeService.GetByIdAsync(income.IncId, ct))!;
         }
 
@@ -161,14 +161,14 @@ public class IncomeController : ControllerBase
     // ── POST /api/projects/{projectId}/incomes/bulk ─────────
 
     /// <summary>
-    /// Importación rápida: crea hasta 100 ingresos en un solo request.
-    /// Los campos comunes (categoría, método de pago, moneda, tipo de cambio) se envían
-    /// una vez a nivel del lote. El converted_amount se calcula como amount × exchangeRate.
-    /// Operación all-or-nothing: si algún item falla validación, no se crea ninguno.
+    /// Fast import: creates up to 100 incomes in a single request.
+    /// Common fields (category, payment method, currency, exchange rate) are sent
+    /// once at the batch level. The converted_amount is calculated as amount × exchangeRate.
+    /// All-or-nothing operation: if any item validation fails, none are created.
     /// </summary>
-    /// <response code="201">Ingresos creados.</response>
-    /// <response code="400">Datos inválidos.</response>
-    /// <response code="403">Sin acceso o plan no permite más ingresos.</response>
+    /// <response code="201">Incomes created.</response>
+    /// <response code="400">Invalid data.</response>
+    /// <response code="403">No access or plan limits exceeded.</response>
     [HttpPost("bulk")]
     [Authorize(Policy = "ProjectEditor")]
     [ProducesResponseType(typeof(BulkCreateIncomeResponse), StatusCodes.Status201Created)]
@@ -239,8 +239,8 @@ public class IncomeController : ControllerBase
     // ── GET /api/projects/{projectId}/incomes/extract-from-image/quota ─────
 
     /// <summary>
-    /// Retorna el cupo mensual de lecturas de documentos (OCR) para este proyecto,
-    /// gobernado por el plan del owner del proyecto.
+    /// Returns the monthly document reading (OCR) quota for this project,
+    /// governed by the project owner's plan.
     /// </summary>
     [HttpGet("extract-from-image/quota")]
     [Authorize(Policy = "ProjectEditor")]
@@ -259,8 +259,8 @@ public class IncomeController : ControllerBase
     // ── POST /api/projects/{projectId}/incomes/extract-from-image ──────────
 
     /// <summary>
-    /// Analiza una imagen/PDF y retorna un borrador de ingreso para pre-llenar
-    /// el formulario de creación.
+    /// Analyzes an image/PDF and returns an income draft to pre-fill
+    /// the creation form.
     /// </summary>
     [HttpPost("extract-from-image")]
     [Authorize(Policy = "ProjectEditor")]
@@ -389,7 +389,7 @@ public class IncomeController : ControllerBase
     // ── PUT /api/projects/{projectId}/incomes/{incomeId} ────
 
     /// <summary>
-    /// Actualiza un ingreso existente.
+    /// Updates an existing income.
     /// </summary>
     [HttpPut("{incomeId:guid}")]
     [Authorize(Policy = "ProjectEditor")]
@@ -420,7 +420,7 @@ public class IncomeController : ControllerBase
         )).ToList();
         await _incomeService.UpdateAsync(income, updateSplits, ct);
 
-        // Actualizar exchange values
+        // Update exchange values
         if (request.CurrencyExchanges is not null)
             await _exchangeService.ReplaceExchangesAsync("income", income.IncId, request.CurrencyExchanges, ct);
 
@@ -431,7 +431,7 @@ public class IncomeController : ControllerBase
     // ── PATCH /api/projects/{projectId}/incomes/{incomeId}/active-state ────
 
     /// <summary>
-    /// Activa o desactiva un ingreso sin requerir el payload completo de actualización.
+    /// Activates or deactivates an income without requiring the full update payload.
     /// </summary>
     [HttpPatch("{incomeId:guid}/active-state")]
     [Authorize(Policy = "ProjectEditor")]
@@ -462,7 +462,7 @@ public class IncomeController : ControllerBase
     // ── DELETE /api/projects/{projectId}/incomes/{incomeId} ─
 
     /// <summary>
-    /// Elimina (soft delete) un ingreso.
+    /// Soft-deletes an income.
     /// </summary>
     [HttpDelete("{incomeId:guid}")]
     [Authorize(Policy = "ProjectEditor")]

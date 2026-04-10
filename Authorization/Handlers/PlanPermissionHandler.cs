@@ -4,15 +4,15 @@ using ProjectLedger.API.Services;
 namespace ProjectLedger.API.Authorization.Handlers;
 
 /// <summary>
-/// Authorization Handler que valida permisos del plan del usuario.
+/// Authorization Handler that validates user plan permissions.
 /// 
-/// Flujo:
-/// 1. Extrae userId del JWT (claim "sub")
-/// 2. Consulta IPlanAuthorizationService.HasPermissionAsync
-/// 3. Si tiene el permiso → context.Succeed()
+/// Flow:
+/// 1. Extracts userId from JWT (claim "sub")
+/// 2. Queries IPlanAuthorizationService.HasPermissionAsync
+/// 3. If the user has the permission → context.Succeed()
 /// 
-/// Se registra automáticamente en DI y se activa cuando un endpoint
-/// tiene [Authorize(Policy = "Plan:CanExportData")] (o cualquier PlanPermission).
+/// Automatically registered in DI and activated when an endpoint
+/// has [Authorize(Policy = "Plan:CanExportData")] (or any PlanPermission).
 /// </summary>
 public class PlanPermissionHandler : AuthorizationHandler<PlanPermissionRequirement>
 {
@@ -35,7 +35,7 @@ public class PlanPermissionHandler : AuthorizationHandler<PlanPermissionRequirem
         if (userId is null)
         {
             _logger.LogWarning("PlanPermissionHandler: No userId in JWT claims.");
-            return; // Requisito no satisfecho → 403
+            return; // Requirement not met → 403
         }
 
         try
@@ -59,7 +59,7 @@ public class PlanPermissionHandler : AuthorizationHandler<PlanPermissionRequirem
             _logger.LogError(ex,
                 "PlanPermissionHandler: Error checking permission {Permission} for user {UserId}.",
                 requirement.Permission, userId.Value);
-            // No hacer Succeed → se niega el acceso
+            // Do not make Succeed → access denied
         }
     }
 }

@@ -1,11 +1,11 @@
-﻿using ProjectLedger.API.Models;
+using ProjectLedger.API.Models;
 using ProjectLedger.API.Repositories;
 
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Servicio de gastos. CRUD con soft delete.
-/// Valida límite de gastos por mes según el plan del owner del proyecto.
+/// Expense service. CRUD with soft delete.
+/// Validates the monthly expenses limit according to the project owner's plan.
 /// </summary>
 public class ExpenseService : IExpenseService
 {
@@ -77,10 +77,10 @@ public class ExpenseService : IExpenseService
         var project = await _projectRepo.GetByIdAsync(expense.ExpProjectId, ct)
             ?? throw new KeyNotFoundException("ProjectNotFound");
 
-        // Solo validar límite de gastos para gastos normales (no templates)
+        // Only validate expense limits for regular expenses (not templates)
         if (!expense.ExpIsTemplate)
         {
-            // Contar gastos del mes actual (no templates, no eliminados)
+            // Count expenses for the current month (no templates, no deleted)
             var projectExpenses = await _expenseRepo.GetByProjectIdAsync(expense.ExpProjectId, ct);
             var thisMonthCount = projectExpenses
                 .Count(e => !e.ExpIsTemplate
@@ -91,14 +91,14 @@ public class ExpenseService : IExpenseService
                 project.PrjOwnerUserId, PlanLimits.MaxExpensesPerMonth, thisMonthCount, ct);
         }
 
-        // Validar que el método de pago está vinculado al proyecto
+        // Validate that the payment method is linked to the project
         var isLinked = await _ppmRepo.IsPaymentMethodLinkedToProjectAsync(
             expense.ExpProjectId, expense.ExpPaymentMethodId, ct);
 
         if (!isLinked)
             throw new InvalidOperationException("PaymentMethodNotLinkedToProject");
 
-        // Resolver monto y moneda en la moneda del método de pago
+        // Resolve amount and currency in the payment method's currency
         var paymentMethod = await _paymentMethodRepo.GetByIdAsync(expense.ExpPaymentMethodId, ct)
             ?? throw new KeyNotFoundException("PaymentMethodNotFound");
 
@@ -106,8 +106,8 @@ public class ExpenseService : IExpenseService
         expense.ExpAccountAmount = ResolveAccountAmount(
             expense, paymentMethod.PmtCurrency, project.PrjCurrencyCode);
 
-        // Validar que la obligación pertenece al mismo proyecto y no se sobre-paga
-        // solo cuando el gasto está activo.
+        // Validate that the obligation belongs to the same project and is not overpaid,
+        // only when the expense is active.
         if (expense.ExpObligationId.HasValue && expense.ExpIsActive)
         {
             var obligation = await _obligationRepo.GetByIdAsync(expense.ExpObligationId.Value, ct)
@@ -119,7 +119,7 @@ public class ExpenseService : IExpenseService
             if (obligation.OblProjectId != expense.ExpProjectId)
                 throw new InvalidOperationException("ObligationProjectMismatch");
 
-            // Convertir montos a la moneda de la obligación para comparar correctamente
+            // Convert amounts to the obligation's currency to compare them correctly
             var existingPayments = await _expenseRepo.GetByObligationIdAsync(obligation.OblId, ct);
             var currentPaid = existingPayments.Sum(e =>
                 AmountInObligationCurrency(
@@ -153,7 +153,7 @@ public class ExpenseService : IExpenseService
             await _expenseRepo.AddAsync(expense, ct);
             await _expenseRepo.SaveChangesAsync(ct);
 
-            // Crear splits: explícitos (si partners_enabled y se proveyeron) o auto-split
+            // Create splits: explicit (if partners_enabled and provided) or auto-split
             if (splits is { Count: > 0 } && project.PrjPartnersEnabled)
             {
                 var splitEntities = await BuildExpenseSplitsAsync(expense.ExpId, expense.ExpOriginalAmount, expense.ExpProjectId, splits, ct);
@@ -176,11 +176,11 @@ public class ExpenseService : IExpenseService
                 await _expenseSplitRepo.SaveChangesAsync(ct);
             }
 
-            // Auditar creación del gasto
+            // Audit expense creation
             await _auditLog.LogAsync("Expense", expense.ExpId, "create", expense.ExpCreatedByUserId,
                 newValues: new { expense.ExpId, expense.ExpTitle, expense.ExpConvertedAmount, expense.ExpProjectId }, ct: ct);
 
-            // Auditar asociación a obligación si aplica
+            // Audit obligation association if applicable
             if (expense.ExpObligationId.HasValue)
             {
                 await _auditLog.LogAsync("Obligation", expense.ExpObligationId.Value, "associate",
@@ -207,7 +207,7 @@ public class ExpenseService : IExpenseService
         expense.ExpAccountAmount = ResolveAccountAmount(
             expense, paymentMethod.PmtCurrency, project.PrjCurrencyCode);
 
-        // Validar sobre-pago solo para pagos activos vinculados a obligación.
+        // Validate overpayment only for active payments linked to an obligation.
         if (expense.ExpObligationId.HasValue && expense.ExpIsActive)
         {
             var obligation = await _obligationRepo.GetByIdAsync(expense.ExpObligationId.Value, ct);
@@ -244,8 +244,8 @@ public class ExpenseService : IExpenseService
             _expenseRepo.Update(expense);
             await _expenseRepo.SaveChangesAsync(ct);
 
-            // Actualizar splits solo si se proveyeron explícitamente
-            // null → no modificar; lista vacía → eliminar todos; lista con items → reemplazar
+            // Update splits only if explicitly provided
+            // null → do not modify; empty list → delete all; list with items → replace
             if (splits is not null)
             {
                 await _expenseSplitRepo.DeleteByExpenseIdAsync(expense.ExpId, ct);
@@ -308,12 +308,12 @@ public class ExpenseService : IExpenseService
             ct);
 
     /// <summary>
-    /// Convierte el monto de un pago a la moneda de la obligación.
-    /// - Si originalCurrency coincide con obligación: usa originalAmount.
-    /// - Si difiere y existe obligationEquivalentAmount: usa obligationEquivalentAmount.
-    /// - Si difiere y no hay equivalente:
-    ///   - requireEquivalentForCrossCurrency=true: lanza 400.
-    ///   - requireEquivalentForCrossCurrency=false: fallback legado a convertedAmount.
+    /// Converts a payment amount to the obligation's currency.
+    /// - If originalCurrency matches obligation: uses originalAmount.
+    /// - If differs and obligationEquivalentAmount exists: uses obligationEquivalentAmount.
+    /// - If differs and no equivalent:
+    ///   - requireEquivalentForCrossCurrency=true: throws 400.
+    ///   - requireEquivalentForCrossCurrency=false: legacy fallback to convertedAmount.
     /// </summary>
     private static decimal AmountInObligationCurrency(
         decimal originalAmount,
@@ -332,7 +332,7 @@ public class ExpenseService : IExpenseService
         if (requireEquivalentForCrossCurrency)
             throw new InvalidOperationException("EquivalentAmountRequiredForCrossCurrency");
 
-        // Compatibilidad con pagos históricos sin equivalente persistido.
+        // Compatibility with historical payments without persisted equivalent.
         return convertedAmount;
     }
 
@@ -386,7 +386,7 @@ public class ExpenseService : IExpenseService
         var project = await _projectRepo.GetByIdAsync(projectId, ct)
             ?? throw new KeyNotFoundException("ProjectNotFound");
 
-        // Validar límite de plan para el lote completo de una vez (solo gastos no-template)
+        // Validate plan limit for the entire batch at once (only non-template expenses)
         var projectExpenses = await _expenseRepo.GetByProjectIdAsync(projectId, ct);
         var thisMonthCount = projectExpenses
             .Count(e => !e.ExpIsTemplate
@@ -396,7 +396,7 @@ public class ExpenseService : IExpenseService
         await _planAuth.ValidateLimitAsync(
             project.PrjOwnerUserId, PlanLimits.MaxExpensesPerMonth, thisMonthCount + items.Count - 1, ct);
 
-        // Caché de métodos de pago para evitar consultas duplicadas dentro del lote
+        // Payment method cache to avoid duplicate queries within the batch
         var paymentMethodCache = new Dictionary<Guid, PaymentMethod>();
 
         var now = DateTime.UtcNow;
@@ -426,8 +426,8 @@ public class ExpenseService : IExpenseService
         {
             foreach (var (expense, splits, exchanges) in items)
             {
-                // Validar obligación si aplica — debe hacerse dentro de la transacción
-                // para que las validaciones de sobre-pago incluyan los items ya guardados del mismo lote.
+                // Validate obligation if applicable — must be done within the transaction
+                // so overpayment validations include items already saved from the same batch.
                 if (expense.ExpObligationId.HasValue && expense.ExpIsActive)
                 {
                     var obligation = await _obligationRepo.GetByIdAsync(expense.ExpObligationId.Value, ct)

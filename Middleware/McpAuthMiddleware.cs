@@ -11,9 +11,9 @@ using ProjectLedger.API.Data;
 namespace ProjectLedger.API.Middleware;
 
 /// <summary>
-/// Middleware dedicado para endpoints MCP.
-/// Valida un service token fijo y construye un ClaimsPrincipal equivalente
-/// al flujo JWT para que filtros, policies y servicios funcionen sin cambios.
+/// Dedicated middleware for MCP endpoints.
+/// Validates a fixed service token and builds a ClaimsPrincipal equivalent
+/// to the JWT flow so that filters, policies, and services work without changes.
 /// </summary>
 public class McpAuthMiddleware
 {
@@ -94,7 +94,7 @@ public class McpAuthMiddleware
             AuthenticateResult = AuthenticateResult.Success(new AuthenticationTicket(principal, AuthenticationScheme))
         });
 
-        // Evita que el handler JWT intente interpretar el service token si se ejecuta más adelante.
+        // Prevents the JWT handler from trying to interpret the service token if it is executed later.
         context.Request.Headers.Remove(AuthorizationHeaderName);
 
         await _next(context);

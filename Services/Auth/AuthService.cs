@@ -8,13 +8,13 @@ using ProjectLedger.API.Repositories;
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Implementación completa de autenticación: registro, login, refresh y revocación.
+/// Complete authentication implementation: registration, login, refresh and revocation.
 /// 
-/// Seguridad:
-/// - Passwords hasheados con BCrypt (work factor 12)
-/// - Refresh tokens almacenados como SHA-256 hash (nunca en texto plano)
-/// - Rotación obligatoria de refresh tokens en cada uso
-/// - Detección de reutilización de tokens (revoca TODOS los del usuario)
+/// Security:
+/// - Passwords hashed with BCrypt (work factor 12)
+/// - Refresh tokens stored as SHA-256 hash (never in plain text)
+/// - Mandatory refresh token rotation on each use
+/// - Token reuse detection (revokes ALL user tokens)
 /// </summary>
 public class AuthService : IAuthService
 {
@@ -28,7 +28,7 @@ public class AuthService : IAuthService
     private readonly IEmailService _emailService;
     private readonly ILogger<AuthService> _logger;
 
-    // BCrypt work factor — 12 es buen balance entre seguridad y rendimiento
+    // BCrypt work factor — 12 is a good balance between security and performance
     private const int BcryptWorkFactor = 12;
 
     public AuthService(
@@ -58,7 +58,7 @@ public class AuthService : IAuthService
     /// <inheritdoc />
     public async Task<AuthResponse?> RegisterAsync(RegisterRequest request, CancellationToken ct = default)
     {
-        // 1. Verificar que el email no esté registrado
+        // 1. Verify that the email is not already registered
         var normalizedEmail = request.Email.ToLowerInvariant().Trim();
         if (await _userRepo.EmailExistsAsync(normalizedEmail, ct))
         {
@@ -66,12 +66,12 @@ public class AuthService : IAuthService
             return null;
         }
 
-        // 2. Obtener el plan gratuito por defecto
+        // 2. Get the default free plan
         var defaultPlan = await _planRepo.GetBySlugAsync("free", ct)
                           ?? (await _planRepo.GetActiveAsync(ct)).FirstOrDefault()
                           ?? throw new InvalidOperationException("NoDefaultPlanAvailable");
 
-        // 3. Crear usuario con password hasheado
+        // 3. Create user with hashed password
         var user = new User
         {
             UsrId = Guid.NewGuid(),
@@ -79,7 +79,7 @@ public class AuthService : IAuthService
             UsrPasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password, BcryptWorkFactor),
             UsrFullName = request.FullName.Trim(),
             UsrPlanId = defaultPlan.PlnId,
-            UsrIsActive = false,   // Nuevo usuario inicia DESACTIVADO — el admin lo activa
+            UsrIsActive = false,   // New user starts INACTIVE — the admin activates it
             UsrIsAdmin = false,
             UsrLastLoginAt = DateTime.UtcNow,
             UsrCreatedAt = DateTime.UtcNow,
@@ -88,11 +88,11 @@ public class AuthService : IAuthService
 
         await _userRepo.AddAsync(user, ct);
 
-        // 4. Generar tokens
+        // 4. Generate tokens
         var accessToken = _jwtTokenService.GenerateAccessToken(user);
         var rawRefreshToken = _jwtTokenService.GenerateRefreshToken();
 
-        // 5. Persistir refresh token (solo el hash SHA-256)
+        // 5. Persist refresh token (only the SHA-256 hash)
         var refreshTokenEntity = new RefreshToken
         {
             RtkId = Guid.NewGuid(),
@@ -107,7 +107,7 @@ public class AuthService : IAuthService
 
         _logger.LogInformation("New user registered (inactive): {UserId}", user.UsrId);
 
-        // Enviar correos de notificación (fire-and-forget, no bloquean el registro)
+        // Send notification emails (fire-and-forget, they don't block registration)
         _ = _emailService.SendWelcomeEmailAsync(user.UsrEmail, user.UsrFullName, ct);
         _ = _emailService.SendNewUserNotificationToAdminAsync(user.UsrEmail, user.UsrFullName, ct);
 
@@ -121,7 +121,7 @@ public class AuthService : IAuthService
     {
         var normalizedEmail = request.Email.ToLowerInvariant().Trim();
 
-        // 1. Buscar usuario por email
+        // 1. Find user by email
         var user = await _userRepo.GetByEmailAsync(normalizedEmail, ct);
         if (user == null || user.UsrPasswordHash == null)
         {
@@ -129,24 +129,24 @@ public class AuthService : IAuthService
             return null;
         }
 
-        // 2. Verificar password con BCrypt (timing-safe)
-        //    Nota: usuarios desactivados SÍ pueden hacer login (solo lectura).
+        // 2. Verify password with BCrypt (timing-safe)
+        //    Note: deactivated users CAN log in (read-only mode).
         if (!BCrypt.Net.BCrypt.Verify(request.Password, user.UsrPasswordHash))
         {
             _logger.LogWarning("Login failed: invalid password for {UserId}", user.UsrId);
             return null;
         }
 
-        // 3. Actualizar last login
+        // 3. Update last login
         user.UsrLastLoginAt = DateTime.UtcNow;
         user.UsrUpdatedAt = DateTime.UtcNow;
         _userRepo.Update(user);
 
-        // 4. Generar tokens
+        // 4. Generate tokens
         var accessToken = _jwtTokenService.GenerateAccessToken(user);
         var rawRefreshToken = _jwtTokenService.GenerateRefreshToken();
 
-        // 5. Persistir refresh token
+        // 5. Persist refresh token
         var refreshTokenEntity = new RefreshToken
         {
             RtkId = Guid.NewGuid(),
@@ -187,7 +187,7 @@ public class AuthService : IAuthService
 
         User? user = null;
 
-        // Step 1: buscar vínculo existente por provider/providerUserId.
+        // Step 1: find existing link by provider/providerUserId.
         var providerLink = await _externalAuthProviderRepo
             .GetByProviderAndProviderUserIdAsync(provider, normalizedProviderUserId, ct);
 
@@ -203,7 +203,7 @@ public class AuthService : IAuthService
             }
         }
 
-        // Step 2 + 3: vincular por email existente o crear usuario nuevo.
+        // Step 2 + 3: link to existing email or create new user.
         var isNewUser = false;
 
         if (user == null)
@@ -286,18 +286,18 @@ public class AuthService : IAuthService
     {
         var tokenHash = HashRefreshToken(refreshToken);
 
-        // 1. Buscar el refresh token en DB por hash
+        // 1. Find the refresh token in DB by hash
         var storedToken = await _refreshTokenRepo.GetByTokenHashAsync(tokenHash, ct);
 
         if (storedToken == null)
         {
-            // ⚠️ Posible robo de token: el token no existe o ya fue revocado.
-            // Si fue revocado, intentar revocar TODOS los tokens del usuario.
+            // ⚠️ Possible token theft: the token does not exist or was already revoked.
+            // If it was revoked, attempt to revoke ALL tokens for the user.
             _logger.LogWarning("Refresh token not found or already revoked. Possible token theft.");
             return null;
         }
 
-        // 2. Verificar que no haya expirado
+        // 2. Verify that it has not expired
         if (storedToken.RtkExpiresAt < DateTime.UtcNow)
         {
             storedToken.RtkRevokedAt = DateTime.UtcNow;
@@ -306,7 +306,7 @@ public class AuthService : IAuthService
             return null;
         }
 
-        // 3. Obtener usuario (incluido en la validación de que siga activo)
+        // 3. Get user (included in the active status validation)
         var user = await _userRepo.GetByIdAsync(storedToken.RtkUserId, ct);
         if (user == null || !user.UsrIsActive || user.UsrIsDeleted)
         {
@@ -315,10 +315,10 @@ public class AuthService : IAuthService
             return null;
         }
 
-        // 4. ROTACIÓN: revocar el token actual
+        // 4. ROTATION: revoke the current token
         storedToken.RtkRevokedAt = DateTime.UtcNow;
 
-        // 5. Generar nuevos tokens
+        // 5. Generate new tokens
         var newAccessToken = _jwtTokenService.GenerateAccessToken(user);
         var newRawRefreshToken = _jwtTokenService.GenerateRefreshToken();
 
@@ -381,7 +381,7 @@ public class AuthService : IAuthService
         var codeHash = HashCode(otpCode);
         var token = await _passwordResetTokenRepo.GetActiveByCodeHashAsync(codeHash, ct);
 
-        // Verificar que el token pertenece al usuario correcto
+        // Verify that the token belongs to the correct user
         return token != null && token.PrtUserId == user.UsrId;
     }
 
@@ -393,17 +393,17 @@ public class AuthService : IAuthService
         var normalizedEmail = email.ToLowerInvariant().Trim();
         var user = await _userRepo.GetByEmailAsync(normalizedEmail, ct);
 
-        // Siempre retornar true: no revelar si el email existe
+        // Always return true: do not reveal if the email exists
         if (user == null || user.UsrIsDeleted)
         {
             _logger.LogWarning("Password reset requested for unknown email: {Email}", normalizedEmail);
             return true;
         }
 
-        // Invalidar códigos anteriores (uno activo a la vez)
+        // Invalidate previous codes (only one active at a time)
         await _passwordResetTokenRepo.InvalidateAllByUserIdAsync(user.UsrId, ct);
 
-        // Generar OTP de 6 dígitos
+        // Generate a 6-digit OTP
         var rawCode = Random.Shared.Next(100000, 999999).ToString("D6");
         var tokenEntity = new PasswordResetToken
         {
@@ -417,7 +417,7 @@ public class AuthService : IAuthService
         await _passwordResetTokenRepo.AddAsync(tokenEntity, ct);
         await _passwordResetTokenRepo.SaveChangesAsync(ct);
 
-        // Enviar OTP por email (fire-and-forget)
+        // Send OTP via email (fire-and-forget)
         _ = _emailService.SendPasswordResetEmailAsync(user.UsrEmail, user.UsrFullName, rawCode, ct);
 
         _logger.LogInformation("Password reset OTP generated for user {UserId}", user.UsrId);
@@ -438,7 +438,7 @@ public class AuthService : IAuthService
             return false;
         }
 
-        // Buscar token válido (no usado, no expirado) por hash del código
+        // Find a valid token (unused, not expired) by code hash
         var codeHash = HashCode(request.OtpCode);
         var token = await _passwordResetTokenRepo.GetActiveByCodeHashAsync(codeHash, ct);
 
@@ -448,24 +448,24 @@ public class AuthService : IAuthService
             return false;
         }
 
-        // Actualizar contraseña
+        // Update password
         user.UsrPasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword, BcryptWorkFactor);
         user.UsrUpdatedAt    = DateTime.UtcNow;
         _userRepo.Update(user);
 
         await _userRepo.ExecuteInTransactionAsync(async (ct) =>
         {
-            // Marcar el token como usado e invalidar todos los demás
+            // Mark the token as used and invalidate all others
             await _passwordResetTokenRepo.InvalidateAllByUserIdAsync(user.UsrId, ct);
             await _passwordResetTokenRepo.SaveChangesAsync(ct);
             await _userRepo.SaveChangesAsync(ct);
 
-            // Revocar todos los refresh tokens activos (invalida todas las sesiones abiertas)
+            // Revoke all active refresh tokens (invalidates all open sessions)
             await _refreshTokenRepo.RevokeAllByUserIdAsync(user.UsrId, ct);
             await _refreshTokenRepo.SaveChangesAsync(ct);
         }, ct);
 
-        // Notificación por correo (fire-and-forget)
+        // Email notification (fire-and-forget)
         _ = _emailService.SendPasswordChangedEmailAsync(user.UsrEmail, user.UsrFullName, ct);
 
         _logger.LogInformation("Password reset successful for user {UserId}", user.UsrId);
@@ -529,8 +529,8 @@ public class AuthService : IAuthService
     // ── Private Helpers ─────────────────────────────────────
 
     /// <summary>
-    /// Hash SHA-256 del refresh token para almacenamiento seguro.
-    /// Nunca se guarda el token en texto plano en la base de datos.
+    /// SHA-256 hash of the refresh token for secure storage.
+    /// The token is never stored in plain text in the database.
     /// </summary>
     private static string HashRefreshToken(string token)
     {
@@ -539,7 +539,7 @@ public class AuthService : IAuthService
     }
 
     /// <summary>
-    /// Hash SHA-256 genérico para códigos OTP y otros tokens cortos.
+    /// Generic SHA-256 hash for OTP codes and other short tokens.
     /// </summary>
     private static string HashCode(string code)
     {
@@ -548,7 +548,7 @@ public class AuthService : IAuthService
     }
 
     /// <summary>
-    /// Construye la respuesta de autenticación estándar.
+    /// Builds the standard authentication response.
     /// </summary>
     private AuthResponse BuildAuthResponse(User user, string accessToken, string rawRefreshToken)
     {

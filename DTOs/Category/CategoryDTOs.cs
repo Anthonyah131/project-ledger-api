@@ -5,8 +5,8 @@ namespace ProjectLedger.API.DTOs.Category;
 // ── Requests ────────────────────────────────────────────────
 
 /// <summary>
-/// Request para crear una categoría.
-/// NO incluye ProjectId (viene de la ruta) para prevenir escalamiento de privilegios.
+/// Request to create a category.
+/// Does NOT include ProjectId (it comes from the route) to prevent privilege escalation.
 /// </summary>
 public class CreateCategoryRequest
 {
@@ -20,7 +20,7 @@ public class CreateCategoryRequest
     public decimal? BudgetAmount { get; set; }
 }
 
-/// <summary>Request para actualizar una categoría.</summary>
+/// <summary>Request to update a category.</summary>
 public class UpdateCategoryRequest
 {
     [Required]
@@ -35,7 +35,7 @@ public class UpdateCategoryRequest
 
 // ── Responses ───────────────────────────────────────────────
 
-/// <summary>Respuesta con los datos de una categoría.</summary>
+/// <summary>Response with category data.</summary>
 public class CategoryResponse
 {
     public Guid Id { get; set; }

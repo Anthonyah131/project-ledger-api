@@ -92,11 +92,30 @@ public class ProjectRepository : Repository<Project>, IProjectRepository
         return (items, total);
     }
 
+    public async Task<(IEnumerable<Project> Items, int TotalCount)> GetByUserIdPagedExcludingWithSearchAsync(
+        Guid userId, IEnumerable<Guid> excludeProjectIds, string? search, int skip, int take, CancellationToken ct = default)
+    {
+        var excluded = excludeProjectIds.ToList();
+        var query = DbSet
+            .Include(p => p.Workspace)
+            .Where(p => !p.PrjIsDeleted &&
+                        !excluded.Contains(p.PrjId) &&
+                        (p.PrjOwnerUserId == userId ||
+                         p.Members.Any(m => m.PrmUserId == userId && !m.PrmIsDeleted)));
+
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(p => p.PrjName.ToLower().Contains(search.ToLower()));
+
+        var total = await query.CountAsync(ct);
+        var items = await query.OrderBy(p => p.PrjName).Skip(skip).Take(take).ToListAsync(ct);
+        return (items, total);
+    }
+
     // ── Helpers ─────────────────────────────────────────────
 
     /// <summary>
-    /// Aplica ordenamiento al query de proyectos.
-    /// Campos soportados: name, createdAt (default), updatedAt, currencyCode.
+    /// Applies sorting to the project query.
+    /// Supported fields: name, createdAt (default), updatedAt, currencyCode.
     /// </summary>
     private static IQueryable<Project> ApplySort(IQueryable<Project> query, string? sortBy, bool isDescending)
         => sortBy?.ToLowerInvariant() switch

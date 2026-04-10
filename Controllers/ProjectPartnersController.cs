@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Localization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.Common;
@@ -12,9 +12,9 @@ using ProjectLedger.API.Services;
 namespace ProjectLedger.API.Controllers;
 
 /// <summary>
-/// Balances, historial y liquidaciones de socios por proyecto.
-/// Solo accesible cuando <c>prj_partners_enabled = true</c>.
-/// Requiere rol <c>owner</c> o <c>editor</c>.
+/// Project partners balances, history, and settlements.
+/// Only accessible when <c>prj_partners_enabled = true</c>.
+/// Requires <c>owner</c> or <c>editor</c> role.
 /// </summary>
 [ApiController]
 [Route("api/projects/{projectId:guid}")]
@@ -62,16 +62,16 @@ public class ProjectPartnersController : ControllerBase
     // ── GET /projects/:id/partners/balance ───────────────────
 
     /// <summary>
-    /// Retorna los balances de todos los socios del proyecto en la moneda base del proyecto.
+    /// Returns the balances of all project partners in the project's base currency.
     ///
-    /// Lógica del balance:
+    /// Balance logic:
     ///   netBalance = (othersOweHim - heOwesOthers) + (settlementsPaid - settlementsReceived)
     ///
-    /// Positivo = otros le deben. Negativo = él le debe a otros.
+    /// Positive = others owe him. Negative = he owes others.
     ///
-    /// Las liquidaciones registradas (partner_settlements) saldan deuda entre socios sin pasar por
-    /// métodos de pago del proyecto. Al pagar una liquidación, la deuda se reduce en el balance neto.
-    /// Solo disponible cuando <c>partners_enabled = true</c>.
+    /// Registered settlements (partner_settlements) settle debt between partners without going through
+    /// project payment methods. When paying a settlement, debt is reduced in the net balance.
+    /// Only available when <c>partners_enabled = true</c>.
     /// </summary>
     [HttpGet("partners/balance")]
     [ProducesResponseType(typeof(PartnerBalanceResponse), StatusCodes.Status200OK)]
@@ -87,11 +87,11 @@ public class ProjectPartnersController : ControllerBase
     // ── GET /projects/:id/partners/settlement-suggestions ────
 
     /// <summary>
-    /// Devuelve las transferencias mínimas necesarias para que todos los balances queden en cero.
+    /// Returns the minimum transfers needed for all balances to reach zero.
     ///
-    /// Algoritmo greedy: empareja al mayor acreedor con el mayor deudor y repite.
-    /// Minimiza el número de transferencias.
-    /// Solo disponible cuando <c>partners_enabled = true</c>.
+    /// Greedy algorithm: pairs the largest creditor with the largest debtor and repeats.
+    /// Minimizes the number of transfers.
+    /// Only available when <c>partners_enabled = true</c>.
     /// </summary>
     [HttpGet("partners/settlement-suggestions")]
     [ProducesResponseType(typeof(SettlementSuggestionsResponse), StatusCodes.Status200OK)]
@@ -107,8 +107,8 @@ public class ProjectPartnersController : ControllerBase
     // ── GET /projects/:id/partners/:partnerId/history ────────
 
     /// <summary>
-    /// Lista todas las transacciones con splits de un partner y sus liquidaciones en el proyecto.
-    /// Las transacciones están paginadas. Las liquidaciones se devuelven completas.
+    /// Lists all transactions with splits for a partner and their project settlements.
+    /// Transactions are paginated. Settlements are returned in full.
     /// </summary>
     [HttpGet("partners/{partnerId:guid}/history")]
     [ProducesResponseType(typeof(PartnerHistoryResponse), StatusCodes.Status200OK)]
@@ -129,14 +129,14 @@ public class ProjectPartnersController : ControllerBase
     // ── POST /projects/:id/partner-settlements ───────────────
 
     /// <summary>
-    /// Registra una liquidación directa entre dos partners del proyecto.
+    /// Registers a direct settlement between two project partners.
     ///
-    /// Cuando el partner A paga al partner B:
-    ///   - Se crea un registro con from_partner_id=A, to_partner_id=B, amount=X
-    ///   - El balance de A mejora: su settlementsPaid sube, netBalance se acerca a 0
-    ///   - El balance de B se reduce: su settlementsReceived sube, netBalance se acerca a 0
+    /// When partner A pays partner B:
+    ///   - A record is created with from_partner_id=A, to_partner_id=B, amount=X
+    ///   - A's balance improves: their settlementsPaid goes up, netBalance approaches 0
+    ///   - B's balance is reduced: their settlementsReceived goes up, netBalance approaches 0
     ///
-    /// Las liquidaciones no afectan los métodos de pago del proyecto.
+    /// Settlements do not affect project payment methods.
     /// </summary>
     [HttpPost("partner-settlements")]
     [ProducesResponseType(typeof(SettlementResponse), StatusCodes.Status201Created)]
@@ -175,9 +175,9 @@ public class ProjectPartnersController : ControllerBase
     // ── PATCH /projects/:id/partner-settlements/:id ──────────
 
     /// <summary>
-    /// Actualiza los campos editables de una liquidación existente.
-    /// Solo se aplican los campos que vienen en el body (PATCH semántico).
-    /// Al cambiar amount o exchangeRate, convertedAmount se recalcula automáticamente.
+    /// Updates the editable fields of an existing settlement.
+    /// Only the fields included in the body are applied (semantic PATCH).
+    /// When changing amount or exchangeRate, convertedAmount is automatically recalculated.
     /// </summary>
     [HttpPatch("partner-settlements/{settlementId:guid}")]
     [ProducesResponseType(typeof(SettlementResponse), StatusCodes.Status200OK)]
@@ -208,7 +208,7 @@ public class ProjectPartnersController : ControllerBase
     // ── GET /projects/:id/partner-settlements ────────────────
 
     /// <summary>
-    /// Lista las liquidaciones activas del proyecto (paginado).
+    /// Lists the project's active settlements (paginated).
     /// </summary>
     [HttpGet("partner-settlements")]
     [ProducesResponseType(typeof(PagedResponse<SettlementResponse>), StatusCodes.Status200OK)]
@@ -235,7 +235,7 @@ public class ProjectPartnersController : ControllerBase
     // ── DELETE /projects/:id/partner-settlements/:id ─────────
 
     /// <summary>
-    /// Soft-delete de una liquidación. Revierte su efecto en el balance.
+    /// Soft-deletes a settlement. Reverts its effect on the balance.
     /// </summary>
     [HttpDelete("partner-settlements/{settlementId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

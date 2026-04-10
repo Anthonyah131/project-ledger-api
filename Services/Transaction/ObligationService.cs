@@ -4,7 +4,7 @@ using ProjectLedger.API.Repositories;
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Servicio de obligaciones/deudas. CRUD con soft delete.
+/// Obligations/debts service. CRUD with soft delete.
 /// </summary>
 public class ObligationService : IObligationService
 {

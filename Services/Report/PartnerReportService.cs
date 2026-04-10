@@ -1,10 +1,14 @@
-﻿using ProjectLedger.API.DTOs.Common;
+using ProjectLedger.API.DTOs.Common;
 using ProjectLedger.API.DTOs.Partner;
 using ProjectLedger.API.DTOs.Report;
 using ProjectLedger.API.Repositories;
 
 namespace ProjectLedger.API.Services;
 
+/// <summary>
+/// Implementation of IPartnerReportService.
+/// Provides consolidated reports specifically for project partners, including balances and settlements.
+/// </summary>
 public class PartnerReportService : IPartnerReportService
 {
     private readonly IPartnerRepository _partnerRepo;
@@ -99,7 +103,7 @@ public class PartnerReportService : IPartnerReportService
         Guid partnerId, Guid projectId, string projectName, string currencyCode,
         DateOnly? from, DateOnly? to, CancellationToken ct)
     {
-        // ── Balances (same logic as /partners/balance) ─────
+        // ── Balances (consistent with PartnerBalanceService) ─────
         var balances = await _partnerBalanceService.GetBalancesAsync(projectId, currencyCode, ct);
         var partnerBalance = balances.Partners.FirstOrDefault(p => p.PartnerId == partnerId);
 

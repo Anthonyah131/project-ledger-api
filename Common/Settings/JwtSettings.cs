@@ -1,8 +1,8 @@
 namespace ProjectLedger.API.Common.Settings;
 
 /// <summary>
-/// Configuración JWT leída desde appsettings.json → sección "Jwt".
-/// La SecretKey se resuelve desde la variable de entorno JWT_SECRET_KEY.
+/// JWT configuration read from appsettings.json → "Jwt" section.
+/// The SecretKey is resolved from the JWT_SECRET_KEY environment variable.
 /// </summary>
 public class JwtSettings
 {

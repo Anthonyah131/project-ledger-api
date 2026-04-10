@@ -4,8 +4,8 @@ using ProjectLedger.API.Repositories;
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Servicio de partners asignados a proyectos.
-/// Los métodos de pago disponibles se derivan automáticamente de los partners asignados.
+/// Project assigned partners service.
+/// Available payment methods are automatically derived from assigned partners.
 /// </summary>
 public class ProjectPartnerService : IProjectPartnerService
 {
@@ -26,14 +26,14 @@ public class ProjectPartnerService : IProjectPartnerService
     public async Task<ProjectPartner> AddAsync(
         Guid projectId, Guid partnerId, Guid addedByUserId, CancellationToken ct = default)
     {
-        // Verificar que el partner existe y pertenece al usuario
+        // Verify that the partner exists and belongs to the user
         var partner = await _partnerRepo.GetByIdAsync(partnerId, ct)
             ?? throw new KeyNotFoundException("PartnerNotFound");
 
         if (partner.PtrOwnerUserId != addedByUserId)
             throw new UnauthorizedAccessException("PartnerNotOwnedByUser");
 
-        // Verificar que no esté ya asignado
+        // Verify that it is not already assigned
         var existing = await _repo.GetActiveAsync(projectId, partnerId, ct);
         if (existing is not null)
             throw new InvalidOperationException("PartnerAlreadyAssignedToProject");
@@ -50,7 +50,7 @@ public class ProjectPartnerService : IProjectPartnerService
         await _repo.AddAsync(projectPartner, ct);
         await _repo.SaveChangesAsync(ct);
 
-        // Cargar el navigation property para que el controller pueda retornar el nombre del partner
+        // Load the navigation property so the controller can return the partner's name
         projectPartner.Partner = partner;
 
         return projectPartner;

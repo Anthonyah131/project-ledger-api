@@ -8,8 +8,8 @@ namespace ProjectLedger.API.DTOs.Income;
 // ── Requests ────────────────────────────────────────────────
 
 /// <summary>
-/// Request para crear un ingreso.
-/// NO incluye ProjectId (viene de la ruta) ni CreatedByUserId (viene del JWT).
+/// Request to create an income.
+/// DOES NOT include ProjectId (comes from route) nor CreatedByUserId (comes from JWT).
 /// </summary>
 public class CreateIncomeRequest
 {
@@ -19,7 +19,7 @@ public class CreateIncomeRequest
     [Required]
     public Guid PaymentMethodId { get; set; }
 
-    // ── Montos ──────────────────────────────────────────────
+    // ── Amounts ─────────────────────────────────────────────
 
     [Required]
     [Range(0.01, 999999999999.99, ErrorMessage = "Original amount must be between 0.01 and 999,999,999,999.99.")]
@@ -40,7 +40,7 @@ public class CreateIncomeRequest
     [Range(0.01, 999999999999.99, ErrorMessage = "Account amount must be between 0.01 and 999,999,999,999.99.")]
     public decimal? AccountAmount { get; set; }
 
-    // ── Datos descriptivos ──────────────────────────────────
+    // ── Descriptive Data ────────────────────────────────────
 
     [Required]
     [StringLength(255, MinimumLength = 1, ErrorMessage = "Title must be between 1 and 255 characters.")]
@@ -57,18 +57,18 @@ public class CreateIncomeRequest
     public string? Notes { get; set; }
     public bool IsActive { get; set; } = true;
 
-    // ── Monedas alternativas (opcional) ─────────────────────
+    // ── Alternative currencies (optional) ───────────────────
 
     public List<CurrencyExchangeRequest>? CurrencyExchanges { get; set; }
 
     /// <summary>
-    /// Splits entre partners. Opcional.
-    /// Si no se envía o el módulo de partners está desactivado → auto-split 100%.
+    /// Splits among partners. Optional.
+    /// If omitted or partners module is disabled → auto-split 100%.
     /// </summary>
     public List<SplitInputDto>? Splits { get; set; }
 }
 
-/// <summary>Request para actualizar un ingreso.</summary>
+/// <summary>Request to update an income.</summary>
 public class UpdateIncomeRequest
 {
     [Required]
@@ -114,16 +114,16 @@ public class UpdateIncomeRequest
     public List<CurrencyExchangeRequest>? CurrencyExchanges { get; set; }
 
     /// <summary>
-    /// Splits entre partners. Opcional.
-    /// null → no modificar splits existentes.
-    /// [] → eliminar todos los splits.
-    /// [...] → reemplazar con los splits provistos.
+    /// Splits among partners. Optional.
+    /// null → do not modify existing splits.
+    /// [] → delete all splits.
+    /// [...] → replace with the provided splits.
     /// </summary>
     public List<SplitInputDto>? Splits { get; set; }
 }
 
 /// <summary>
-/// Request para activar/desactivar un ingreso sin enviar el payload completo.
+/// Request to activate/deactivate an income without sending the full payload.
 /// </summary>
 public class UpdateIncomeActiveStateRequest
 {
@@ -131,7 +131,7 @@ public class UpdateIncomeActiveStateRequest
 }
 
 /// <summary>
-/// Request para extraer un borrador de ingreso desde imagen/PDF con Azure Document Intelligence.
+/// Request to extract an income draft from an image/PDF using Azure Document Intelligence.
 /// </summary>
 public class ExtractIncomeFromDocumentRequest
 {
@@ -144,7 +144,7 @@ public class ExtractIncomeFromDocumentRequest
 
 // ── Responses ───────────────────────────────────────────────
 
-/// <summary>Respuesta con los datos de un ingreso.</summary>
+/// <summary>Response with the data of an income.</summary>
 public class IncomeResponse
 {
     public Guid Id { get; set; }
@@ -179,15 +179,15 @@ public class IncomeResponse
 
     public List<CurrencyExchangeResponse>? CurrencyExchanges { get; set; }
 
-    /// <summary>Indica si el movimiento tiene splits registrados. Útil para mostrar un indicador en la lista.</summary>
+    /// <summary>Indicates whether the movement has registered splits. Useful for showing an indicator in the list.</summary>
     public bool HasSplits { get; set; }
 
-    /// <summary>Splits entre partners. Presente solo cuando el proyecto tiene partners_enabled = true.</summary>
+    /// <summary>Splits among partners. Present only when the project has partners_enabled = true.</summary>
     public List<SplitResponseDto>? Splits { get; set; }
 }
 
 /// <summary>
-/// Respuesta del endpoint de extraccion IA para pre-llenar el formulario de ingreso.
+/// Response from the AI extraction endpoint to pre-fill the income form.
 /// </summary>
 public class ExtractIncomeFromDocumentResponse
 {

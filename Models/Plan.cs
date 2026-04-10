@@ -1,8 +1,8 @@
 namespace ProjectLedger.API.Models;
 
 /// <summary>
-/// Plan de suscripción del sistema (free, pro, enterprise, etc.).
-/// Define permisos y límites para los usuarios asignados.
+/// System subscription plan (free, pro, enterprise, etc.).
+/// Defines permissions and limits for assigned users.
 /// </summary>
 public class Plan
 {
@@ -19,7 +19,7 @@ public class Plan
     public string? PlnStripePaymentLinkId { get; set; }
     public string? PlnStripePaymentLinkUrl { get; set; }
 
-    // ── Permisos (Features) ─────────────────────────────────
+    // ── Permissions (Features) ─────────────────────────────────
     public bool PlnCanCreateProjects { get; set; } = true;
     public bool PlnCanEditProjects { get; set; } = true;
     public bool PlnCanDeleteProjects { get; set; } = true;
@@ -32,8 +32,8 @@ public class Plan
     public bool PlnCanSetBudgets { get; set; } = true;
     public bool PlnCanUsePartners { get; set; }
 
-    // ── Límites numéricos (JSONB) ───────────────────────────
-    public string? PlnLimits { get; set; }  // Almacenado como JSONB en DB
+    // ── Numeric limits (JSONB) ───────────────────────────
+    public string? PlnLimits { get; set; }  // Stored as JSONB in DB
 
     public DateTime PlnCreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime PlnUpdatedAt { get; set; } = DateTime.UtcNow;

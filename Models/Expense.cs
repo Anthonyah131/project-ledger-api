@@ -1,9 +1,9 @@
 namespace ProjectLedger.API.Models;
 
 /// <summary>
-/// Gasto financiero registrado en un proyecto.
-/// Soporta multi-moneda con tipo de cambio manual y moneda alternativa de visualización.
-/// Puede ser plantilla (exp_is_template) o pago de obligación (exp_obligation_id).
+/// Financial expense registered in a project.
+/// Supports multi-currency with manual exchange rate and alternative display currency.
+/// Can be a template (exp_is_template) or an obligation payment (exp_obligation_id).
 /// </summary>
 public class Expense
 {
@@ -12,29 +12,29 @@ public class Expense
     public Guid ExpCategoryId { get; set; }
     public Guid ExpPaymentMethodId { get; set; }
     public Guid ExpCreatedByUserId { get; set; }
-    public Guid? ExpObligationId { get; set; }                 // NULL = gasto normal; NOT NULL = pago de deuda
+    public Guid? ExpObligationId { get; set; }                 // NULL = normal expense; NOT NULL = debt payment
 
-    // ── Montos y moneda ─────────────────────────────────────
+    // ── Amounts and currency ─────────────────────────────────────
     public decimal ExpOriginalAmount { get; set; }
     public string ExpOriginalCurrency { get; set; } = null!;   // ISO 4217
     public decimal ExpExchangeRate { get; set; } = 1.000000m;
     public decimal ExpConvertedAmount { get; set; }
-    public decimal? ExpAccountAmount { get; set; }             // Monto en la moneda del método de pago
-    public string? ExpAccountCurrency { get; set; }            // Moneda del método de pago
+    public decimal? ExpAccountAmount { get; set; }             // Amount in the payment method's currency
+    public string? ExpAccountCurrency { get; set; }            // Payment method's currency
     public decimal? ExpObligationEquivalentAmount { get; set; }
 
-    // ── Datos descriptivos ──────────────────────────────────
+    // ── Descriptive data ──────────────────────────────────
     public string ExpTitle { get; set; } = null!;
     public string? ExpDescription { get; set; }
     public DateOnly ExpExpenseDate { get; set; }
     public string? ExpReceiptNumber { get; set; }
     public string? ExpNotes { get; set; }
 
-    // ── Plantilla ───────────────────────────────────────────
+    // ── Template ───────────────────────────────────────────
     public bool ExpIsTemplate { get; set; }
 
-    // ── Estado contable ──────────────────────────────────────
-    // false = recordatorio (no cuenta en totales/pagos)
+    // ── Accounting state ──────────────────────────────────────
+    // false = reminder (does not count in totals/payments)
     public bool ExpIsActive { get; set; } = true;
 
     // ── Timestamps y soft delete ────────────────────────────
@@ -53,9 +53,9 @@ public class Expense
     public Obligation? Obligation { get; set; }
     public Currency OriginalCurrencyNavigation { get; set; } = null!;
 
-    // ── Splits entre partners ────────────────────────────────
+    // ── Splits between partners ────────────────────────────────
     public ICollection<ExpenseSplit> Splits { get; set; } = [];
 
-    // ── Conversiones a monedas alternativas ─────────────────
+    // ── Conversions to alternative currencies ─────────────────
     public ICollection<TransactionCurrencyExchange> CurrencyExchanges { get; set; } = [];
 }

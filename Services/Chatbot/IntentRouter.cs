@@ -7,8 +7,8 @@ using ProjectLedger.API.Services.Chatbot.Interfaces;
 namespace ProjectLedger.API.Services.Chatbot;
 
 /// <summary>
-/// Mapea un <see cref="ParsedIntent"/> (domain + action + filters) a llamadas de <see cref="IMcpService"/>.
-/// Reemplaza el switch de ExecuteToolAsync y el parsing de tool selections del pipeline anterior.
+/// Maps a <see cref="ParsedIntent"/> (domain + action + filters) to <see cref="IMcpService"/> calls.
+/// Replaces the ExecuteToolAsync switch and the tool selection parsing from the previous pipeline.
 /// </summary>
 public class IntentRouter : IIntentRouter
 {
@@ -31,7 +31,7 @@ public class IntentRouter : IIntentRouter
         var f = intent.Filters;
         var key = $"{intent.Domain}/{intent.Action}";
 
-        _logger.LogDebug("IntentRouter ejecutando: {Key}", key);
+        _logger.LogDebug("IntentRouter executing: {Key}", key);
 
         try
         {
@@ -219,7 +219,7 @@ public class IntentRouter : IIntentRouter
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            _logger.LogWarning(ex, "Error ejecutando intent {Key}", key);
+            _logger.LogWarning(ex, "Error executing intent {Key}", key);
             return JsonSerializer.Serialize(new { error = ex.Message }, JsonOptions);
         }
     }

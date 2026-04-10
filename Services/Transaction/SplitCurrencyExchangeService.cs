@@ -5,8 +5,8 @@ using ProjectLedger.API.Repositories;
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Gestiona las equivalencias de splits en monedas alternativas del proyecto.
-/// Los montos se calculan proporcionalmente a partir de los exchanges del movimiento padre.
+/// Manages split equivalencies in the project's alternative currencies.
+/// Amounts are calculated proportionally based on the parent transaction's exchanges.
 /// </summary>
 public class SplitCurrencyExchangeService : ISplitCurrencyExchangeService
 {

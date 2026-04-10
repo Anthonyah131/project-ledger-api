@@ -23,8 +23,8 @@ public class PartnerBalanceService : IPartnerBalanceService
             var heOwesOthers = Math.Round(b.HeOwesOthersExpenses + b.HeOwesOthersIncomes, 2);
 
             // Balance = (othersOweHim - heOwesOthers) + (settlementsPaid - settlementsReceived)
-            // settlementsPaid: A pagó a otro → reduce la deuda de A → suma al balance de A
-            // settlementsReceived: A recibió de otro → reduce lo que le deben a A → resta al balance de A
+            // settlementsPaid: A paid another partner → reduces A's debt → adds to A's balance
+            // settlementsReceived: A received from another partner → reduces what is owed to A → subtracts from A's balance
             var netBalance = othersOweHim - heOwesOthers + b.SettlementsPaid - b.SettlementsReceived;
 
             var currencyTotals = b.CurrencyTotals

@@ -34,8 +34,8 @@ public class CreateSettlementRequest
     public string? Notes { get; set; }
 
     /// <summary>
-    /// Monto de la liquidación en monedas alternativas del proyecto.
-    /// Si se omite o es null, no se guardan conversiones alternativas.
+    /// Settlement amount in alternative currencies of the project.
+    /// If omitted or null, no alternative conversions are saved.
     /// </summary>
     public List<CurrencyExchangeRequest>? CurrencyExchanges { get; set; }
 }
@@ -62,8 +62,8 @@ public class UpdateSettlementRequest
     public string? Notes { get; set; }
 
     /// <summary>
-    /// Si se provee (incluso lista vacía), reemplaza todas las conversiones existentes.
-    /// Si se omite (null), no modifica las conversiones existentes.
+    /// If provided (even an empty list), replaces all existing conversions.
+    /// If omitted (null), does not modify existing conversions.
     /// </summary>
     public List<CurrencyExchangeRequest>? CurrencyExchanges { get; set; }
 }

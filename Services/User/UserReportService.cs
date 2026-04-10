@@ -3,6 +3,10 @@ using ProjectLedger.API.Repositories;
 
 namespace ProjectLedger.API.Services;
 
+/// <summary>
+/// Implementation of IUserReportService.
+/// Provides user-specific financial reporting, such as consolidated payment method activity.
+/// </summary>
 public class UserReportService : IUserReportService
 {
     private readonly IExpenseRepository _expenseRepo;
@@ -24,10 +28,10 @@ public class UserReportService : IUserReportService
         List<Guid>? paymentMethodIds, int? maxMovementsPerMethod,
         CancellationToken ct = default)
     {
-        // Obtener solo los métodos de pago del usuario autenticado
+        // Retrieve only payment methods belonging to the authenticated user
         var userPaymentMethods = (await _paymentMethodService.GetByOwnerUserIdAsync(userId, ct)).ToList();
 
-        // Si se filtra por métodos específicos, validar que pertenecen al usuario
+        // If filtering by specific methods, validate that they belong to the user
         if (paymentMethodIds is { Count: > 0 })
         {
             var userPmIds = userPaymentMethods.Select(pm => pm.PmtId).ToHashSet();
@@ -48,7 +52,7 @@ public class UserReportService : IUserReportService
         var allIncomes = (await _incomeRepo.GetByPaymentMethodIdsWithDetailsAsync(pmIds, from, to, ct))
             .ToList();
 
-        // Filtrar: solo gastos/ingresos de proyectos donde el usuario es owner
+        // Filter: only expenses/incomes from projects where the user is owner
         var ownerExpenses = allExpenses
             .Where(e => e.Project?.PrjOwnerUserId == userId)
             .ToList();
@@ -57,7 +61,7 @@ public class UserReportService : IUserReportService
             .Where(i => i.Project?.PrjOwnerUserId == userId)
             .ToList();
 
-        // Construir filas por método de pago (todos los montos en la moneda del método)
+        // Build rows per payment method (all amounts in the method's currency)
         var pmRows = userPaymentMethods.Select(pm =>
         {
             var pmExpenses = ownerExpenses
@@ -68,7 +72,7 @@ public class UserReportService : IUserReportService
                 .Where(i => i.IncPaymentMethodId == pm.PmtId)
                 .ToList();
 
-            // Montos en la moneda del método de pago (AccountAmount)
+            // Amounts in the payment method's currency (AccountAmount)
             var pmTotalSpent = pmExpenses.Sum(e => e.ExpAccountAmount ?? e.ExpOriginalAmount);
             var pmTotalIncome = pmIncomes.Sum(i => ResolveIncomeAccountAmount(i, pm.PmtCurrency));
             var today = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -87,12 +91,12 @@ public class UserReportService : IUserReportService
                 ? today.DayNumber - lastUse.Value.DayNumber
                 : 0;
 
-            // Top expense por AccountAmount
+            // Top expense by AccountAmount
             var topExpenseEntity = pmExpenses
                 .OrderByDescending(e => e.ExpAccountAmount ?? e.ExpOriginalAmount)
                 .FirstOrDefault();
 
-            // Top categories (top 5 por AccountAmount)
+            // Top categories (top 5 by AccountAmount)
             var topCategories = pmExpenses
                 .GroupBy(e => e.Category?.CatName ?? "Unknown")
                 .Select(g =>
@@ -110,7 +114,7 @@ public class UserReportService : IUserReportService
                 .Take(5)
                 .ToList();
 
-            // Desglose por proyecto (usando ConvertedAmount ya que es la moneda del proyecto)
+            // Breakdown by project (using ConvertedAmount since it's the project currency)
             var pmTotalConverted = pmExpenses.Sum(e => e.ExpConvertedAmount);
             var projects = pmExpenses
                 .GroupBy(e => new
@@ -133,7 +137,7 @@ public class UserReportService : IUserReportService
                 .OrderByDescending(p => p.TotalSpent)
                 .ToList();
 
-            // Movimientos: usar AccountAmount en la moneda del método
+            // Movements: use AccountAmount in the method's currency
             var orderedExpenses = pmExpenses.OrderByDescending(e => e.ExpExpenseDate).ToList();
             var expenseSource = maxMovementsPerMethod.HasValue
                 ? orderedExpenses.Take(maxMovementsPerMethod.Value)
@@ -219,7 +223,7 @@ public class UserReportService : IUserReportService
         .OrderByDescending(pm => pm.TotalSpent)
         .ToList();
 
-        // Tendencia mensual (por método, en la moneda de cada método)
+        // Monthly trend (per method, in each method's currency)
         var monthlyTrend = ownerExpenses
             .Select(e => new { Year = e.ExpExpenseDate.Year, Month = e.ExpExpenseDate.Month })
             .Union(ownerIncomes.Select(i => new { Year = i.IncIncomeDate.Year, Month = i.IncIncomeDate.Month }))

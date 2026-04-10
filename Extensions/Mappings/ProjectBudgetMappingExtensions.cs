@@ -8,8 +8,8 @@ public static class ProjectBudgetMappingExtensions
     // ── Entity → Response ───────────────────────────────────
 
     /// <summary>
-    /// Convierte un ProjectBudget a su response DTO.
-    /// SpentAmount se calcula a nivel de servicio (suma de gastos del proyecto).
+    /// Converts a ProjectBudget to its response DTO.
+    /// SpentAmount is calculated at the service level (sum of project expenses).
     /// </summary>
     public static ProjectBudgetResponse ToResponse(
         this ProjectBudget entity,

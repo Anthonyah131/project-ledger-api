@@ -107,7 +107,7 @@ public class IncomeRepository : Repository<Income>, IIncomeRepository
 
         var totalCount = await query.CountAsync(ct);
 
-        // Total de movimientos activos con los mismos filtros de fecha y proyecto
+        // Total active movements with the same date and project filters
         var activeAmountQuery = DbSet
             .Where(e => e.IncPaymentMethodId == paymentMethodId && !e.IncIsDeleted && e.IncIsActive);
 

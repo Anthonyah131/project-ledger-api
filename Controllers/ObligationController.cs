@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Localization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.Common;
@@ -12,12 +12,12 @@ using ProjectLedger.API.Services;
 namespace ProjectLedger.API.Controllers;
 
 /// <summary>
-/// Controlador de obligaciones/deudas de un proyecto.
+/// Project obligations/debts controller.
 /// 
-/// Ruta anidada: /api/projects/{projectId}/obligations
-/// - ProjectId viene SIEMPRE de la ruta, nunca del body.
-/// - CreatedByUserId viene del JWT, nunca del body.
-/// - Viewer+ puede listar/ver. Editor+ puede crear/editar/eliminar.
+/// Nested route: /api/projects/{projectId}/obligations
+/// - ProjectId ALWAYS comes from the route, never from the body.
+/// - CreatedByUserId comes from the JWT, never from the body.
+/// - Viewer+ can list/view. Editor+ can create/edit/delete.
 /// </summary>
 [ApiController]
 [Route("api/projects/{projectId:guid}/obligations")]
@@ -49,9 +49,9 @@ public class ObligationController : ControllerBase
     // ── GET /api/projects/{projectId}/obligations ───────────
 
     /// <summary>
-    /// Lista todas las obligaciones del proyecto con montos pagados calculados (paginado).
+    /// Lists all project obligations with calculated paid amounts (paginated).
     /// </summary>
-    /// <response code="200">Lista paginada de obligaciones.</response>
+    /// <response code="200">Paginated list of obligations.</response>
     [HttpGet]
     [Authorize(Policy = "ProjectViewer")]
     [ProducesResponseType(typeof(PagedResponse<ObligationResponse>), StatusCodes.Status200OK)]
@@ -83,10 +83,10 @@ public class ObligationController : ControllerBase
     // ── GET /api/projects/{projectId}/obligations/{obligationId}
 
     /// <summary>
-    /// Obtiene una obligación por ID con monto pagado calculado.
+    /// Gets an obligation by ID with calculated paid amount.
     /// </summary>
-    /// <response code="200">Obligación encontrada.</response>
-    /// <response code="404">Obligación no encontrada o no pertenece al proyecto.</response>
+    /// <response code="200">Obligation found.</response>
+    /// <response code="404">Obligation not found or does not belong to the project.</response>
     [HttpGet("{obligationId:guid}")]
     [Authorize(Policy = "ProjectViewer")]
     [ProducesResponseType(typeof(ObligationResponse), StatusCodes.Status200OK)]
@@ -104,10 +104,10 @@ public class ObligationController : ControllerBase
     // ── POST /api/projects/{projectId}/obligations ──────────
 
     /// <summary>
-    /// Crea una obligación en el proyecto. Requiere editor+.
-    /// ProjectId de la ruta, CreatedByUserId del JWT.
+    /// Creates an obligation in the project. Requires editor+.
+    /// ProjectId from the route, CreatedByUserId from the JWT.
     /// </summary>
-    /// <response code="201">Obligación creada.</response>
+    /// <response code="201">Obligation created.</response>
     [HttpPost]
     [Authorize(Policy = "ProjectEditor")]
     [ProducesResponseType(typeof(ObligationResponse), StatusCodes.Status201Created)]
@@ -136,10 +136,10 @@ public class ObligationController : ControllerBase
     // ── PUT /api/projects/{projectId}/obligations/{obligationId}
 
     /// <summary>
-    /// Actualiza una obligación. Requiere editor+.
+    /// Updates an obligation. Requires editor+.
     /// </summary>
-    /// <response code="200">Obligación actualizada.</response>
-    /// <response code="404">Obligación no encontrada.</response>
+    /// <response code="200">Obligation updated.</response>
+    /// <response code="404">Obligation not found.</response>
     [HttpPut("{obligationId:guid}")]
     [Authorize(Policy = "ProjectEditor")]
     [ProducesResponseType(typeof(ObligationResponse), StatusCodes.Status200OK)]
@@ -171,10 +171,10 @@ public class ObligationController : ControllerBase
     // ── DELETE /api/projects/{projectId}/obligations/{obligationId}
 
     /// <summary>
-    /// Soft-delete de una obligación. Requiere editor+.
+    /// Soft-deletes an obligation. Requires editor+.
     /// </summary>
-    /// <response code="204">Obligación eliminada.</response>
-    /// <response code="404">Obligación no encontrada.</response>
+    /// <response code="204">Obligation deleted.</response>
+    /// <response code="404">Obligation not found.</response>
     [HttpDelete("{obligationId:guid}")]
     [Authorize(Policy = "ProjectEditor")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -198,8 +198,8 @@ public class ObligationController : ControllerBase
     // ── Private Helpers ─────────────────────────────────────
 
     /// <summary>
-    /// Calcula el monto pagado de una obligación sumando los gastos vinculados,
-    /// convirtiendo cada pago a la moneda de la obligación.
+    /// Calculates the paid amount of an obligation by summing linked expenses,
+    /// converting each payment to the obligation's currency.
     /// </summary>
     private async Task<decimal> CalculatePaidAmountAsync(
         Guid obligationId, string obligationCurrency, CancellationToken ct)
@@ -209,6 +209,6 @@ public class ObligationController : ControllerBase
             e.ExpOriginalCurrency == obligationCurrency
                 ? e.ExpOriginalAmount
                 : e.ExpObligationEquivalentAmount
-                    ?? e.ExpConvertedAmount); // fallback legado para registros antiguos
+                    ?? e.ExpConvertedAmount); // legacy fallback for old records
     }
 }

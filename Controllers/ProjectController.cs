@@ -1,9 +1,9 @@
-﻿using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Localization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.Common;
-using ProjectLedger.API.Resources;
 using ProjectLedger.API.DTOs.Project;
+using ProjectLedger.API.Resources;
 using ProjectLedger.API.DTOs.ProjectPartner;
 using ProjectLedger.API.Extensions.Mappings;
 using ProjectLedger.API.Models;
@@ -12,13 +12,13 @@ using ProjectLedger.API.Services;
 namespace ProjectLedger.API.Controllers;
 
 /// <summary>
-/// Controlador de proyectos con autorización multi-tenant.
+/// Projects controller with multi-tenant authorization.
 /// 
-/// Reglas de seguridad:
-/// - GET lista: solo proyectos donde el usuario es owner o miembro
-/// - GET/PUT/DELETE por ID: validación de acceso vía IProjectAccessService
-/// - POST: el UserId se obtiene SIEMPRE del JWT, nunca del body
-/// - ProjectId viene de la ruta, nunca del body
+/// Security rules:
+/// - GET list: only projects where the user is owner or member.
+/// - GET/PUT/DELETE by ID: access validation via IProjectAccessService.
+/// - POST: the UserId is ALWAYS obtained from the JWT, never from the body.
+/// - ProjectId comes from the route, never from the body.
 /// </summary>
 [ApiController]
 [Route("api/projects")]
@@ -53,11 +53,11 @@ public class ProjectController : ControllerBase
     // ── GET /api/projects ───────────────────────────────────
 
     /// <summary>
-    /// Lista todos los proyectos donde el usuario es owner o miembro (paginado).
-    /// En la página 1 incluye una sección "pinned" con proyectos fijados (máx. 6).
-    /// El total y la paginación normal excluyen los proyectos fijados.
+    /// Lists all projects where the user is owner or member (paginated).
+    /// On page 1, includes a "pinned" section with pinned projects (max 6).
+    /// The total and normal pagination exclude pinned projects.
     /// </summary>
-    /// <response code="200">Lista paginada de proyectos del usuario con sección de fijados.</response>
+    /// <response code="200">Paginated list of user projects with pinned section.</response>
     [HttpGet]
     [ProducesResponseType(typeof(ProjectsPagedResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMyProjects(
@@ -103,15 +103,63 @@ public class ProjectController : ControllerBase
         });
     }
 
+    // ── GET /api/projects/lookup ────────────────────────────
+
+    /// <summary>
+    /// Lightweight, paginated list of the authenticated user's projects.
+    /// On page 1, includes pinned projects matching the search.
+    /// Designed for command palette, selectors, and pickers.
+    /// </summary>
+    /// <response code="200">Projects lookup with pinned items on page 1.</response>
+    [HttpGet("lookup")]
+    [ProducesResponseType(typeof(ProjectsLookupResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetLookup(
+        [FromQuery] LookupRequest request,
+        CancellationToken ct)
+    {
+        var userId = User.GetRequiredUserId();
+
+        var (pinnedFiltered, pinnedTotalCount, items, totalCount) =
+            await _projectService.GetProjectsLookupAsync(
+                userId, request.Search, request.Page, request.Skip, request.PageSize, ct);
+
+        var pinned = pinnedFiltered.Select(m => new PinnedProjectLookupItem
+        {
+            Id = m.Project.PrjId,
+            Name = m.Project.PrjName,
+            WorkspaceId = m.Project.PrjWorkspaceId,
+            WorkspaceName = m.Project.Workspace?.WksName,
+            PinnedAt = m.PrmPinnedAt!.Value
+        }).ToList();
+
+        var itemList = items.Select(p => new ProjectLookupItem
+        {
+            Id = p.PrjId,
+            Name = p.PrjName,
+            WorkspaceId = p.PrjWorkspaceId,
+            WorkspaceName = p.Workspace?.WksName
+        }).ToList();
+
+        return Ok(new ProjectsLookupResponse
+        {
+            Pinned = pinned,
+            PinnedCount = pinnedTotalCount,
+            Items = itemList,
+            Page = request.Page,
+            PageSize = request.PageSize,
+            TotalCount = totalCount
+        });
+    }
+
     // ── PUT /api/projects/{projectId}/pin ───────────────────
 
     /// <summary>
-    /// Fija un proyecto para el usuario autenticado. Máximo 6 proyectos fijados.
+    /// Pins a project for the authenticated user. Maximum of 6 pinned projects.
     /// </summary>
-    /// <response code="200">Proyecto fijado correctamente.</response>
-    /// <response code="400">Límite de 6 fijados alcanzado.</response>
-    /// <response code="403">Sin acceso al proyecto.</response>
-    /// <response code="404">Proyecto no existe o está inactivo.</response>
+    /// <response code="200">Project successfully pinned.</response>
+    /// <response code="400">Limit of 6 pinned projects reached.</response>
+    /// <response code="403">No access to the project.</response>
+    /// <response code="404">Project does not exist or is inactive.</response>
     [HttpPut("{projectId:guid}/pin")]
     [ProducesResponseType(typeof(PinProjectResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -140,9 +188,9 @@ public class ProjectController : ControllerBase
     // ── DELETE /api/projects/{projectId}/pin ────────────────
 
     /// <summary>
-    /// Desancla un proyecto fijado. Operación idempotente.
+    /// Unpins a pinned project. Idempotent operation.
     /// </summary>
-    /// <response code="204">Proyecto desfijado correctamente.</response>
+    /// <response code="204">Project successfully unpinned.</response>
     [HttpDelete("{projectId:guid}/pin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> UnpinProject(Guid projectId, CancellationToken ct)
@@ -155,11 +203,11 @@ public class ProjectController : ControllerBase
     // ── GET /api/projects/{projectId} ───────────────────────
 
     /// <summary>
-    /// Obtiene un proyecto por ID. Valida que el usuario tenga acceso (viewer+).
+    /// Gets a project by ID. Validates user access (viewer+).
     /// </summary>
-    /// <response code="200">Proyecto encontrado.</response>
-    /// <response code="404">Proyecto no encontrado.</response>
-    /// <response code="403">Sin acceso al proyecto.</response>
+    /// <response code="200">Project found.</response>
+    /// <response code="404">Project not found.</response>
+    /// <response code="403">No access to the project.</response>
     [HttpGet("{projectId:guid}")]
     [ProducesResponseType(typeof(ProjectResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -181,13 +229,13 @@ public class ProjectController : ControllerBase
     // ── POST /api/projects ──────────────────────────────────
 
     /// <summary>
-    /// Crea un nuevo proyecto. El owner se asigna desde el JWT, NUNCA del body.
-    /// Crea automáticamente un ProjectMember con rol "owner".
-    /// Valida permisos y límites del plan.
+    /// Creates a new project. The owner is assigned from the JWT, NEVER from the body.
+    /// Automatically creates a ProjectMember with the "owner" role.
+    /// Validates permissions and plan limits.
     /// </summary>
-    /// <response code="201">Proyecto creado.</response>
-    /// <response code="400">Datos inválidos.</response>
-    /// <response code="403">Plan no permite crear más proyectos.</response>
+    /// <response code="201">Project created.</response>
+    /// <response code="400">Invalid data.</response>
+    /// <response code="403">Plan does not allow creating more projects.</response>
     [HttpPost]
     [ProducesResponseType(typeof(ProjectResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -199,7 +247,7 @@ public class ProjectController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        // ⚠️ UserId SIEMPRE del JWT — previene escalamiento de privilegios
+        // ⚠️ UserId ALWAYS from the JWT — prevents privilege escalation
         var userId = User.GetRequiredUserId();
 
         // Resolve workspace_id: use provided one (validating membership) or fall back to "General"
@@ -232,13 +280,13 @@ public class ProjectController : ControllerBase
     // ── PUT /api/projects/{projectId} ───────────────────────
 
     /// <summary>
-    /// Actualiza un proyecto. Requiere rol editor o superior.
-    /// ProjectId viene de la ruta — nunca del body.
+    /// Updates a project. Requires editor role or higher.
+    /// ProjectId comes from the route — never from the body.
     /// </summary>
-    /// <response code="200">Proyecto actualizado.</response>
-    /// <response code="400">Datos inválidos.</response>
-    /// <response code="404">Proyecto no encontrado.</response>
-    /// <response code="403">Sin acceso al proyecto.</response>
+    /// <response code="200">Project updated.</response>
+    /// <response code="400">Invalid data.</response>
+    /// <response code="404">Project not found.</response>
+    /// <response code="403">No access to the project.</response>
     [HttpPut("{projectId:guid}")]
     [ProducesResponseType(typeof(ProjectResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -254,7 +302,7 @@ public class ProjectController : ControllerBase
 
         var userId = User.GetRequiredUserId();
 
-        // Validar plan del owner (y sharing si es miembro compartido)
+        // Validate owner's plan (and sharing if shared member)
         await _planAuth.ValidateProjectWriteAccessAsync(projectId, userId, ct);
         await _accessService.ValidateAccessAsync(userId, projectId, ProjectRoles.Editor, ct);
 
@@ -272,11 +320,11 @@ public class ProjectController : ControllerBase
     // ── DELETE /api/projects/{projectId} ────────────────────
 
     /// <summary>
-    /// Soft-delete de un proyecto. Solo el owner puede eliminar.
+    /// Soft-deletes a project. Only the owner can delete.
     /// </summary>
-    /// <response code="204">Proyecto eliminado.</response>
-    /// <response code="403">Solo el owner puede eliminar.</response>
-    /// <response code="404">Proyecto no encontrado.</response>
+    /// <response code="204">Project deleted.</response>
+    /// <response code="403">Only the owner can delete.</response>
+    /// <response code="404">Project not found.</response>
     [HttpDelete("{projectId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -295,7 +343,7 @@ public class ProjectController : ControllerBase
     // ── GET /api/projects/{projectId}/partners ───────────────
 
     /// <summary>
-    /// Lista los partners asignados al proyecto.
+    /// Lists the partners assigned to the project.
     /// </summary>
     [HttpGet("{projectId:guid}/partners")]
     [ProducesResponseType(typeof(IEnumerable<ProjectPartnerResponse>), StatusCodes.Status200OK)]
@@ -323,7 +371,7 @@ public class ProjectController : ControllerBase
     // ── POST /api/projects/{projectId}/partners ──────────────
 
     /// <summary>
-    /// Asigna un partner al proyecto. Solo partners del usuario autenticado.
+    /// Assigns a partner to the project. Only authenticated user's partners are allowed.
     /// </summary>
     [HttpPost("{projectId:guid}/partners")]
     [ProducesResponseType(typeof(ProjectPartnerResponse), StatusCodes.Status201Created)]
@@ -377,7 +425,7 @@ public class ProjectController : ControllerBase
     // ── DELETE /api/projects/{projectId}/partners/{partnerId} ─
 
     /// <summary>
-    /// Quita un partner del proyecto (soft-delete).
+    /// Removes a partner from the project (soft-delete).
     /// </summary>
     [HttpDelete("{projectId:guid}/partners/{partnerId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -408,9 +456,9 @@ public class ProjectController : ControllerBase
     // ── GET /api/projects/{projectId}/available-payment-methods
 
     /// <summary>
-    /// Lista los métodos de pago disponibles en el proyecto, agrupados por partner.
-    /// Reemplaza GET /projects/:id/payment-methods.
-    /// Los métodos se derivan automáticamente de los partners asignados al proyecto.
+    /// Lists the available payment methods in the project, grouped by partner.
+    /// Replaces GET /projects/:id/payment-methods.
+    /// Methods are automatically derived from the partners assigned to the project.
     /// </summary>
     [HttpGet("{projectId:guid}/available-payment-methods")]
     [ProducesResponseType(typeof(AvailablePaymentMethodsResponse), StatusCodes.Status200OK)]
@@ -464,13 +512,13 @@ public class ProjectController : ControllerBase
     // ── PATCH /api/projects/{projectId}/settings ─────────────
 
     /// <summary>
-    /// Actualiza configuraciones del proyecto (p.ej. habilitar/deshabilitar partner splits).
-    /// Requiere rol owner.
+    /// Updates project settings (e.g. enable/disable partner splits).
+    /// Requires owner role.
     /// </summary>
-    /// <response code="204">Configuración actualizada.</response>
-    /// <response code="400">Datos inválidos o condiciones no cumplidas.</response>
-    /// <response code="403">Sin acceso al proyecto.</response>
-    /// <response code="404">Proyecto no encontrado.</response>
+    /// <response code="204">Settings updated.</response>
+    /// <response code="400">Invalid data or conditions not met.</response>
+    /// <response code="403">No access to the project.</response>
+    /// <response code="404">Project not found.</response>
     [HttpPatch("{projectId:guid}/settings")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -505,10 +553,10 @@ public class ProjectController : ControllerBase
     // ── GET /api/projects/{projectId}/partners/split-defaults ─
 
     /// <summary>
-    /// Devuelve la distribución equitativa de porcentajes entre los partners del proyecto.
-    /// Usar para pre-llenar el formulario de splits al crear/editar un movimiento.
+    /// Returns the equal distribution of percentages among the project's partners.
+    /// Use to pre-fill the splits form when creating/editing a movement.
     /// </summary>
-    /// <response code="200">Lista de partners con porcentaje por defecto.</response>
+    /// <response code="200">List of partners with their default percentage.</response>
     /// <response code="403">Sin acceso al proyecto.</response>
     [HttpGet("{projectId:guid}/partners/split-defaults")]
     [ProducesResponseType(typeof(SplitDefaultsResponse), StatusCodes.Status200OK)]
@@ -533,7 +581,7 @@ public class ProjectController : ControllerBase
 
     // ── Private Helpers ─────────────────────────────────────
 
-    /// <summary>Comparer para deduplicar proyectos por PrjId.</summary>
+    /// <summary>Comparer to deduplicate projects by PrjId.</summary>
     private class ProjectIdComparer : IEqualityComparer<Project>
     {
         public bool Equals(Project? x, Project? y) => x?.PrjId == y?.PrjId;

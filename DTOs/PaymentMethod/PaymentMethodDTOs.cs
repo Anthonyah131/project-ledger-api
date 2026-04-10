@@ -5,8 +5,8 @@ namespace ProjectLedger.API.DTOs.PaymentMethod;
 // ── Requests ────────────────────────────────────────────────
 
 /// <summary>
-/// Request para crear un método de pago.
-/// NO incluye OwnerUserId (se toma del JWT).
+/// Request to create a payment method.
+/// DOES NOT include OwnerUserId (taken from JWT).
 /// </summary>
 public class CreatePaymentMethodRequest
 {
@@ -32,12 +32,12 @@ public class CreatePaymentMethodRequest
     public string? Description { get; set; }
 
     /// <summary>
-    /// Partner dueño de esta cuenta. Opcional — si se provee debe pertenecer al usuario autenticado.
+    /// Partner owning this account. Optional — if provided it must belong to the authenticated user.
     /// </summary>
     public Guid? PartnerId { get; set; }
 }
 
-/// <summary>Request para actualizar un método de pago.</summary>
+/// <summary>Request to update a payment method.</summary>
 public class UpdatePaymentMethodRequest
 {
     [Required]
@@ -57,7 +57,7 @@ public class UpdatePaymentMethodRequest
     public string? Description { get; set; }
 }
 
-/// <summary>Request para enlazar un partner a un método de pago.</summary>
+/// <summary>Request to link a partner to a payment method.</summary>
 public class LinkPartnerToPaymentMethodRequest
 {
     [Required]
@@ -66,7 +66,7 @@ public class LinkPartnerToPaymentMethodRequest
 
 // ── Responses ───────────────────────────────────────────────
 
-/// <summary>Partner dueño de un método de pago (embebido en PaymentMethodResponse).</summary>
+/// <summary>Partner owning a payment method (embedded in PaymentMethodResponse).</summary>
 public class PaymentMethodPartnerResponse
 {
     public Guid Id { get; set; }
@@ -75,7 +75,7 @@ public class PaymentMethodPartnerResponse
     public string? Phone { get; set; }
 }
 
-/// <summary>Respuesta con los datos de un método de pago.</summary>
+/// <summary>Response with the data of a payment method.</summary>
 public class PaymentMethodResponse
 {
     public Guid Id { get; set; }
@@ -86,13 +86,13 @@ public class PaymentMethodResponse
     public string? AccountNumber { get; set; }
     public string? Description { get; set; }
     public Guid? PartnerId { get; set; }
-    /// <summary>Info del partner dueño. Null si el método de pago no tiene partner asignado.</summary>
+    /// <summary>Owning partner's info. Null if the payment method does not have an assigned partner.</summary>
     public PaymentMethodPartnerResponse? Partner { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
 
-/// <summary>Proyecto relacionado a un método de pago.</summary>
+/// <summary>Project related to a payment method.</summary>
 public class PaymentMethodProjectResponse
 {
     public Guid Id { get; set; }
@@ -104,14 +104,14 @@ public class PaymentMethodProjectResponse
     public DateTime UpdatedAt { get; set; }
 }
 
-/// <summary>Respuesta de proyectos relacionados a un método de pago.</summary>
+/// <summary>Response of projects related to a payment method.</summary>
 public class PaymentMethodProjectsResponse
 {
     public IReadOnlyList<PaymentMethodProjectResponse> Items { get; set; } = [];
     public int TotalCount { get; set; }
 }
 
-/// <summary>Resumen agregado de uso del método de pago.</summary>
+/// <summary>Aggregated usage summary of the payment method.</summary>
 public class PaymentMethodSummaryResponse
 {
     public int RelatedExpensesCount { get; set; }
@@ -122,7 +122,30 @@ public class PaymentMethodSummaryResponse
     public string Currency { get; set; } = null!;
 }
 
-/// <summary>Balance de una cuenta en un proyecto específico (en moneda de la cuenta).</summary>
+// ── Payment Method Lookup ────────────────────────────────────
+
+/// <summary>Minimal payment method item for selectors and command palette.</summary>
+public class PaymentMethodLookupItem
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = null!;
+    public string Type { get; set; } = null!;
+    public string Currency { get; set; } = null!;
+}
+
+/// <summary>Paginated response from the payment methods lookup.</summary>
+public class PaymentMethodLookupResponse
+{
+    public IReadOnlyList<PaymentMethodLookupItem> Items { get; set; } = [];
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+    public int TotalCount { get; set; }
+    public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
+    public bool HasPreviousPage => Page > 1;
+    public bool HasNextPage => Page < TotalPages;
+}
+
+/// <summary>Account balance in a specific project (in the account's currency).</summary>
 public class PaymentMethodBalanceResponse
 {
     public Guid PaymentMethodId { get; set; }

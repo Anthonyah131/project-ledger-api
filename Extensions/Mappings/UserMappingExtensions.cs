@@ -28,7 +28,7 @@ public static class UserMappingExtensions
             : null!
     };
 
-    // ── Summary (minimal, para listas/miembros) ─────────────
+    // ── Summary (minimal, for lists/members) ─────────────
 
     public static UserSummaryResponse ToSummaryResponse(this User entity) => new()
     {
@@ -38,7 +38,7 @@ public static class UserMappingExtensions
         AvatarUrl = entity.UsrAvatarUrl
     };
 
-    // ── Auth info (para AuthResponse) ───────────────────────
+    // ── Auth info (for AuthResponse) ───────────────────────
 
     public static UserAuthInfo ToAuthInfo(this User entity) => new()
     {

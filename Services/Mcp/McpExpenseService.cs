@@ -3,6 +3,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Services;
 
+/// <summary>
+/// Partial implementation of McpService focusing on expense analytics and trends.
+/// </summary>
 public partial class McpService
 {
     public async Task<McpExpenseTotalsResponse> GetExpenseTotalsAsync(

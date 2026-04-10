@@ -5,8 +5,8 @@ namespace ProjectLedger.API.DTOs.Common;
 // ── Request ─────────────────────────────────────────────────
 
 /// <summary>
-/// Parámetros de paginación y ordenamiento para endpoints que retornan listas.
-/// Se recibe desde [FromQuery] en los controllers.
+/// Pagination and sorting parameters for endpoints that return lists.
+/// Received from [FromQuery] in the controllers.
 /// </summary>
 public class PagedRequest
 {
@@ -16,7 +16,7 @@ public class PagedRequest
     private int _page = 1;
     private int _pageSize = DefaultPageSize;
 
-    /// <summary>Número de página (1-based). Por defecto 1.</summary>
+    /// <summary>Page number (1-based). Defaults to 1.</summary>
     [Range(1, int.MaxValue, ErrorMessage = "Page must be at least 1.")]
     public int Page
     {
@@ -24,7 +24,7 @@ public class PagedRequest
         set => _page = value < 1 ? 1 : value;
     }
 
-    /// <summary>Cantidad de registros por página. Máximo 100. Por defecto 20.</summary>
+    /// <summary>Number of records per page. Maximum 100. Defaults to 20.</summary>
     [Range(1, MaxPageSize, ErrorMessage = "Page size must be between 1 and 100.")]
     public int PageSize
     {
@@ -32,12 +32,12 @@ public class PagedRequest
         set => _pageSize = value > MaxPageSize ? MaxPageSize : value < 1 ? DefaultPageSize : value;
     }
 
-    /// <summary>Campo por el cual ordenar (depende de cada endpoint). Ejemplo: "createdAt", "title".</summary>
+    /// <summary>Field by which to sort (depends on each endpoint). Example: "createdAt", "title".</summary>
     public string? SortBy { get; set; }
 
     private bool _descending = true;
 
-    /// <summary>"asc" o "desc". Por defecto "desc".</summary>
+    /// <summary>"asc" or "desc". Defaults to "desc".</summary>
     [RegularExpression("^(asc|desc)$", ErrorMessage = "Sort direction must be 'asc' or 'desc'.")]
     public string SortDirection
     {
@@ -45,7 +45,7 @@ public class PagedRequest
         set => _descending = value.Equals("desc", StringComparison.OrdinalIgnoreCase);
     }
 
-    /// <summary>Dirección de ordenamiento como booleano. Si se provee, tiene precedencia sobre sortDirection.</summary>
+    /// <summary>Sort direction as boolean. If provided, takes precedence over sortDirection.</summary>
     public bool IsDescending
     {
         get => _descending;
@@ -60,8 +60,8 @@ public class PagedRequest
 // ── Response ────────────────────────────────────────────────
 
 /// <summary>
-/// Respuesta paginada genérica. Envuelve cualquier lista de resultados
-/// con metadatos de paginación.
+/// Generic paginated response. Wraps any list of results
+/// with pagination metadata.
 /// </summary>
 public class PagedResponse<T>
 {
@@ -84,18 +84,51 @@ public class PagedResponse<T>
     }
 
     /// <summary>
-    /// Crea un PagedResponse a partir de una colección ya paginada + total.
+    /// Creates a PagedResponse from an already paginated collection + total count.
     /// </summary>
     public static PagedResponse<T> Create(IReadOnlyList<T> items, int totalCount, PagedRequest request)
         => new(items, totalCount, request.Page, request.PageSize);
 }
 
+// ── Lookup Request ───────────────────────────────────────────
+
 /// <summary>
-/// Respuesta paginada con total financiero de los movimientos activos que coinciden con los filtros.
+/// Lightweight pagination + search request for lookup/picker endpoints.
+/// pageSize is capped at 50 (smaller than the standard 100).
+/// </summary>
+public class LookupRequest
+{
+    private const int MaxPageSize = 50;
+    private const int DefaultPageSize = 20;
+
+    private int _page = 1;
+    private int _pageSize = DefaultPageSize;
+
+    [Range(1, int.MaxValue, ErrorMessage = "Page must be at least 1.")]
+    public int Page
+    {
+        get => _page;
+        set => _page = value < 1 ? 1 : value;
+    }
+
+    [Range(1, MaxPageSize, ErrorMessage = "Page size must be between 1 and 50.")]
+    public int PageSize
+    {
+        get => _pageSize;
+        set => _pageSize = value > MaxPageSize ? MaxPageSize : value < 1 ? DefaultPageSize : value;
+    }
+
+    public string? Search { get; set; }
+
+    public int Skip => (Page - 1) * PageSize;
+}
+
+/// <summary>
+/// Paginated response with financial total of active movements that match the filters.
 /// </summary>
 public class PagedWithTotalsResponse<T> : PagedResponse<T>
 {
-    /// <summary>Suma de montos de movimientos activos (no eliminados) que cumplen los filtros aplicados.</summary>
+    /// <summary>Sum of amounts of active (non-deleted) movements that meet the applied filters.</summary>
     public decimal TotalActiveAmount { get; set; }
 
     public PagedWithTotalsResponse() { }

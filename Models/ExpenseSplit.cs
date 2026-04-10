@@ -1,8 +1,8 @@
 namespace ProjectLedger.API.Models;
 
 /// <summary>
-/// División del costo de un gasto entre partners del proyecto.
-/// Por defecto se crea un split 100% al partner dueño del método de pago.
+/// Division of the cost of an expense among project partners.
+/// By default, a 100% split is created to the partner who owns the payment method.
 /// </summary>
 public class ExpenseSplit
 {
@@ -11,7 +11,7 @@ public class ExpenseSplit
     public Guid ExsPartnerId { get; set; }
     public string ExsSplitType { get; set; } = null!;      // 'percentage' | 'fixed'
     public decimal ExsSplitValue { get; set; }
-    public decimal ExsResolvedAmount { get; set; }         // Siempre en moneda original del gasto
+    public decimal ExsResolvedAmount { get; set; }         // Always in the original currency of the expense
     public DateTime ExsCreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime ExsUpdatedAt { get; set; } = DateTime.UtcNow;
 

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
 using ProjectLedger.API.DTOs.Plan;
@@ -10,8 +10,8 @@ using ProjectLedger.API.Services;
 namespace ProjectLedger.API.Controllers;
 
 /// <summary>
-/// Catálogo de planes de suscripción. Solo lectura, público (no requiere auth).
-/// Los planes se gestionan por seed/admin, no por API.
+/// Subscription plans catalog. Read-only, public (does not require auth).
+/// Plans are managed via seed/admin, not via API.
 /// </summary>
 [ApiController]
 [Route("api/plans")]
@@ -33,9 +33,9 @@ public class PlanController : ControllerBase
     // ── GET /api/plans ──────────────────────────────────────
 
     /// <summary>
-    /// Lista todos los planes activos disponibles.
+    /// Lists all available active plans.
     /// </summary>
-    /// <response code="200">Lista de planes.</response>
+    /// <response code="200">List of plans.</response>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<PlanResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll(CancellationToken ct)
@@ -47,11 +47,11 @@ public class PlanController : ControllerBase
     // ── GET /api/plans/{idOrSlug} ───────────────────────────
 
     /// <summary>
-    /// Obtiene un plan por ID (GUID) o por slug (e.g. "free", "basic", "premium").
+    /// Gets a plan by ID (GUID) or by slug (e.g., "free", "basic", "premium").
     /// </summary>
-    /// <param name="idOrSlug">GUID del plan o slug del plan.</param>
-    /// <response code="200">Plan encontrado.</response>
-    /// <response code="404">Plan no encontrado.</response>
+    /// <param name="idOrSlug">Plan GUID or plan slug.</param>
+    /// <response code="200">Plan found.</response>
+    /// <response code="404">Plan not found.</response>
     [HttpGet("{idOrSlug}")]
     [ProducesResponseType(typeof(PlanResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

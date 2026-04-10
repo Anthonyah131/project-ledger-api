@@ -1,9 +1,9 @@
 namespace ProjectLedger.API.Models;
 
 /// <summary>
-/// Vinculación de un método de pago a un proyecto.
-/// Permite que miembros de un proyecto compartido usen los métodos de pago vinculados.
-/// Sin soft delete: se elimina físicamente al desvincular.
+/// Linking of a payment method to a project.
+/// Allows members of a shared project to use linked payment methods.
+/// No soft delete: it is physically deleted when unlinked.
 /// </summary>
 public class ProjectPaymentMethod
 {

@@ -3,6 +3,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Services;
 
+/// <summary>
+/// Helper class for suggesting expense categories and payment methods.
+/// </summary>
 internal static class ExpenseDocumentSuggestionEngine
 {
     public static SuggestedExpenseCategoryResponse? SuggestCategory(

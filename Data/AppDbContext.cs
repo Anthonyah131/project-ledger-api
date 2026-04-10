@@ -4,8 +4,8 @@ using ProjectLedger.API.Models;
 namespace ProjectLedger.API.Data;
 
 /// <summary>
-/// Contexto principal de Entity Framework Core para ProjectLedger.
-/// Mapea todas las entidades del dominio a las tablas de PostgreSQL/CockroachDB.
+/// Main Entity Framework Core context for ProjectLedger.
+/// Maps all domain entities to PostgreSQL/CockroachDB tables.
 /// </summary>
 public class AppDbContext : DbContext
 {
@@ -34,26 +34,26 @@ public class AppDbContext : DbContext
     public DbSet<ProjectAlternativeCurrency> ProjectAlternativeCurrencies => Set<ProjectAlternativeCurrency>();
     public DbSet<TransactionCurrencyExchange> TransactionCurrencyExchanges => Set<TransactionCurrencyExchange>();
 
-    // ── Fase 2b: Workspaces ──────────────────────────────────
+    // ── Phase 2b: Workspaces ──────────────────────────────────
     public DbSet<Workspace> Workspaces => Set<Workspace>();
     public DbSet<WorkspaceMember> WorkspaceMembers => Set<WorkspaceMember>();
 
-    // ── Fase 2c: ProjectPartners ─────────────────────────────
+    // ── Phase 2c: ProjectPartners ─────────────────────────────
     public DbSet<ProjectPartner> ProjectPartners => Set<ProjectPartner>();
 
-    // ── Fase 3a: Splits ──────────────────────────────────────
+    // ── Phase 3a: Splits ──────────────────────────────────────
     public DbSet<ExpenseSplit> ExpenseSplits => Set<ExpenseSplit>();
     public DbSet<IncomeSplit> IncomeSplits => Set<IncomeSplit>();
     public DbSet<SplitCurrencyExchange> SplitCurrencyExchanges => Set<SplitCurrencyExchange>();
 
-    // ── Fase 3c: Partner Settlements ─────────────────────────
+    // ── Phase 3c: Partner Settlements ─────────────────────────
     public DbSet<PartnerSettlement> PartnerSettlements => Set<PartnerSettlement>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Aplica todas las configuraciones del ensamblado (IEntityTypeConfiguration<T>)
+        // Applies all configurations from the assembly (IEntityTypeConfiguration<T>)
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
     }
 }

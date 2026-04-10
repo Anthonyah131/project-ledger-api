@@ -4,8 +4,8 @@ using ProjectLedger.API.Repositories;
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Servicio de ingresos. CRUD con soft delete.
-/// Valida límite de ingresos por mes según el plan del owner del proyecto.
+/// Income service. CRUD with soft delete.
+/// Validates the monthly incomes limit according to the project owner's plan.
 /// </summary>
 public class IncomeService : IIncomeService
 {
@@ -92,7 +92,7 @@ public class IncomeService : IIncomeService
         var project = await _projectRepo.GetByIdAsync(income.IncProjectId, ct)
             ?? throw new KeyNotFoundException("ProjectNotFound");
 
-        // Validar límite de ingresos por mes
+        // Validate monthly incomes limit
         var projectIncomes = await _incomeRepo.GetByProjectIdAsync(income.IncProjectId, ct);
         var thisMonthCount = projectIncomes
             .Count(i => i.IncCreatedAt.Year == DateTime.UtcNow.Year
@@ -101,7 +101,7 @@ public class IncomeService : IIncomeService
         await _planAuth.ValidateLimitAsync(
             project.PrjOwnerUserId, PlanLimits.MaxIncomesPerMonth, thisMonthCount, ct);
 
-        // Validar que la cuenta destino está vinculada al proyecto
+        // Validate that the destination account is linked to the project
         var paymentMethod = await GetLinkedPaymentMethodAsync(
             income.IncProjectId, income.IncPaymentMethodId, ct);
 
@@ -119,7 +119,7 @@ public class IncomeService : IIncomeService
             await _incomeRepo.AddAsync(income, ct);
             await _incomeRepo.SaveChangesAsync(ct);
 
-            // Crear splits: explícitos (si partners_enabled y se proveyeron) o auto-split
+            // Create splits: explicit (if partners_enabled and provided) or auto-split
             if (splits is { Count: > 0 } && project.PrjPartnersEnabled)
             {
                 var splitEntities = await BuildIncomeSplitsAsync(income.IncId, income.IncOriginalAmount, income.IncProjectId, splits, ct);
@@ -182,8 +182,8 @@ public class IncomeService : IIncomeService
             _incomeRepo.Update(income);
             await _incomeRepo.SaveChangesAsync(ct);
 
-            // Actualizar splits solo si se proveyeron explícitamente
-            // null → no modificar; lista vacía → eliminar todos; lista con items → reemplazar
+            // Update splits only if explicitly provided
+            // null → do not modify; empty list → delete all; list with items → replace
             if (splits is not null)
             {
                 await _incomeSplitRepo.DeleteByIncomeIdAsync(income.IncId, ct);
@@ -283,7 +283,7 @@ public class IncomeService : IIncomeService
         var project = await _projectRepo.GetByIdAsync(projectId, ct)
             ?? throw new KeyNotFoundException("ProjectNotFound");
 
-        // Validar límite de plan para el lote completo de una vez
+        // Validate plan limit for the entire batch at once
         var projectIncomes = await _incomeRepo.GetByProjectIdAsync(projectId, ct);
         var thisMonthCount = projectIncomes
             .Count(i => i.IncCreatedAt.Year == DateTime.UtcNow.Year
@@ -292,7 +292,7 @@ public class IncomeService : IIncomeService
         await _planAuth.ValidateLimitAsync(
             project.PrjOwnerUserId, PlanLimits.MaxIncomesPerMonth, thisMonthCount + items.Count - 1, ct);
 
-        // Caché de métodos de pago para evitar consultas duplicadas dentro del lote
+        // Payment method cache to avoid duplicate queries within the batch
         var paymentMethodCache = new Dictionary<Guid, PaymentMethod>();
 
         var now = DateTime.UtcNow;

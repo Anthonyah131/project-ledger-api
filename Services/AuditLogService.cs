@@ -5,8 +5,8 @@ using ProjectLedger.API.Repositories;
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Servicio de auditoría. Registra acciones sobre entidades.
-/// AuditLog es inmutable — no se edita ni se borra.
+/// Audit service. Records actions on entities.
+/// AuditLog is immutable — it is neither edited nor deleted.
 /// </summary>
 public class AuditLogService : IAuditLogService
 {

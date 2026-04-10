@@ -4,19 +4,19 @@ using ProjectLedger.API.Common.Exceptions;
 namespace ProjectLedger.API.Filters;
 
 /// <summary>
-/// Filtro global que restringe operaciones de escritura para usuarios desactivados.
+/// Global filter that restricts write operations for deactivated users.
 /// 
-/// Reglas:
-/// - Requests anónimos (sin autenticación) → pasan (ej: register, login).
-/// - GET/HEAD/OPTIONS → siempre permitidos (lectura).
-/// - POST/PUT/PATCH/DELETE → solo si el usuario tiene is_active = "true" en el JWT.
+/// Rules:
+/// - Anonymous requests (without authentication) → pass (e.g. register, login).
+/// - GET/HEAD/OPTIONS → always allowed (read).
+/// - POST/PUT/PATCH/DELETE → only if the user has is_active = "true" in the JWT.
 /// 
-/// Los endpoints de auth (register, login, refresh) están marcados con [AllowAnonymous]
-/// y no tienen claims, por lo que no se ven afectados.
+/// Auth endpoints (register, login, refresh) are marked with [AllowAnonymous]
+/// and have no claims, so they are not affected.
 /// </summary>
 public class ActiveUserWriteFilter : IAsyncActionFilter
 {
-    // Métodos HTTP considerados "lectura" — siempre permitidos
+    // HTTP methods considered "read" — always allowed
     private static readonly HashSet<string> ReadMethods = new(StringComparer.OrdinalIgnoreCase)
     {
         "GET", "HEAD", "OPTIONS"
@@ -26,14 +26,14 @@ public class ActiveUserWriteFilter : IAsyncActionFilter
     {
         var user = context.HttpContext.User;
 
-        // Si no hay usuario autenticado, dejar pasar (lo maneja [Authorize] / [AllowAnonymous])
+        // If there is no authenticated user, let it pass (handled by [Authorize] / [AllowAnonymous])
         if (user.Identity?.IsAuthenticated != true)
         {
             await next();
             return;
         }
 
-        // Lectura siempre permitida
+        // Reading always allowed
         var method = context.HttpContext.Request.Method;
         if (ReadMethods.Contains(method))
         {
@@ -41,7 +41,7 @@ public class ActiveUserWriteFilter : IAsyncActionFilter
             return;
         }
 
-        // Para escritura, verificar is_active claim
+        // For writing, verify is_active claim
         var isActiveClaim = user.FindFirst("is_active")?.Value;
         if (isActiveClaim != "true")
             throw new ForbiddenAccessException("AccountDeactivated");

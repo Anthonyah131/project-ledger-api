@@ -9,7 +9,7 @@ public class McpRecentMovementsResponse
 
 public class McpMovementItemResponse
 {
-    /// <summary>"expense" o "income"</summary>
+    /// <summary>"expense" or "income"</summary>
     public string Type { get; set; } = null!;
     public string Title { get; set; } = null!;
     public string? Description { get; set; }
@@ -22,6 +22,6 @@ public class McpMovementItemResponse
     public string CategoryName { get; set; } = null!;
     public string PaymentMethodName { get; set; } = null!;
     public bool HasSplits { get; set; }
-    /// <summary>Nombres de los partners que participan en el split.</summary>
+    /// <summary>Names of partners participating in the split.</summary>
     public List<string> SplitPartners { get; set; } = [];
 }

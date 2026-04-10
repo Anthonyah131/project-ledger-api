@@ -1,9 +1,9 @@
 namespace ProjectLedger.API.Models;
 
 /// <summary>
-/// Conversión de un split a una moneda alternativa del proyecto.
-/// Mutex: sce_expense_split_id XOR sce_income_split_id debe ser NOT NULL.
-/// Permite que cada split muestre su monto en las monedas configuradas del proyecto.
+/// Conversion of a split to an alternative project currency.
+/// Mutex: sce_expense_split_id XOR sce_income_split_id must be NOT NULL.
+/// Allows each split to show its amount in configured project currencies.
 /// </summary>
 public class SplitCurrencyExchange
 {
@@ -13,7 +13,7 @@ public class SplitCurrencyExchange
     public Guid? SceSettlementId { get; set; }             // FK → partner_settlements (XOR mutex)
     public string SceCurrencyCode { get; set; } = null!;   // ISO 4217
     public decimal SceExchangeRate { get; set; }
-    public decimal SceConvertedAmount { get; set; }        // Monto en esta moneda
+    public decimal SceConvertedAmount { get; set; }        // Amount in this currency
     public DateTime SceCreatedAt { get; set; } = DateTime.UtcNow;
 
     // ── Navigation properties ───────────────────────────────

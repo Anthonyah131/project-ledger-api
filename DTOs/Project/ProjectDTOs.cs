@@ -5,7 +5,7 @@ namespace ProjectLedger.API.DTOs.Project;
 
 // ── Requests ────────────────────────────────────────────────
 
-/// <summary>Request para crear un proyecto. NO incluye UserId (se toma del JWT).</summary>
+/// <summary>Request to create a project. DOES NOT include UserId (taken from JWT).</summary>
 public class CreateProjectRequest
 {
     [Required]
@@ -20,15 +20,15 @@ public class CreateProjectRequest
     public string? Description { get; set; }
 
     /// <summary>
-    /// Workspace al que pertenece el proyecto. Opcional — si no se provee se asigna
-    /// automáticamente al workspace "General" del usuario.
-    /// Acepta tanto "workspace_id" (snake_case) como "workspaceId" (camelCase).
+    /// Workspace the project belongs to. Optional — if not provided it is automatically
+    /// assigned to the user's "General" workspace.
+    /// Accepts both "workspace_id" (snake_case) and "workspaceId" (camelCase).
     /// </summary>
     [JsonPropertyName("workspace_id")]
     public Guid? WorkspaceId { get; set; }
 }
 
-/// <summary>Request para actualizar un proyecto. NO incluye ProjectId (viene de la ruta).</summary>
+/// <summary>Request to update a project. DOES NOT include ProjectId (comes from route).</summary>
 public class UpdateProjectRequest
 {
     [Required]
@@ -40,7 +40,7 @@ public class UpdateProjectRequest
 
 // ── Responses ───────────────────────────────────────────────
 
-/// <summary>Respuesta con los datos de un proyecto.</summary>
+/// <summary>Response with project data.</summary>
 public class ProjectResponse
 {
     public Guid Id { get; set; }
@@ -48,7 +48,7 @@ public class ProjectResponse
     public string CurrencyCode { get; set; } = null!;
     public string? Description { get; set; }
     public Guid OwnerUserId { get; set; }
-    public string UserRole { get; set; } = null!;               // Rol del usuario autenticado
+    public string UserRole { get; set; } = null!;               // Authenticated user's role
     public Guid? WorkspaceId { get; set; }
     public string? WorkspaceName { get; set; }
     public bool PartnersEnabled { get; set; }
@@ -56,7 +56,7 @@ public class ProjectResponse
     public DateTime UpdatedAt { get; set; }
 }
 
-/// <summary>Respuesta para miembros de un proyecto.</summary>
+/// <summary>Response for project members.</summary>
 public class ProjectMemberResponse
 {
     public Guid Id { get; set; }
@@ -67,7 +67,7 @@ public class ProjectMemberResponse
     public DateTime JoinedAt { get; set; }
 }
 
-/// <summary>Request para invitar un miembro a un proyecto.</summary>
+/// <summary>Request to invite a member to a project.</summary>
 public class AddProjectMemberRequest
 {
     [Required]
@@ -80,7 +80,7 @@ public class AddProjectMemberRequest
     public string Role { get; set; } = null!;
 }
 
-/// <summary>Request para cambiar el rol de un miembro del proyecto.</summary>
+/// <summary>Request to change a project member's role.</summary>
 public class UpdateMemberRoleRequest
 {
     [Required]
@@ -90,7 +90,7 @@ public class UpdateMemberRoleRequest
 
 // ── Project Settings ─────────────────────────────────────────
 
-/// <summary>Request para actualizar configuraciones del proyecto.</summary>
+/// <summary>Request to update project settings.</summary>
 public class UpdateProjectSettingsRequest
 {
     public bool? PartnersEnabled { get; set; }
@@ -98,13 +98,13 @@ public class UpdateProjectSettingsRequest
 
 // ── Split Defaults ────────────────────────────────────────────
 
-/// <summary>Distribución equitativa de splits por partner para pre-llenar el formulario.</summary>
+/// <summary>Equal distribution of splits per partner to pre-fill the form.</summary>
 public class SplitDefaultsResponse
 {
     public IReadOnlyList<PartnerSplitDefault> Partners { get; set; } = [];
 }
 
-/// <summary>Partner con su porcentaje por defecto en una distribución equitativa.</summary>
+/// <summary>Partner with their default percentage in an equal distribution.</summary>
 public class PartnerSplitDefault
 {
     public Guid PartnerId { get; set; }
@@ -114,13 +114,13 @@ public class PartnerSplitDefault
 
 // ── Pinned Projects ──────────────────────────────────────────
 
-/// <summary>Respuesta de proyecto fijado. Incluye pinnedAt además de los campos normales.</summary>
+/// <summary>Pinned project response. Includes pinnedAt in addition to normal fields.</summary>
 public class PinnedProjectResponse : ProjectResponse
 {
     public DateTime PinnedAt { get; set; }
 }
 
-/// <summary>Respuesta de confirmación al fijar un proyecto.</summary>
+/// <summary>Confirmation response when pinning a project.</summary>
 public class PinProjectResponse
 {
     public Guid ProjectId { get; set; }
@@ -128,14 +128,14 @@ public class PinProjectResponse
 }
 
 /// <summary>
-/// Respuesta paginada de proyectos con sección de fijados.
-/// pinned[] solo se incluye en la página 1; en páginas posteriores viene vacío.
-/// total refleja únicamente proyectos no fijados.
+/// Paginated project response with pinned section.
+/// pinned[] is only included on page 1; it is empty on subsequent pages.
+/// totalCount reflects only unpinned projects.
 /// </summary>
 public class ProjectsPagedResponse
 {
     public IReadOnlyList<PinnedProjectResponse> Pinned { get; set; } = [];
-    /// <summary>Total de proyectos fijados por el usuario (de todos los proyectos, no solo los de este workspace).</summary>
+    /// <summary>Total projects pinned by the user (across all projects, not just this workspace).</summary>
     public int PinnedCount { get; set; }
     public IReadOnlyList<ProjectResponse> Items { get; set; } = [];
     public int Page { get; set; }
@@ -146,16 +146,52 @@ public class ProjectsPagedResponse
     public bool HasNextPage => Page < TotalPages;
 }
 
+// ── Project Lookup ───────────────────────────────────────────
+
+/// <summary>Minimal item for selectors, pickers, and command palette.</summary>
+public class ProjectLookupItem
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = null!;
+    public Guid? WorkspaceId { get; set; }
+    public string? WorkspaceName { get; set; }
+}
+
+/// <summary>Pinned project item for lookup (includes pinnedAt).</summary>
+public class PinnedProjectLookupItem : ProjectLookupItem
+{
+    public DateTime PinnedAt { get; set; }
+}
+
+/// <summary>
+/// Project lookup response.
+/// pinned[] is only included on page 1; pinnedCount is always returned.
+/// items[] contains only unpinned projects from the current page.
+/// totalCount excludes pinned projects.
+/// </summary>
+public class ProjectsLookupResponse
+{
+    public IReadOnlyList<PinnedProjectLookupItem> Pinned { get; set; } = [];
+    public int PinnedCount { get; set; }
+    public IReadOnlyList<ProjectLookupItem> Items { get; set; } = [];
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+    public int TotalCount { get; set; }
+    public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
+    public bool HasPreviousPage => Page > 1;
+    public bool HasNextPage => Page < TotalPages;
+}
+
 // ── Project Payment Methods ─────────────────────────────────
 
-/// <summary>Request para vincular un método de pago a un proyecto.</summary>
+/// <summary>Request to link a payment method to a project.</summary>
 public class LinkPaymentMethodRequest
 {
     [Required]
     public Guid PaymentMethodId { get; set; }
 }
 
-/// <summary>Respuesta de un método de pago vinculado a un proyecto.</summary>
+/// <summary>Response of a payment method linked to a project.</summary>
 public class ProjectPaymentMethodResponse
 {
     public Guid Id { get; set; }

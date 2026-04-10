@@ -1,8 +1,8 @@
 namespace ProjectLedger.API.Models;
 
 /// <summary>
-/// Espacio de trabajo que agrupa proyectos relacionados.
-/// Un usuario puede tener múltiples workspaces ("Casa", "Empresa ABC", etc.).
+/// Workspace that groups related projects.
+/// A user can have multiple workspaces ("Home", "Company ABC", etc.).
 /// </summary>
 public class Workspace
 {

@@ -5,13 +5,13 @@ using ProjectLedger.API.Common.Settings;
 namespace ProjectLedger.API.Services.Chatbot.Providers;
 
 /// <summary>
-/// Proveedor OpenRouter: agrega cientos de modelos bajo una sola API.
-/// Capa gratuita disponible en modelos con sufijo :free.
-/// Documentación: https://openrouter.ai/docs
+/// OpenRouter Provider: Aggregates hundreds of models under a single API.
+/// Free tier available for models with the :free suffix.
+/// Documentation: https://openrouter.ai/docs
 /// </summary>
 public class OpenRouterChatProvider : OpenAiCompatibleChatProvider
 {
-    // Modelo gratuito recomendado de OpenRouter (sin coste, sin necesidad de créditos)
+    // Recommended free model from OpenRouter (no cost, no credits needed)
     private const string DefaultModel = "openrouter/free";
 
     private readonly ChatbotProviderSettings _settings;

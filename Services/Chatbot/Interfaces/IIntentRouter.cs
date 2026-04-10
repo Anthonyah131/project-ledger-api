@@ -3,14 +3,14 @@ using ProjectLedger.API.DTOs.Chatbot;
 namespace ProjectLedger.API.Services.Chatbot.Interfaces;
 
 /// <summary>
-/// Enruta un intent parseado por el LLM hacia los métodos correspondientes de IMcpService.
-/// El router controla toda la lógica de mapeo domain+action → query — el LLM nunca toca la DB.
+/// Routes an intent parsed by the LLM to the corresponding IMcpService methods.
+/// The router controls all mapping logic (domain + action → query) — the LLM never touches the DB.
 /// </summary>
 public interface IIntentRouter
 {
     /// <summary>
-    /// Ejecuta el intent: construye el query DTO desde los filtros,
-    /// llama al método de IMcpService correspondiente, y devuelve el resultado serializado como JSON.
+    /// Executes the intent: builds the query DTO from the filters,
+    /// calls the corresponding IMcpService method, and returns the result serialized as JSON.
     /// </summary>
     Task<string> ExecuteAsync(Guid userId, ParsedIntent intent, CancellationToken ct);
 }

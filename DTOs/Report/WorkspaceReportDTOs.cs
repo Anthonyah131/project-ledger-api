@@ -3,9 +3,9 @@ namespace ProjectLedger.API.DTOs.Report;
 // ── Workspace Report ─────────────────────────────────────────
 
 /// <summary>
-/// Reporte agregado a nivel de workspace que consolida datos de múltiples proyectos.
-/// Los totales consolidados están en la moneda de referencia indicada.
-/// Requiere CanUseAdvancedReports.
+/// Workspace level aggregated report that consolidates data from multiple projects.
+/// Consolidated totals are in the indicated reference currency.
+/// Requires CanUseAdvancedReports.
 /// </summary>
 public class WorkspaceReportResponse
 {
@@ -15,10 +15,10 @@ public class WorkspaceReportResponse
     public DateOnly? DateTo { get; set; }
     public DateTime GeneratedAt { get; set; }
 
-    /// <summary>Moneda de referencia para totales consolidados. null si no se especificó.</summary>
+    /// <summary>Reference currency for consolidated totals. null if not specified.</summary>
     public string? ReferenceCurrency { get; set; }
 
-    /// <summary>Totales consolidados (solo si se especificó moneda de referencia).</summary>
+    /// <summary>Consolidated totals (only if reference currency was specified).</summary>
     public WorkspaceConsolidatedTotals? ConsolidatedTotals { get; set; }
 
     public int ProjectCount { get; set; }
@@ -47,11 +47,11 @@ public class WorkspaceProjectSummary
     public int ExpenseCount { get; set; }
     public int IncomeCount { get; set; }
 
-    /// <summary>Porcentaje del total del workspace (solo con moneda de referencia).</summary>
+    /// <summary>Percentage of total workspace (only with reference currency).</summary>
     public decimal? Percentage { get; set; }
 }
 
-/// <summary>Categorías agrupadas por nombre (cross-project).</summary>
+/// <summary>Categories grouped by name (cross-project).</summary>
 public class WorkspaceCategoryBreakdown
 {
     public string CategoryName { get; set; } = null!;

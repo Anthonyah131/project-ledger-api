@@ -4,8 +4,8 @@ using ProjectLedger.API.Repositories;
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Servicio de workspaces. Un workspace agrupa proyectos relacionados.
-/// Solo el owner puede modificar o eliminar el workspace.
+/// Workspace service. Group related projects together.
+/// Only the owner can modify or delete the workspace.
 /// </summary>
 public class WorkspaceService : IWorkspaceService
 {
@@ -36,7 +36,7 @@ public class WorkspaceService : IWorkspaceService
         workspace.WksCreatedAt = DateTime.UtcNow;
         workspace.WksUpdatedAt = DateTime.UtcNow;
 
-        // El creador queda como 'owner' en workspace_members
+        // The creator is assigned as 'owner' in workspace_members
         workspace.Members.Add(new WorkspaceMember
         {
             WkmWorkspaceId = workspace.WksId,

@@ -1,8 +1,8 @@
 namespace ProjectLedger.API.Common.Constants;
 
 /// <summary>
-/// Constantes de roles de proyecto. Orden de privilegio: Owner > Editor > Viewer.
-/// Usados en ProjectMember.PrmRole y en las policies de autorización.
+/// Project role constants. Privilege order: Owner > Editor > Viewer.
+/// Used in ProjectMember.PrmRole and in authorization policies.
 /// </summary>
 public static class ProjectRoles
 {
@@ -11,7 +11,7 @@ public static class ProjectRoles
     public const string Viewer = "viewer";
 
     /// <summary>
-    /// Verifica si el rol del usuario tiene privilegios iguales o superiores al requerido.
+    /// Checks if the user's role has equal or higher privileges than the required role.
     /// </summary>
     public static bool HasMinimumRole(string userRole, string requiredRole)
     {

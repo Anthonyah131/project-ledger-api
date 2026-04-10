@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Localization;
 using ProjectLedger.API.DTOs.Common;
 using ProjectLedger.API.Resources;
 using Microsoft.AspNetCore.Authorization;
@@ -10,8 +10,8 @@ using ProjectLedger.API.Services;
 namespace ProjectLedger.API.Controllers;
 
 /// <summary>
-/// Reportes agregados a nivel de workspace.
-/// Consolida datos de múltiples proyectos dentro de un workspace.
+/// Workspace level aggregated reports.
+/// Consolidates data from multiple projects within a workspace.
 /// </summary>
 [ApiController]
 [Route("api/workspaces/{workspaceId:guid}/reports")]
@@ -43,14 +43,14 @@ public class WorkspaceReportController : ControllerBase
     // ── GET /api/workspaces/{workspaceId}/reports/summary ────
 
     /// <summary>
-    /// Resumen consolidado del workspace con totales por proyecto,
-    /// categorías cross-project y tendencia mensual.
+    /// Consolidated workspace summary with totals by project,
+    /// cross-project categories and monthly trend.
     /// </summary>
-    /// <param name="referenceCurrency">Moneda de referencia para consolidar totales (opcional).
-    /// Si todos los proyectos usan la misma moneda, se consolida automáticamente.</param>
-    /// <param name="format">Formato de exportación: json (default), excel, pdf.</param>
-    /// <response code="200">Reporte consolidado del workspace.</response>
-    /// <response code="403">Plan no permite reportes avanzados o usuario no es miembro.</response>
+    /// <param name="referenceCurrency">Reference currency to consolidate totals (optional).
+    /// If all projects use the same currency, it is consolidated automatically.</param>
+    /// <param name="format">Export format: json (default), excel, pdf.</param>
+    /// <response code="200">Consolidated workspace report.</response>
+    /// <response code="403">Plan does not allow advanced reports or user is not a member.</response>
     [HttpGet("summary")]
     [ProducesResponseType(typeof(WorkspaceReportResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]

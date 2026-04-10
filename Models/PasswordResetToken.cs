@@ -1,8 +1,8 @@
 namespace ProjectLedger.API.Models;
 
 /// <summary>
-/// Token OTP de un solo uso para el flujo de restablecimiento de contraseña.
-/// El código nunca se almacena en texto plano; solo su hash SHA-256.
+/// One-time OTP token for the password reset flow.
+/// The code is never stored in plain text; only its SHA-256 hash.
 /// </summary>
 public class PasswordResetToken
 {

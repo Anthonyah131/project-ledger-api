@@ -5,9 +5,9 @@ namespace ProjectLedger.API.DTOs.ProjectBudget;
 // ── Requests ────────────────────────────────────────────────
 
 /// <summary>
-/// Request para crear/actualizar el presupuesto del proyecto.
-/// NO incluye ProjectId (viene de la ruta).
-/// Solo un presupuesto activo por proyecto.
+/// Request to create/update the project budget.
+/// DOES NOT include ProjectId (comes from route).
+/// Only one active budget per project.
 /// </summary>
 public class SetProjectBudgetRequest
 {
@@ -21,7 +21,7 @@ public class SetProjectBudgetRequest
 
 // ── Responses ───────────────────────────────────────────────
 
-/// <summary>Respuesta con los datos del presupuesto del proyecto.</summary>
+/// <summary>Response with project budget data.</summary>
 public class ProjectBudgetResponse
 {
     public Guid Id { get; set; }
@@ -29,7 +29,7 @@ public class ProjectBudgetResponse
     public decimal TotalBudget { get; set; }
     public decimal AlertPercentage { get; set; }
 
-    // ── Campos calculados (app-level) ───────────────────────
+    // ── Calculated fields (app-level) ───────────────────────
     public decimal SpentAmount { get; set; }
     public decimal RemainingAmount { get; set; }
     public decimal SpentPercentage { get; set; }

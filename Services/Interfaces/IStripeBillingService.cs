@@ -4,7 +4,15 @@ namespace ProjectLedger.API.Services;
 
 public interface IStripeBillingService
 {
+    /// <summary>
+    /// Synchronizes plans and payment links from Stripe into the local database.
+    /// </summary>
     Task<IReadOnlyList<StripePlanSyncResult>> SyncPlansAndPaymentLinksAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Processes an incoming Stripe webhook payload after verifying its signature.
+    /// handled events like checkout.session.completed, customer.subscription.deleted, etc.
+    /// </summary>
     Task ProcessWebhookAsync(string payload, string signatureHeader, CancellationToken ct = default);
 
     /// <summary>
@@ -13,14 +21,25 @@ public interface IStripeBillingService
     /// </summary>
     Task<UserSubscription?> GetCurrentUserSubscriptionReadOnlyAsync(Guid userId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Retrieves the current user's subscription details, potentially refreshing from Stripe.
+    /// </summary>
     Task<UserSubscription?> GetCurrentUserSubscriptionAsync(Guid userId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Updates the user's subscription to a new plan.
+    /// </summary>
     Task<UserSubscription> ChangePlanAsync(Guid userId, Guid newPlanId, bool prorate = true, CancellationToken ct = default);
+
+    /// <summary>
+    /// Cancels the user's current subscription.
+    /// </summary>
     Task<UserSubscription> CancelSubscriptionAsync(Guid userId, bool cancelAtPeriodEnd = true, CancellationToken ct = default);
 
     /// <summary>
-    /// Crea una Stripe Checkout Session vinculada al usuario autenticado.
-    /// Garantiza que client_reference_id = userId, lo que permite al webhook
-    /// asociar la suscripción al usuario de forma determinista.
+    /// Creates a Stripe Checkout Session linked to the authenticated user.
+    /// Guarantees that client_reference_id = userId, allowing the webhook
+    /// to deterministically link the subscription to the user.
     /// </summary>
     Task<(string SessionId, string CheckoutUrl)> CreateCheckoutSessionAsync(
         Guid userId, string userEmail, Guid planId, CancellationToken ct = default);

@@ -8,8 +8,8 @@ using ProjectLedger.API.DTOs.Currency;
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Servicio de tasas de cambio usando ExchangeRate-API v6 (https://www.exchangerate-api.com/).
-/// Cachea resultados en memoria por 1 hora para reducir llamadas externas.
+/// Exchange rate service using ExchangeRate-API v6 (https://www.exchangerate-api.com/).
+/// Caches results in memory for 1 hour to reduce external API calls.
 /// </summary>
 public class ExchangeRateService : IExchangeRateService
 {
@@ -115,6 +115,13 @@ public class ExchangeRateService : IExchangeRateService
         return result;
     }
 
+    /// <summary>
+    /// Executes an HTTP GET request to the ExchangeRate-API and deserializes the response.
+    /// Handles HTTP request errors gracefully by logging them and throwing a generic service exception.
+    /// </summary>
+    /// <typeparam name="T">The expected response type to deserialize into.</typeparam>
+    /// <param name="relativeUrl">The relative URL for the API endpoint.</param>
+    /// <param name="ct">Cancellation token.</param>
     private async Task<T?> FetchFromApiAsync<T>(string relativeUrl, CancellationToken ct)
     {
         try

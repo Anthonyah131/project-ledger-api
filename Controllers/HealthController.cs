@@ -5,7 +5,7 @@ using ProjectLedger.API.Data;
 namespace ProjectLedger.API.Controllers;
 
 /// <summary>
-/// Endpoint de health check para verificar que la API y la base de datos están operativas.
+/// Health check endpoint to verify that the API and database are operational.
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -19,14 +19,14 @@ public class HealthController : ControllerBase
     }
 
     /// <summary>
-    /// GET /api/health — Verifica conectividad con la base de datos.
+    /// GET /api/health — Verifies database connectivity.
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> Get(CancellationToken ct)
     {
         try
         {
-            // ExecuteScalar da el error real en lugar del bool silencioso de CanConnectAsync
+            // ExecuteScalar throws the actual error instead of the silent bool from CanConnectAsync
             await _context.Database.ExecuteSqlRawAsync("SELECT 1", ct);
             return Ok(new
             {
@@ -37,7 +37,7 @@ public class HealthController : ControllerBase
         }
         catch (Exception ex)
         {
-            // En desarrollo mostramos el error completo para diagnóstico
+            // In development, show the complete error for troubleshooting
             var isDev = HttpContext.RequestServices
                 .GetRequiredService<IHostEnvironment>().IsDevelopment();
 

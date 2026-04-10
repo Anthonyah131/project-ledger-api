@@ -1,11 +1,11 @@
-﻿using ProjectLedger.API.Models;
+using ProjectLedger.API.Models;
 using ProjectLedger.API.Repositories;
 
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Servicio de categorías. CRUD con soft delete.
-/// Valida límite de categorías por proyecto según el plan del owner.
+/// Category service. CRUD with soft delete.
+/// Validates the project category limit based on the owner's plan.
 /// </summary>
 public class CategoryService : ICategoryService
 {
@@ -40,7 +40,7 @@ public class CategoryService : ICategoryService
 
     public async Task<Category> CreateAsync(Category category, CancellationToken ct = default)
     {
-        // Validar límite de categorías por proyecto
+        // Validate project category limit
         var project = await _projectRepo.GetByIdAsync(category.CatProjectId, ct)
             ?? throw new KeyNotFoundException("ProjectNotFound");
 

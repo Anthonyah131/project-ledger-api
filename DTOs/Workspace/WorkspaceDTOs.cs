@@ -4,7 +4,7 @@ namespace ProjectLedger.API.DTOs.Workspace;
 
 // ── Requests ────────────────────────────────────────────────
 
-/// <summary>Request para crear un workspace.</summary>
+/// <summary>Request to create a workspace.</summary>
 public class CreateWorkspaceRequest
 {
     [Required]
@@ -20,14 +20,14 @@ public class CreateWorkspaceRequest
     public string? Icon { get; set; }
 }
 
-/// <summary>Request para asignar un proyecto a un workspace.</summary>
+/// <summary>Request to assign a project to a workspace.</summary>
 public class AssignProjectRequest
 {
     [Required]
     public Guid ProjectId { get; set; }
 }
 
-/// <summary>Request para actualizar un workspace.</summary>
+/// <summary>Request to update a workspace.</summary>
 public class UpdateWorkspaceRequest
 {
     [Required]
@@ -45,7 +45,7 @@ public class UpdateWorkspaceRequest
 
 // ── Responses ───────────────────────────────────────────────
 
-/// <summary>Respuesta resumida de un workspace.</summary>
+/// <summary>Summarized workspace response.</summary>
 public class WorkspaceResponse
 {
     public Guid Id { get; set; }
@@ -59,7 +59,7 @@ public class WorkspaceResponse
     public DateTime UpdatedAt { get; set; }
 }
 
-/// <summary>Detalle de un workspace con proyectos y miembros.</summary>
+/// <summary>Detail of a workspace with projects and members.</summary>
 public class WorkspaceDetailResponse
 {
     public Guid Id { get; set; }
@@ -74,7 +74,7 @@ public class WorkspaceDetailResponse
     public IReadOnlyList<WorkspaceMemberItem> Members { get; set; } = [];
 }
 
-/// <summary>Proyecto dentro del contexto de un workspace.</summary>
+/// <summary>Project within the context of a workspace.</summary>
 public class WorkspaceProjectItem
 {
     public Guid Id { get; set; }
@@ -84,7 +84,7 @@ public class WorkspaceProjectItem
     public DateTime CreatedAt { get; set; }
 }
 
-/// <summary>Miembro dentro del contexto de un workspace.</summary>
+/// <summary>Member within the context of a workspace.</summary>
 public class WorkspaceMemberItem
 {
     public Guid UserId { get; set; }

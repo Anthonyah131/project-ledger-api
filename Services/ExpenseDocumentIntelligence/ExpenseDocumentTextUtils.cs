@@ -4,6 +4,9 @@ using System.Text.RegularExpressions;
 
 namespace ProjectLedger.API.Services;
 
+/// <summary>
+/// Helper class for text normalization and tokenization used in expense document processing.
+/// </summary>
 internal static class ExpenseDocumentTextUtils
 {
     public static string Normalize(string? value)

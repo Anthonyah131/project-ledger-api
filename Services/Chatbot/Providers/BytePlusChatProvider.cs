@@ -5,15 +5,15 @@ using ProjectLedger.API.Common.Settings;
 namespace ProjectLedger.API.Services.Chatbot.Providers;
 
 /// <summary>
-/// Proveedor BytePlus (Doubao / Ark): plataforma de LLM de ByteDance disponible fuera de China.
-/// La API es compatible con OpenAI. El modelo es un endpoint ID con formato ep-XXXX asignado
-/// al crear el deployment en la consola de BytePlus Ark.
-/// Documentación: https://docs.byteplus.com/en/docs/ModelArk
+/// BytePlus Provider (Doubao / Ark): ByteDance's LLM platform available outside of China.
+/// The API is OpenAI-compatible. The model is an endpoint ID with the format ep-XXXX assigned
+/// when creating the deployment in the BytePlus Ark console.
+/// Documentation: https://docs.byteplus.com/en/docs/ModelArk
 /// </summary>
 public class BytePlusChatProvider : OpenAiCompatibleChatProvider
 {
-    // El modelo por defecto es el endpoint ID asignado en BytePlus Ark.
-    // Debe configurarse en appsettings o en la variable de entorno CHATBOT_BYTEPLUS_MODEL.
+    // The default model is the endpoint ID assigned in BytePlus Ark.
+    // Must be configured in appsettings or the CHATBOT_BYTEPLUS_MODEL environment variable.
     private const string DefaultModel = "doubao-lite-4k";
 
     private readonly ChatbotProviderSettings _settings;

@@ -5,20 +5,20 @@ namespace ProjectLedger.API.Services;
 public interface ISplitCurrencyExchangeService
 {
     /// <summary>
-    /// Crea los SplitCurrencyExchange para todos los splits de un gasto,
-    /// calculando el monto proporcional por moneda alternativa.
+    /// Creates SplitCurrencyExchanges for all splits of an expense,
+    /// calculating the proportional amount for each alternative currency.
     /// </summary>
     Task SaveForExpenseAsync(Guid expenseId, decimal expenseOriginalAmount, IReadOnlyList<CurrencyExchangeRequest> exchanges, CancellationToken ct = default);
 
     /// <summary>
-    /// Elimina y recrea los SplitCurrencyExchange para todos los splits de un gasto.
-    /// Si exchanges está vacío, solo elimina los existentes.
+    /// Deletes and recreates SplitCurrencyExchanges for all splits of an expense.
+    /// If exchanges is empty, it only deletes existing ones.
     /// </summary>
     Task ReplaceForExpenseAsync(Guid expenseId, decimal expenseOriginalAmount, IReadOnlyList<CurrencyExchangeRequest> exchanges, CancellationToken ct = default);
 
-    /// <summary>Equivalente de SaveForExpenseAsync para ingresos.</summary>
+    /// <summary>Equivalent of SaveForExpenseAsync for incomes.</summary>
     Task SaveForIncomeAsync(Guid incomeId, decimal incomeOriginalAmount, IReadOnlyList<CurrencyExchangeRequest> exchanges, CancellationToken ct = default);
 
-    /// <summary>Equivalente de ReplaceForExpenseAsync para ingresos.</summary>
+    /// <summary>Equivalent of ReplaceForExpenseAsync for incomes.</summary>
     Task ReplaceForIncomeAsync(Guid incomeId, decimal incomeOriginalAmount, IReadOnlyList<CurrencyExchangeRequest> exchanges, CancellationToken ct = default);
 }

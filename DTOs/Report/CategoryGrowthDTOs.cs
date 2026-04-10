@@ -2,7 +2,7 @@ namespace ProjectLedger.API.DTOs.Report;
 
 // ── Category Growth ─────────────────────────────────────────
 
-/// <summary>Envelope de crecimiento por categoría entre dos meses.</summary>
+/// <summary>Growth envelope by category between two months.</summary>
 public class CategoryGrowthEnvelopeResponse
 {
     public Guid ProjectId { get; set; }
@@ -14,7 +14,7 @@ public class CategoryGrowthEnvelopeResponse
     public List<CategoryGrowthResponse> Categories { get; set; } = [];
 }
 
-/// <summary>Crecimiento por categoría entre dos meses.</summary>
+/// <summary>Growth by category between two months.</summary>
 public class CategoryGrowthResponse
 {
     public Guid CategoryId { get; set; }
@@ -23,7 +23,7 @@ public class CategoryGrowthResponse
     public decimal PreviousMonthAmount { get; set; }
     public decimal GrowthAmount { get; set; }
 
-    /// <summary>Porcentaje de crecimiento. null si previous = 0.</summary>
+    /// <summary>Growth percentage. null if previous = 0.</summary>
     public decimal? GrowthPercentage { get; set; }
 
     public int CurrentMonthCount { get; set; }
@@ -31,9 +31,9 @@ public class CategoryGrowthResponse
     public decimal AverageAmountCurrent { get; set; }
     public decimal AverageAmountPrevious { get; set; }
 
-    /// <summary>true cuando previousMonthAmount == 0 y currentMonthAmount > 0.</summary>
+    /// <summary>true when previousMonthAmount == 0 and currentMonthAmount > 0.</summary>
     public bool IsNew { get; set; }
 
-    /// <summary>true cuando currentMonthAmount == 0 y previousMonthAmount > 0.</summary>
+    /// <summary>true when currentMonthAmount == 0 and previousMonthAmount > 0.</summary>
     public bool IsDisappeared { get; set; }
 }

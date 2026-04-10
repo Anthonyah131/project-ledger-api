@@ -1,19 +1,36 @@
 namespace ProjectLedger.API.DTOs.AuditLog;
 
 // ── Responses ───────────────────────────────────────────────
-// AuditLog es inmutable → NO tiene requests de creación/modificación.
-// La creación se hace internamente desde los servicios.
+// AuditLog is immutable → It does NOT have creation/modification requests.
+// Creation is handled internally by the services.
 
-/// <summary>Respuesta con los datos de un registro de auditoría.</summary>
+/// <summary>Response containing the data of an audit log record.</summary>
 public class AuditLogResponse
 {
+    /// <summary>Unique identifier of the audit log.</summary>
     public Guid Id { get; set; }
+    
+    /// <summary>Name of the affected entity (e.g., User, Project, Expense).</summary>
     public string EntityName { get; set; } = null!;
+    
+    /// <summary>Unique identifier of the affected entity.</summary>
     public Guid EntityId { get; set; }
+    
+    /// <summary>Type of action performed (e.g., Create, Update, Delete).</summary>
     public string ActionType { get; set; } = null!;
+    
+    /// <summary>ID of the user who performed the action.</summary>
     public Guid PerformedByUserId { get; set; }
+    
+    /// <summary>Name of the user who performed the action.</summary>
     public string? PerformedByUserName { get; set; }
+    
+    /// <summary>Timestamp when the action was performed (UTC).</summary>
     public DateTime PerformedAt { get; set; }
-    public object? OldValues { get; set; }                      // JSON deserializado
-    public object? NewValues { get; set; }                      // JSON deserializado
+    
+    /// <summary>JSON object representing the entity state before the action (if applicable).</summary>
+    public object? OldValues { get; set; }                      // Deserialized JSON
+    
+    /// <summary>JSON object representing the entity state after the action (if applicable).</summary>
+    public object? NewValues { get; set; }                      // Deserialized JSON
 }

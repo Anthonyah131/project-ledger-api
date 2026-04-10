@@ -10,12 +10,12 @@ using ProjectLedger.API.Services;
 namespace ProjectLedger.API.Controllers;
 
 /// <summary>
-/// Controlador de perfil de usuario autenticado.
+/// Authenticated user profile controller.
 /// 
-/// Reglas de seguridad:
-/// - Todos los endpoints requieren JWT válido.
-/// - UserId se obtiene SIEMPRE del JWT, nunca del body/ruta.
-/// - No expone datos sensibles (password hash, tokens, etc.).
+/// Security rules:
+/// - All endpoints require a valid JWT.
+/// - UserId is ALWAYS obtained from the JWT, never from the body/route.
+/// - Does not expose sensitive data (password hash, tokens, etc.).
 /// </summary>
 [ApiController]
 [Route("api/users")]
@@ -44,10 +44,10 @@ public class UserController : ControllerBase
     // ── GET /api/users/profile ──────────────────────────────
 
     /// <summary>
-    /// Obtiene el perfil completo del usuario autenticado (con plan).
+    /// Gets the complete profile of the authenticated user (with plan).
     /// </summary>
-    /// <response code="200">Perfil del usuario.</response>
-    /// <response code="404">Usuario no encontrado.</response>
+    /// <response code="200">User profile.</response>
+    /// <response code="404">User not found.</response>
     [HttpGet("profile")]
     [ProducesResponseType(typeof(UserProfileResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -65,13 +65,13 @@ public class UserController : ControllerBase
     // ── PUT /api/users/profile ──────────────────────────────
 
     /// <summary>
-    /// Actualiza el perfil del usuario autenticado (nombre, avatar).
-    /// UserId se obtiene del JWT — nunca del body.
-    /// Si avatarUrl no se envía, se conserva el avatar actual.
-    /// Si avatarUrl se envía como null, se limpia el avatar.
+    /// Updates the authenticated user's profile (name, avatar).
+    /// UserId is obtained from the JWT — never from the body.
+    /// If avatarUrl is not sent, the current avatar is kept.
+    /// If avatarUrl is sent as null, the avatar is cleared.
     /// </summary>
-    /// <response code="200">Perfil actualizado.</response>
-    /// <response code="404">Usuario no encontrado.</response>
+    /// <response code="200">Updated profile.</response>
+    /// <response code="404">User not found.</response>
     [HttpPut("profile")]
     [ProducesResponseType(typeof(UserProfileResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -98,14 +98,14 @@ public class UserController : ControllerBase
     // ── PUT /api/users/password ─────────────────────────────
 
     /// <summary>
-    /// Cambia la contraseña del usuario autenticado.
-    /// Requiere la contraseña actual para validación.
+    /// Changes the password of the authenticated user.
+    /// Requires the current password for validation.
     /// </summary>
-    /// <response code="204">Contraseña cambiada exitosamente.</response>
-    /// <response code="400">Contraseña actual incorrecta o request inválido.</response>
-    /// <response code="401">JWT ausente o inválido.</response>
-    /// <response code="403">Usuario autenticado sin permiso de escritura (ej: cuenta desactivada).</response>
-    /// <response code="404">Usuario no encontrado.</response>
+    /// <response code="204">Password changed successfully.</response>
+    /// <response code="400">Current password incorrect or invalid request.</response>
+    /// <response code="401">Missing or invalid JWT.</response>
+    /// <response code="403">Authenticated user without write permission (e.g. deactivated account).</response>
+    /// <response code="404">User not found.</response>
     [HttpPut("password")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -125,18 +125,18 @@ public class UserController : ControllerBase
         if (user is null)
             return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["UserNotFound"]));
 
-        // Verificar contraseña actual
+        // Verify current password
         if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.UsrPasswordHash))
             return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["CurrentPasswordIncorrect"]));
 
-        // Hashear y actualizar
+        // Hash and update
         user.UsrPasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword, workFactor: 12);
         await _userService.UpdateAsync(user, ct);
 
-        // Revocar todos los refresh tokens activos (seguridad: invalida todas las sesiones)
+        // Revoke all active refresh tokens (security: invalidates all sessions)
         await _authService.RevokeAllTokensAsync(userId, ct);
 
-        // Notificación por correo (fire-and-forget)
+        // Email notification (fire-and-forget)
         _ = _emailService.SendPasswordChangedEmailAsync(user.UsrEmail, user.UsrFullName, ct);
 
         return NoContent();
@@ -145,10 +145,10 @@ public class UserController : ControllerBase
     // ── DELETE /api/users/account ───────────────────────────
 
     /// <summary>
-    /// Soft-delete de la cuenta del usuario autenticado.
-    /// Desactiva la cuenta e invalida futuros accesos.
+    /// Soft-delete of the authenticated user's account.
+    /// Deactivates the account and invalidates future accesses.
     /// </summary>
-    /// <response code="204">Cuenta eliminada.</response>
+    /// <response code="204">Account deleted.</response>
     [HttpDelete("account")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> DeleteAccount(CancellationToken ct)

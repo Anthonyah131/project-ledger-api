@@ -7,7 +7,7 @@ public class McpPartnerBalancesResponse
     public Guid? ProjectId { get; set; }
     public string? SearchNote { get; set; }
 
-    /// <summary>Un elemento por cada proyecto que tenga al menos un partner con actividad.</summary>
+    /// <summary>One item for each project that has at least one partner with activity.</summary>
     public List<McpPartnerBalancesProjectResponse> Projects { get; set; } = [];
 }
 
@@ -24,22 +24,22 @@ public class McpPartnerBalanceItemResponse
     public Guid PartnerId { get; set; }
     public string PartnerName { get; set; } = null!;
 
-    /// <summary>Cuánto le deben otros partners a éste (antes de liquidaciones).</summary>
+    /// <summary>Amount owed by other partners to this one (before settlements).</summary>
     public decimal OthersOweHim { get; set; }
 
-    /// <summary>Cuánto debe éste partner a otros (antes de liquidaciones).</summary>
+    /// <summary>Amount this partner owes to others (before settlements).</summary>
     public decimal HeOwesOthers { get; set; }
 
-    /// <summary>Total de liquidaciones recibidas por este partner.</summary>
+    /// <summary>Total settlements received by this partner.</summary>
     public decimal SettlementsReceived { get; set; }
 
-    /// <summary>Total de liquidaciones pagadas por este partner.</summary>
+    /// <summary>Total settlements paid by this partner.</summary>
     public decimal SettlementsPaid { get; set; }
 
     /// <summary>
-    /// Balance neto en la moneda base del proyecto.
-    /// Positivo = le deben dinero a este partner.
-    /// Negativo = este partner debe dinero a otros.
+    /// Net balance in the project's base currency.
+    /// Positive = money is owed to this partner.
+    /// Negative = this partner owes money to others.
     /// </summary>
     public decimal NetBalance { get; set; }
 }

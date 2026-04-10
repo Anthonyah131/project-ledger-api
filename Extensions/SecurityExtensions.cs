@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
@@ -13,16 +13,16 @@ using ProjectLedger.API.Services;
 namespace ProjectLedger.API.Extensions;
 
 /// <summary>
-/// Extensiones de seguridad: JWT, CORS, Rate Limiting.
+/// Security extensions: JWT, CORS, Rate Limiting.
 /// </summary>
 public static class SecurityExtensions
 {
     // ── JWT ─────────────────────────────────────────────────
 
     /// <summary>
-    /// Configura autenticación JWT Bearer.
-    /// La SecretKey se resuelve desde la variable de entorno JWT_SECRET_KEY,
-    /// con fallback al valor del appsettings (útil para staging con secrets manager).
+    /// Configures JWT Bearer authentication.
+    /// The SecretKey is resolved from the JWT_SECRET_KEY environment variable,
+    /// with fallback to the appsettings value (useful for staging with secrets manager).
     /// </summary>
     public static IServiceCollection AddJwtAuthentication(
         this IServiceCollection services,
@@ -31,7 +31,7 @@ public static class SecurityExtensions
         var jwtSettings = configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()
             ?? throw new InvalidOperationException("JWT settings not found.");
 
-        // Resolver la clave desde variable de entorno
+        // Resolve the key from environment variable
         var secretKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY")
                         ?? jwtSettings.SecretKey;
 
@@ -66,7 +66,7 @@ public static class SecurityExtensions
             })
             .AddJwtBearer(options =>
             {
-                // Preservar nombres de claims JWT originales (sub, email, etc.)
+                // Preserve original JWT claim names (sub, email, etc.)
                 options.MapInboundClaims = false;
 
                 options.TokenValidationParameters = new TokenValidationParameters
@@ -78,10 +78,10 @@ public static class SecurityExtensions
                     ValidIssuer              = jwtSettings.Issuer,
                     ValidAudience            = jwtSettings.Audience,
                     IssuerSigningKey         = key,
-                    ClockSkew                = TimeSpan.Zero   // Sin tolerancia de tiempo en expiración
+                    ClockSkew                = TimeSpan.Zero   // No clock skew tolerance for expiration
                 };
 
-                // Propagar eventos de auth para logging
+                // Propagate auth events for logging
                 options.Events = new JwtBearerEvents
                 {
                     OnAuthenticationFailed = context =>
@@ -93,7 +93,7 @@ public static class SecurityExtensions
                     },
                     OnChallenge = context =>
                     {
-                        // Respuesta 401 personalizada en JSON
+                        // Custom 401 JSON response
                         context.HandleResponse();
                         context.Response.StatusCode = 401;
                         context.Response.ContentType = "application/json";
@@ -108,7 +108,7 @@ public static class SecurityExtensions
                     },
                     OnForbidden = context =>
                     {
-                        // Respuesta 403 personalizada en JSON
+                        // Custom 403 JSON response
                         context.Response.StatusCode = 403;
                         context.Response.ContentType = "application/json";
                         var localizer = context.HttpContext.RequestServices
@@ -151,21 +151,21 @@ public static class SecurityExtensions
         {
             // ── Project-level policies (multi-tenant) ────────────
 
-            // Policy: al menos viewer del proyecto
+            // Policy: at least project viewer
             options.AddPolicy("ProjectViewer", policy =>
                 policy.Requirements.Add(new ProjectMemberRequirement(ProjectRoles.Viewer)));
 
-            // Policy: al menos editor del proyecto
+            // Policy: at least project editor
             options.AddPolicy("ProjectEditor", policy =>
                 policy.Requirements.Add(new ProjectMemberRequirement(ProjectRoles.Editor)));
 
-            // Policy: solo owner del proyecto
+            // Policy: project owner only
             options.AddPolicy("ProjectOwner", policy =>
                 policy.Requirements.Add(new ProjectMemberRequirement(ProjectRoles.Owner)));
 
             // ── Plan-level policies (feature gates) ──────────────
-            // Formato: "Plan:{PlanPermission}" — uno por cada permiso del plan.
-            // Uso: [Authorize(Policy = "Plan:CanExportData")]
+            // Format: "Plan:{PlanPermission}" — one for each plan permission.
+            // Usage: [Authorize(Policy = "Plan:CanExportData")]
 
             foreach (var permission in Enum.GetValues<PlanPermission>())
             {
@@ -191,8 +191,8 @@ public static class SecurityExtensions
     // ── CORS ────────────────────────────────────────────────
 
     /// <summary>
-    /// Configura CORS con la lista de orígenes permitidos desde appsettings.
-    /// En producción se deben definir los dominios exactos del frontend.
+    /// Configures CORS with the list of allowed origins from appsettings.
+    /// In production, the exact frontend domains must be defined.
     /// </summary>
     public static IServiceCollection AddCorsPolicy(
         this IServiceCollection services,
@@ -209,8 +209,8 @@ public static class SecurityExtensions
                     .WithOrigins(corsSettings.AllowedOrigins)
                     .AllowAnyHeader()
                     .AllowAnyMethod()
-                    .AllowCredentials()                // Necesario para enviar cookies o auth headers
-                    .WithExposedHeaders("X-Total-Count", "X-Page", "X-Page-Size"); // Para paginación
+                    .AllowCredentials()                // Necessary for sending cookies or auth headers
+                    .WithExposedHeaders("X-Total-Count", "X-Page", "X-Page-Size"); // For pagination
             });
         });
 
@@ -220,8 +220,8 @@ public static class SecurityExtensions
     // ── Rate Limiting ───────────────────────────────────────
 
     /// <summary>
-    /// Configura rate limiting global con ventana fija.
-    /// Política estricta exclusiva para endpoints de autenticación (login/register).
+    /// Configures global rate limiting with fixed window.
+    /// Strict policy exclusive for authentication endpoints (login/register).
     /// </summary>
     public static IServiceCollection AddRateLimiting(
         this IServiceCollection services,
@@ -234,7 +234,7 @@ public static class SecurityExtensions
         {
             options.RejectionStatusCode = 429;
 
-            // Política global: 100 requests / 60s
+            // Global policy: 100 requests / 60s
             options.AddFixedWindowLimiter(RateLimitSettings.PolicyName, limiter =>
             {
                 limiter.PermitLimit = rlSettings.PermitLimit;
@@ -242,7 +242,7 @@ public static class SecurityExtensions
                 limiter.QueueLimit  = rlSettings.QueueLimit;
             });
 
-            // Política estricta para Auth: 10 intentos / 60s (anti brute-force)
+            // Strict policy for Auth: 30 attempts / 60s (anti brute-force)
             options.AddFixedWindowLimiter("AuthRateLimit", limiter =>
             {
                 limiter.PermitLimit = 30;
@@ -250,7 +250,7 @@ public static class SecurityExtensions
                 limiter.QueueLimit  = 0;
             });
 
-            // Respuesta personalizada al exceder el límite
+            // Custom response when exceeding limit
             options.OnRejected = async (context, ct) =>
             {
                 context.HttpContext.Response.StatusCode = 429;

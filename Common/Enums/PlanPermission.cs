@@ -1,8 +1,8 @@
 namespace ProjectLedger.API.Common.Enums;
 
 /// <summary>
-/// Enumeración de todos los permisos definidos por plan.
-/// Cada valor corresponde a un flag booleano en el modelo <see cref="Models.Plan"/>.
+/// Enumeration of all permissions defined by plan.
+/// Each value corresponds to a boolean flag in the <see cref="Models.Plan"/> model.
 /// </summary>
 public enum PlanPermission
 {

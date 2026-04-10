@@ -4,6 +4,9 @@ using System.Text.RegularExpressions;
 
 namespace ProjectLedger.API.Services;
 
+/// <summary>
+/// Helper class for extracting fields from expense document analysis results.
+/// </summary>
 internal static partial class ExpenseDocumentFieldExtractor
 {
     private static readonly Regex[] ReceiptNumberRegexes =

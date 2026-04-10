@@ -1,11 +1,11 @@
-﻿using ProjectLedger.API.Models;
+using ProjectLedger.API.Models;
 using ProjectLedger.API.Repositories;
 
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Servicio de partners. Un partner es un contacto financiero del usuario,
-/// dueño de métodos de pago. El usuario solo puede gestionar sus propios partners.
+/// Partner service. A partner is a financial contact of the user,
+/// owner of payment methods. The user can only manage their own partners.
 /// </summary>
 public class PartnerService : IPartnerService
 {

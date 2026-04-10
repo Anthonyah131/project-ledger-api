@@ -1,8 +1,8 @@
 namespace ProjectLedger.API.Models;
 
 /// <summary>
-/// Vínculo OAuth con proveedores externos (Google, Microsoft, GitHub, etc.).
-/// Un usuario puede tener múltiples proveedores vinculados.
+/// OAuth link with external providers (Google, Microsoft, GitHub, etc.).
+/// A user can have multiple linked providers.
 /// </summary>
 public class ExternalAuthProvider
 {

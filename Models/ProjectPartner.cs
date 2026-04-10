@@ -1,8 +1,8 @@
 namespace ProjectLedger.API.Models;
 
 /// <summary>
-/// Partner asignado a un proyecto.
-/// Los métodos de pago disponibles en el proyecto se derivan de los partners asignados.
+/// Partner assigned to a project.
+/// Payment methods available in the project are derived from assigned partners.
 /// </summary>
 public class ProjectPartner
 {

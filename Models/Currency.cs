@@ -1,16 +1,16 @@
 namespace ProjectLedger.API.Models;
 
 /// <summary>
-/// Catálogo de monedas habilitadas (ISO 4217).
-/// PK natural: código ISO de 3 caracteres.
+/// Catalog of enabled currencies (ISO 4217).
+/// Natural PK: 3-character ISO code.
 /// </summary>
 public class Currency
 {
-    public string CurCode { get; set; } = null!;               // PK · ISO 4217 (ej: "USD", "CRC")
-    public string CurName { get; set; } = null!;               // Nombre completo
-    public string CurSymbol { get; set; } = null!;             // Símbolo de visualización
-    public short CurDecimalPlaces { get; set; } = 2;           // Decimales estándar
-    public bool CurIsActive { get; set; } = true;              // ¿Moneda disponible?
+    public string CurCode { get; set; } = null!;               // PK · ISO 4217 (e.g. "USD", "CRC")
+    public string CurName { get; set; } = null!;               // Full name
+    public string CurSymbol { get; set; } = null!;             // Display symbol
+    public short CurDecimalPlaces { get; set; } = 2;           // Standard decimals
+    public bool CurIsActive { get; set; } = true;              // Available currency?
     public DateTime CurCreatedAt { get; set; } = DateTime.UtcNow;
 
     // ── Navigation collections ──────────────────────────────

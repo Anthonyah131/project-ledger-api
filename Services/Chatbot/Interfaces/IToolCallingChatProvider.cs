@@ -1,66 +1,66 @@
 namespace ProjectLedger.API.Services.Chatbot.Interfaces;
 
-// ── Tipos de mensajes para conversaciones con tool calling ───────────────────
+// ── Message types for conversations with tool calling ─────────────────────────
 
-/// <summary>Mensaje base de la conversación con el LLM.</summary>
+/// <summary>Base message for the conversation with the LLM.</summary>
 public abstract record TcMessage;
 
-/// <summary>Mensaje de sistema (instrucciones del asistente).</summary>
+/// <summary>System message (assistant instructions).</summary>
 public sealed record TcSystemMessage(string Content) : TcMessage;
 
-/// <summary>Mensaje del usuario.</summary>
+/// <summary>User message.</summary>
 public sealed record TcUserMessage(string Content) : TcMessage;
 
 /// <summary>
-/// Mensaje del asistente. Si el LLM llamó herramientas, Content es null y ToolCalls
-/// contiene las llamadas a ejecutar. Si respondió con texto, Content tiene la respuesta.
+/// Assistant message. If the LLM called tools, Content is null and ToolCalls
+/// contains the calls to be executed. If it responded with text, Content has the response.
 /// </summary>
 public sealed record TcAssistantMessage(
     string? Content,
     IReadOnlyList<ToolCallRef>? ToolCalls = null) : TcMessage;
 
-/// <summary>Resultado de ejecutar una herramienta, enviado de vuelta al LLM.</summary>
+/// <summary>Result of executing a tool, sent back to the LLM.</summary>
 public sealed record TcToolResultMessage(
     string ToolCallId,
     string FunctionName,
     string Content) : TcMessage;
 
-// ── Herramientas ─────────────────────────────────────────────────────────────
+// ── Tools ────────────────────────────────────────────────────────────────────
 
-/// <summary>Definición de una herramienta (function) expuesta al LLM.</summary>
+/// <summary>Definition of a tool (function) exposed to the LLM.</summary>
 public sealed record ToolDefinition(
     string Name,
     string Description,
-    object ParametersSchema);  // Objeto anonimo que serializa a JSON Schema
+    object ParametersSchema);  // Anonymous object that serializes to JSON Schema
 
-/// <summary>Referencia a una llamada de herramienta que el LLM quiere ejecutar.</summary>
+/// <summary>Reference to a tool call that the LLM wants to execute.</summary>
 public sealed record ToolCallRef(
     string Id,
     string FunctionName,
     string ArgumentsJson);
 
-// ── Respuesta de la petición con herramientas ────────────────────────────────
+// ── Response of the request with tools ───────────────────────────────────────
 
 /// <summary>
-/// Resultado de un round-trip con tool calling.
-/// Si el LLM llamó herramientas: Content es null, ToolCalls tiene las llamadas.
-/// Si el LLM respondió con texto: Content tiene la respuesta, ToolCalls es null.
+/// Result of a tool calling round-trip.
+/// If the LLM called tools: Content is null, ToolCalls has the calls.
+/// If the LLM responded with text: Content has the response, ToolCalls is null.
 /// </summary>
 public sealed record ToolCallingResponse(
     string? Content,
     IReadOnlyList<ToolCallRef>? ToolCalls);
 
-// ── Interfaz ─────────────────────────────────────────────────────────────────
+// ── Interface ────────────────────────────────────────────────────────────────
 
 /// <summary>
-/// Extensión de IChatProvider para proveedores que soportan tool calling (function calling).
-/// Permite al LLM decidir qué herramientas llamar y recibir sus resultados.
+/// IChatProvider extension for providers that support tool calling (function calling).
+/// Allows the LLM to decide which tools to call and receive their results.
 /// </summary>
 public interface IToolCallingChatProvider : IChatProvider
 {
     /// <summary>
-    /// Envía mensajes al LLM junto con las herramientas disponibles.
-    /// Devuelve texto si el LLM respondió directamente, o la lista de tool calls a ejecutar.
+    /// Sends messages to the LLM along with the available tools.
+    /// Returns text if the LLM responded directly, or the list of tool calls to execute.
     /// </summary>
     Task<ToolCallingResponse> SendWithToolsAsync(
         IReadOnlyList<TcMessage> messages,

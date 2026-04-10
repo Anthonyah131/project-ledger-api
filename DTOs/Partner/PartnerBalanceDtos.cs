@@ -9,14 +9,14 @@ public record PartnerBalanceResponse(
     string Currency,
     IReadOnlyList<PartnerBalanceItem> Partners,
     /// <summary>
-    /// Balance entre cada par de socios.
-    /// NetBalance positivo = PartnerA le debe a PartnerB.
-    /// NetBalance negativo = PartnerB le debe a PartnerA.
+    /// Balance between each pair of partners.
+    /// Positive NetBalance = PartnerA owes PartnerB.
+    /// Negative NetBalance = PartnerB owes PartnerA.
     /// </summary>
     IReadOnlyList<PairwiseBalanceItem> PairwiseBalances,
     /// <summary>
-    /// Splits que no tienen currency exchanges configurados cuando otros en el proyecto sí los tienen.
-    /// El usuario debe editar o recrear esas transacciones para ver montos en monedas alternativas.
+    /// Splits that do not have currency exchanges configured when others in the project do.
+    /// The user should edit or recreate these transactions to see amounts in alternative currencies.
     /// </summary>
     IReadOnlyList<MissingCurrencyExchangeWarning> Warnings
 );
@@ -71,8 +71,8 @@ public record PartnerBalanceItem(
     decimal SettlementsPaid,
     decimal NetBalance,
     /// <summary>
-    /// Mismos valores de OthersOweHim / HeOwesOthers expresados en otras monedas.
-    /// NetBalance por moneda = OthersOweHim - HeOwesOthers (sin incluir liquidaciones).
+    /// Same values of OthersOweHim / HeOwesOthers expressed in other currencies.
+    /// NetBalance per currency = OthersOweHim - HeOwesOthers (excluding settlements).
     /// </summary>
     IReadOnlyList<PartnerCurrencyTotal> CurrencyTotals
 );
@@ -127,13 +127,13 @@ public record PartnerSettlementHistoryItem(
 // ── Warnings ───────────────────────────────────────────────
 
 /// <summary>
-/// Split sin currency exchanges cuando otros en el proyecto sí los tienen.
-/// El usuario debe editar la transacción (o eliminarla y recrearla) para que aparezca en monedas alternativas.
+/// Split without currency exchanges when others in the project do have them.
+/// The user must edit the transaction (or delete and recreate it) for it to appear in alternative currencies.
 /// </summary>
 public record MissingCurrencyExchangeWarning(
     string TransactionType,     // "expense" | "income"
     Guid TransactionId,
     string Title,
     DateOnly Date,
-    decimal ConvertedAmount     // monto completo de la transacción en moneda base
+    decimal ConvertedAmount     // total transaction amount in base currency
 );

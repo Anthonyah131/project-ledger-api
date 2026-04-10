@@ -1,8 +1,8 @@
 namespace ProjectLedger.API.Models;
 
 /// <summary>
-/// Método de pago del usuario (banco, efectivo, tarjeta).
-/// Pertenece al usuario, no al proyecto — permite ver movimientos cruzando proyectos.
+/// User's payment method (bank, cash, card).
+/// Belongs to the user, not the project — allows viewing movements across projects.
 /// </summary>
 public class PaymentMethod
 {

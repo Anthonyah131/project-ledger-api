@@ -3,6 +3,9 @@ using ProjectLedger.API.DTOs.Mcp;
 
 namespace ProjectLedger.API.Services;
 
+/// <summary>
+/// Partial implementation of McpService focusing on financial health summaries, alerts, and monthly overviews.
+/// </summary>
 public partial class McpService
 {
     public async Task<McpFinancialHealthResponse> GetFinancialHealthAsync(

@@ -8,9 +8,9 @@ namespace ProjectLedger.API.DTOs.Expense;
 // ── Requests ────────────────────────────────────────────────
 
 /// <summary>
-/// Request para crear un gasto.
-/// NO incluye ProjectId (viene de la ruta) ni CreatedByUserId (viene del JWT).
-/// Esto previene escalamiento de privilegios.
+/// Request to create an expense.
+/// DOES NOT include ProjectId (comes from route) nor CreatedByUserId (comes from JWT).
+/// This prevents privilege escalation.
 /// </summary>
 public class CreateExpenseRequest
 {
@@ -20,17 +20,17 @@ public class CreateExpenseRequest
     [Required]
     public Guid PaymentMethodId { get; set; }
 
-    /// <summary>FK → obligations. NULL = gasto normal; valor = pago de deuda.</summary>
+    /// <summary>FK → obligations. NULL = regular expense; value = debt payment.</summary>
     public Guid? ObligationId { get; set; }
 
     /// <summary>
-    /// Monto equivalente en la moneda de la obligación.
-    /// Se usa cuando ObligationId está presente y OriginalCurrency difiere de la moneda de la obligación.
+    /// Equivalent amount in the obligation's currency.
+    /// Used when ObligationId is present and OriginalCurrency differs from the obligation's currency.
     /// </summary>
     [Range(0.01, 999999999999.99, ErrorMessage = "Obligation equivalent amount must be between 0.01 and 999,999,999,999.99.")]
     public decimal? ObligationEquivalentAmount { get; set; }
 
-    // ── Montos ──────────────────────────────────────────────
+    // ── Amounts ─────────────────────────────────────────────
 
     [Required]
     [Range(0.01, 999999999999.99, ErrorMessage = "Original amount must be between 0.01 and 999,999,999,999.99.")]
@@ -45,8 +45,8 @@ public class CreateExpenseRequest
     public decimal ExchangeRate { get; set; } = 1.000000m;
 
     /// <summary>
-    /// Monto convertido a la moneda del proyecto. Es el valor que se usa para totales y cálculos.
-    /// El front es responsable de enviarlo calculado.
+    /// Amount converted to the project's currency. This is the value used for totals and calculations.
+    /// The frontend is responsible for sending it pre-calculated.
     /// </summary>
     [Required]
     [Range(0.01, 999999999999.99, ErrorMessage = "Converted amount must be between 0.01 and 999,999,999,999.99.")]
@@ -55,7 +55,7 @@ public class CreateExpenseRequest
     [Range(0.01, 999999999999.99, ErrorMessage = "Account amount must be between 0.01 and 999,999,999,999.99.")]
     public decimal? AccountAmount { get; set; }
 
-    // ── Datos descriptivos ──────────────────────────────────
+    // ── Descriptive Data ────────────────────────────────────
 
     [Required]
     [StringLength(255, MinimumLength = 1, ErrorMessage = "Title must be between 1 and 255 characters.")]
@@ -74,20 +74,20 @@ public class CreateExpenseRequest
     public bool IsActive { get; set; } = true;
 
     /// <summary>
-    /// Conversiones a monedas alternativas del proyecto.
-    /// El front calcula y envía el monto convertido para cada moneda.
+    /// Conversions to the project's alternative currencies.
+    /// The frontend calculates and sends the converted amount for each currency.
     /// </summary>
     public List<CurrencyExchangeRequest>? CurrencyExchanges { get; set; }
 
     /// <summary>
-    /// Splits entre partners. Opcional.
-    /// Si no se envía o el módulo de partners está desactivado → auto-split 100% al dueño de la cuenta.
-    /// Si se envía: todos deben ser percentage sumando 100, o todos fixed sumando original_amount.
+    /// Splits among partners. Optional.
+    /// If omitted or partners module is disabled → auto-split 100% to the account owner.
+    /// If provided: all must be 'percentage' summing to 100, or all 'fixed' summing to original_amount.
     /// </summary>
     public List<SplitInputDto>? Splits { get; set; }
 }
 
-/// <summary>Request para actualizar un gasto.</summary>
+/// <summary>Request to update an expense.</summary>
 public class UpdateExpenseRequest
 {
     [Required]
@@ -96,12 +96,12 @@ public class UpdateExpenseRequest
     [Required]
     public Guid PaymentMethodId { get; set; }
 
-    /// <summary>FK → obligations. NULL = gasto normal; valor = pago de deuda.</summary>
+    /// <summary>FK → obligations. NULL = regular expense; value = debt payment.</summary>
     public Guid? ObligationId { get; set; }
 
     /// <summary>
-    /// Monto equivalente en la moneda de la obligación.
-    /// Se usa cuando el gasto está vinculado a obligación y la moneda original difiere.
+    /// Equivalent amount in the obligation's currency.
+    /// Used when the expense is linked to an obligation and the original currency differs.
     /// </summary>
     [Range(0.01, 999999999999.99, ErrorMessage = "Obligation equivalent amount must be between 0.01 and 999,999,999,999.99.")]
     public decimal? ObligationEquivalentAmount { get; set; }
@@ -119,8 +119,8 @@ public class UpdateExpenseRequest
     public decimal ExchangeRate { get; set; } = 1.000000m;
 
     /// <summary>
-    /// Monto convertido a la moneda del proyecto. Es el valor que se usa para totales y cálculos.
-    /// El front es responsable de enviarlo calculado.
+    /// Amount converted to the project's currency. This is the value used for totals and calculations.
+    /// The frontend is responsible for sending it pre-calculated.
     /// </summary>
     [Required]
     [Range(0.01, 999999999999.99, ErrorMessage = "Converted amount must be between 0.01 and 999,999,999,999.99.")]
@@ -144,37 +144,37 @@ public class UpdateExpenseRequest
     public string? Notes { get; set; }
 
     /// <summary>
-    /// Si viene con valor se actualiza el estado plantilla.
-    /// Si viene null se conserva el valor actual.
+    /// If provided, updates the template state.
+    /// If null, the current value is preserved.
     /// </summary>
     public bool? IsTemplate { get; set; }
 
     /// <summary>
-    /// Si viene con valor se actualiza el estado contable.
-    /// false = recordatorio (no cuenta en totales/pagos).
+    /// If provided, updates the accounting state.
+    /// false = reminder (does not count towards totals/payments).
     /// </summary>
     public bool? IsActive { get; set; }
 
     /// <summary>
-    /// Conversiones a monedas alternativas del proyecto.
-    /// Si es null, no se modifican los exchanges existentes.
-    /// Si es lista vacía, se eliminan todos los exchanges.
+    /// Conversions to the project's alternative currencies.
+    /// If null, existing exchanges are not modified.
+    /// If an empty list, all exchanges are deleted.
     /// </summary>
     public List<CurrencyExchangeRequest>? CurrencyExchanges { get; set; }
 
     /// <summary>
-    /// Splits entre partners. Opcional.
-    /// null → no modificar splits existentes.
-    /// [] → eliminar todos los splits.
-    /// [...] → reemplazar con los splits provistos.
+    /// Splits among partners. Optional.
+    /// null → do not modify existing splits.
+    /// [] → delete all splits.
+    /// [...] → replace with the provided splits.
     /// </summary>
     public List<SplitInputDto>? Splits { get; set; }
 }
 
 /// <summary>
-/// Request para crear un gasto real a partir de una plantilla.
-/// Permite sobreescribir monto, fecha y obligación;
-/// el resto se toma de la plantilla.
+/// Request to create an actual expense from a template.
+/// Allows overriding amount, date, and obligation;
+/// the rest is taken from the template.
 /// </summary>
 public class CreateFromTemplateRequest
 {
@@ -192,7 +192,7 @@ public class CreateFromTemplateRequest
 }
 
 /// <summary>
-/// Request para activar/desactivar un gasto sin enviar el payload completo.
+/// Request to activate/deactivate an expense without sending the full payload.
 /// </summary>
 public class UpdateExpenseActiveStateRequest
 {
@@ -200,7 +200,7 @@ public class UpdateExpenseActiveStateRequest
 }
 
 /// <summary>
-/// Request para extraer un borrador de gasto desde imagen/PDF con Azure Document Intelligence.
+/// Request to extract an expense draft from an image/PDF using Azure Document Intelligence.
 /// </summary>
 public class ExtractExpenseFromDocumentRequest
 {
@@ -213,7 +213,7 @@ public class ExtractExpenseFromDocumentRequest
 
 // ── Responses ───────────────────────────────────────────────
 
-/// <summary>Respuesta con los datos de un gasto.</summary>
+/// <summary>Response with the data of an expense.</summary>
 public class ExpenseResponse
 {
     public Guid Id { get; set; }
@@ -242,23 +242,23 @@ public class ExpenseResponse
 
     public List<CurrencyExchangeResponse>? CurrencyExchanges { get; set; }
 
-    /// <summary>Indica si el movimiento tiene splits registrados. Útil para mostrar un indicador en la lista.</summary>
+    /// <summary>Indicates whether the movement has registered splits. Useful for showing an indicator in the list.</summary>
     public bool HasSplits { get; set; }
 
-    /// <summary>Splits entre partners. Presente solo cuando el proyecto tiene partners_enabled = true.</summary>
+    /// <summary>Splits among partners. Present only when the project has partners_enabled = true.</summary>
     public List<SplitResponseDto>? Splits { get; set; }
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
-    // ── Soft delete info (solo visible con includeDeleted=true) ──
+    // ── Soft delete info (only visible with includeDeleted=true) ─
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
     public Guid? DeletedByUserId { get; set; }
 }
 
 /// <summary>
-/// Respuesta del endpoint de extraccion IA para pre-llenar el formulario de gasto.
+/// Response from the AI extraction endpoint to pre-fill the expense form.
 /// </summary>
 public class ExtractExpenseFromDocumentResponse
 {

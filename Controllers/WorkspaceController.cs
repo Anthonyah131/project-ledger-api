@@ -12,12 +12,12 @@ using ProjectLedger.API.Services;
 namespace ProjectLedger.API.Controllers;
 
 /// <summary>
-/// Controlador de workspaces. Un workspace agrupa proyectos con contexto común.
+/// Workspaces controller. A workspace groups projects with a common context.
 ///
-/// Reglas de seguridad:
-/// - Solo el owner puede modificar o eliminar un workspace.
-/// - Solo el owner puede ver workspaces propios o donde es miembro.
-/// - OwnerUserId se obtiene SIEMPRE del JWT.
+/// Security rules:
+/// - Only the owner can modify or delete a workspace.
+/// - Users can see their own workspaces or where they are a member.
+/// - OwnerUserId is ALWAYS obtained from the JWT.
 /// </summary>
 [ApiController]
 [Route("api/workspaces")]
@@ -46,7 +46,7 @@ public class WorkspaceController : ControllerBase
     // ── GET /api/workspaces ─────────────────────────────────
 
     /// <summary>
-    /// Lista los workspaces donde el usuario es miembro o owner.
+    /// Lists workspaces where the user is a member or owner.
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<WorkspaceResponse>), StatusCodes.Status200OK)]
@@ -69,7 +69,7 @@ public class WorkspaceController : ControllerBase
     // ── GET /api/workspaces/{id} ────────────────────────────
 
     /// <summary>
-    /// Obtiene el detalle de un workspace con proyectos y miembros.
+    /// Gets the detail of a workspace with projects and members.
     /// </summary>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(WorkspaceDetailResponse), StatusCodes.Status200OK)]
@@ -93,7 +93,7 @@ public class WorkspaceController : ControllerBase
     // ── POST /api/workspaces ────────────────────────────────
 
     /// <summary>
-    /// Crea un nuevo workspace. El creador queda como 'owner' automáticamente.
+    /// Creates a new workspace. The creator automatically becomes the 'owner'.
     /// </summary>
     [HttpPost]
     [ProducesResponseType(typeof(WorkspaceResponse), StatusCodes.Status201Created)]
@@ -119,7 +119,7 @@ public class WorkspaceController : ControllerBase
     // ── PATCH /api/workspaces/{id} ──────────────────────────
 
     /// <summary>
-    /// Actualiza el workspace. Solo el owner puede modificarlo.
+    /// Updates the workspace. Only the owner can modify it.
     /// </summary>
     [HttpPatch("{id:guid}")]
     [ProducesResponseType(typeof(WorkspaceResponse), StatusCodes.Status200OK)]
@@ -152,8 +152,8 @@ public class WorkspaceController : ControllerBase
     // ── DELETE /api/workspaces/{id} ─────────────────────────
 
     /// <summary>
-    /// Soft-delete del workspace. Solo el owner puede eliminarlo.
-    /// No se puede eliminar si tiene proyectos activos.
+    /// Soft-delete of the workspace. Only the owner can delete it.
+    /// Cannot be deleted if it has active projects.
     /// </summary>
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -185,13 +185,13 @@ public class WorkspaceController : ControllerBase
     // ── GET /api/workspaces/{id}/projects ───────────────────
 
     /// <summary>
-    /// Lista los proyectos del workspace accesibles para el usuario autenticado (paginado).
-    /// En la página 1 incluye una sección "pinned" con los proyectos fijados de este workspace.
-    /// El usuario debe ser miembro del workspace.
+    /// Lists the workspace projects accessible to the authenticated user (paginated).
+    /// On page 1 includes a "pinned" section with the pinned projects of this workspace.
+    /// The user must be a member of the workspace.
     /// </summary>
-    /// <response code="200">Lista paginada de proyectos del workspace con sección de fijados.</response>
-    /// <response code="403">El usuario no es miembro del workspace.</response>
-    /// <response code="404">Workspace no encontrado.</response>
+    /// <response code="200">Paginated list of workspace projects with a pinned section.</response>
+    /// <response code="403">User is not a member of the workspace.</response>
+    /// <response code="404">Workspace not found.</response>
     [HttpGet("{id:guid}/projects")]
     [ProducesResponseType(typeof(ProjectsPagedResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -211,7 +211,7 @@ public class WorkspaceController : ControllerBase
         if (role is null)
             return Forbid();
 
-        // Pinned filtrado solo al workspace actual
+        // Pinned filtered only to the current workspace
         var allPinnedMemberships = await _projectService.GetPinnedMembershipsAsync(userId, ct);
         var workspacePinned = allPinnedMemberships
             .Where(m => m.Project.PrjWorkspaceId == id)
@@ -252,13 +252,13 @@ public class WorkspaceController : ControllerBase
     // ── POST /api/workspaces/{id}/projects ──────────────────
 
     /// <summary>
-    /// Asigna un proyecto al workspace. El usuario debe ser miembro del workspace
-    /// y tener acceso de editor o superior al proyecto.
+    /// Assigns a project to the workspace. The user must be a member of the workspace
+    /// and have editor access or higher to the project.
     /// </summary>
-    /// <response code="204">Proyecto asignado correctamente.</response>
-    /// <response code="400">Datos inválidos.</response>
-    /// <response code="403">Sin acceso al workspace o al proyecto.</response>
-    /// <response code="404">Workspace o proyecto no encontrado.</response>
+    /// <response code="204">Project assigned successfully.</response>
+    /// <response code="400">Invalid data.</response>
+    /// <response code="403">No access to the workspace or the project.</response>
+    /// <response code="404">Workspace or project not found.</response>
     [HttpPost("{id:guid}/projects")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -274,17 +274,17 @@ public class WorkspaceController : ControllerBase
 
         var userId = User.GetRequiredUserId();
 
-        // Validar que el usuario es miembro del workspace
+        // Validate that the user is a member of the workspace
         var workspaceRole = await _workspaceService.GetMemberRoleAsync(id, userId, ct);
         if (workspaceRole is null)
             return Forbid();
 
-        // Validar que el workspace existe
+        // Validate that the workspace exists
         var workspace = await _workspaceService.GetByIdAsync(id, ct);
         if (workspace is null)
             return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["WorkspaceNotFound"]));
 
-        // Validar que el usuario tiene acceso de editor al proyecto
+        // Validate that the user has editor access to the project
         await _projectAccessService.ValidateAccessAsync(userId, request.ProjectId, ProjectRoles.Editor, ct);
 
         await _projectService.SetWorkspaceAsync(request.ProjectId, id, ct);
@@ -295,12 +295,12 @@ public class WorkspaceController : ControllerBase
     // ── DELETE /api/workspaces/{id}/projects/{projectId} ───
 
     /// <summary>
-    /// Desvincula un proyecto del workspace (establece workspace_id = null).
-    /// El usuario debe ser miembro del workspace y tener acceso de editor al proyecto.
+    /// Unlinks a project from the workspace (sets workspace_id = null).
+    /// The user must be a member of the workspace and have editor access to the project.
     /// </summary>
-    /// <response code="204">Proyecto desvinculado correctamente.</response>
-    /// <response code="403">Sin acceso al workspace o al proyecto.</response>
-    /// <response code="404">Workspace o proyecto no encontrado.</response>
+    /// <response code="204">Project unlinked successfully.</response>
+    /// <response code="403">No access to the workspace or the project.</response>
+    /// <response code="404">Workspace or project not found.</response>
     [HttpDelete("{id:guid}/projects/{projectId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -309,17 +309,17 @@ public class WorkspaceController : ControllerBase
     {
         var userId = User.GetRequiredUserId();
 
-        // Validar que el usuario es miembro del workspace
+        // Validate that the user is a member of the workspace
         var workspaceRole = await _workspaceService.GetMemberRoleAsync(id, userId, ct);
         if (workspaceRole is null)
             return Forbid();
 
-        // Validar que el workspace existe
+        // Validate that the workspace exists
         var workspace = await _workspaceService.GetByIdAsync(id, ct);
         if (workspace is null)
             return NotFound(LocalizedResponse.Create("NOT_FOUND", _localizer["WorkspaceNotFound"]));
 
-        // Validar que el usuario tiene acceso de editor al proyecto
+        // Validate that the user has editor access to the project
         await _projectAccessService.ValidateAccessAsync(userId, projectId, ProjectRoles.Editor, ct);
 
         await _projectService.SetWorkspaceAsync(projectId, null, ct);

@@ -10,26 +10,26 @@ using ProjectLedger.API.Services.Chatbot.Interfaces;
 namespace ProjectLedger.API.Services.Chatbot.Providers;
 
 /// <summary>
-/// Clase base para proveedores cuya API es compatible con el estándar
+/// Base class for providers whose API is compatible with the standard
 /// OpenAI chat completions (POST /chat/completions).
-/// Groq, Cerebras, OpenRouter y BytePlus Ark exponen este mismo contrato,
-/// por lo que sólo difieren en BaseUrl, Model, ApiKey y SupportsToolCalling.
-/// Implementa tanto IChatProvider (conversación simple) como IToolCallingChatProvider
-/// (function calling con herramientas MCP).
+/// Groq, Cerebras, OpenRouter, and BytePlus Ark expose this same contract,
+/// differing only in BaseUrl, Model, ApiKey, and SupportsToolCalling.
+/// Implements both IChatProvider (plain conversation) and IToolCallingChatProvider
+/// (function calling with MCP tools).
 /// </summary>
 public abstract class OpenAiCompatibleChatProvider : IToolCallingChatProvider
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger _logger;
 
-    // ── Miembros que cada proveedor concreto debe implementar ────────────────
+    // ── Members that each concrete provider must implement ───────────────────
 
     public abstract string ProviderName          { get; }
     public abstract string Model                 { get; }
     public abstract bool   IsEnabled             { get; }
     public abstract bool   SupportsToolCalling   { get; }
 
-    /// <summary>Nombre registrado en IHttpClientFactory para este proveedor.</summary>
+    /// <summary>Name registered in IHttpClientFactory for this provider.</summary>
     protected abstract string HttpClientName { get; }
 
     protected OpenAiCompatibleChatProvider(
@@ -54,7 +54,7 @@ public abstract class OpenAiCompatibleChatProvider : IToolCallingChatProvider
             messages = SerializeMessages(messages)
         };
 
-        _logger.LogDebug("Enviando {Count} mensajes a {Provider} ({Model})",
+        _logger.LogDebug("Sending {Count} messages to {Provider} ({Model})",
             messages.Count, ProviderName, Model);
 
         var httpResponse = await client.PostAsJsonAsync("chat/completions", requestBody, ct);
@@ -172,7 +172,7 @@ public abstract class OpenAiCompatibleChatProvider : IToolCallingChatProvider
             };
         }
 
-        _logger.LogDebug("Enviando {Count} mensajes + {ToolCount} tools a {Provider} ({Model})",
+        _logger.LogDebug("Sending {Count} messages + {ToolCount} tools to {Provider} ({Model})",
             messages.Count, tools.Count, ProviderName, Model);
 
         var httpResponse = await client.PostAsJsonAsync("chat/completions", requestBody, ct);
@@ -201,7 +201,7 @@ public abstract class OpenAiCompatibleChatProvider : IToolCallingChatProvider
         return new ToolCallingResponse(choice.Content, null);
     }
 
-    // ── Serialización de mensajes ────────────────────────────────────────────
+    // ── Message serialization ────────────────────────────────────────────────
 
     private static object[] SerializeMessages(IReadOnlyList<TcMessage> messages) =>
         messages.Select<TcMessage, object>(m => m switch
@@ -241,7 +241,7 @@ public abstract class OpenAiCompatibleChatProvider : IToolCallingChatProvider
             _ => throw new InvalidOperationException($"Unsupported message type: {m.GetType().Name}")
         }).ToArray();
 
-    // ── DTOs internos para deserializar respuestas ───────────────────────────
+    // ── Internal DTOs for deserializing responses ────────────────────────────
 
     // SSE streaming chunks (stream=true)
     private sealed record StreamChunk(

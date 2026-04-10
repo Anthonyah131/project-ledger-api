@@ -1,9 +1,9 @@
 namespace ProjectLedger.API.Common.Constants;
 
 /// <summary>
-/// Constantes de nombres de límites del plan.
-/// Deben coincidir exactamente con las keys del JSONB PlnLimits.
-/// Usar estas constantes tanto en PlanAuthorizationService como en los servicios
+/// Plan limit name constants.
+/// Must match exactly the keys in the PlnLimits JSONB.
+/// Use these constants in both PlanAuthorizationService and the services
 /// que validan límites, para evitar magic strings.
 /// </summary>
 public static class PlanLimits

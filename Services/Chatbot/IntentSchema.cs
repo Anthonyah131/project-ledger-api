@@ -3,16 +3,16 @@ using System.Text;
 namespace ProjectLedger.API.Services.Chatbot;
 
 /// <summary>
-/// Catálogo estático de dominios, acciones y filtros disponibles para el intent parser.
-/// Reemplaza a McpToolManifest — en vez de describir 16 tools individuales,
-/// presenta ~28 combinaciones domain+action de forma compacta para que modelos
-/// gratuitos clasifiquen con mayor fiabilidad.
+/// Static catalog of domains, actions, and filters available for the intent parser.
+/// Replaces McpToolManifest — instead of describing 16 individual tools,
+/// it presents ~28 domain+action combinations in a compact way so that free models
+/// can classify with higher reliability.
 /// </summary>
 public static class IntentSchema
 {
     /// <summary>
-    /// Genera un texto compacto con los dominios, acciones y filtros disponibles
-    /// para incluir en el system prompt del Intent Parser.
+    /// Generates a compact text with the available domains, actions, and filters
+    /// to include in the Intent Parser's system prompt.
     /// </summary>
     public static string GetAsText()
     {

@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ProjectLedger.API.DTOs.Currency;
 
-/// <summary>Request para agregar una moneda alternativa a un proyecto.</summary>
+/// <summary>Request to add an alternative currency to a project.</summary>
 public class AddAlternativeCurrencyRequest
 {
     [Required]
@@ -11,7 +11,7 @@ public class AddAlternativeCurrencyRequest
     public string CurrencyCode { get; set; } = null!;
 }
 
-/// <summary>Respuesta con una moneda alternativa de un proyecto.</summary>
+/// <summary>Response with a project's alternative currency.</summary>
 public class ProjectAlternativeCurrencyResponse
 {
     public Guid Id { get; set; }
@@ -21,7 +21,7 @@ public class ProjectAlternativeCurrencyResponse
     public DateTime CreatedAt { get; set; }
 }
 
-/// <summary>Respuesta de consulta de tipo de cambio.</summary>
+/// <summary>Exchange rate query response.</summary>
 public class ExchangeRateResponse
 {
     public string BaseCurrency { get; set; } = null!;
@@ -32,7 +32,7 @@ public class ExchangeRateResponse
     public DateOnly Date { get; set; }
 }
 
-/// <summary>Respuesta con múltiples tasas de cambio para una moneda base.</summary>
+/// <summary>Response with multiple exchange rates for a base currency.</summary>
 public class ExchangeRateLatestResponse
 {
     public string BaseCurrency { get; set; } = null!;

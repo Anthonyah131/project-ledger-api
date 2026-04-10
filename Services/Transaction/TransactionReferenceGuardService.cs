@@ -4,8 +4,8 @@ using ProjectLedger.API.Data;
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Protege referencias de catálogo y relaciones del proyecto cuando todavía
-/// existen gastos o ingresos activos que dependen de ellas.
+/// Protects catalog references and project relationships when active
+/// expenses or incomes still depend on them.
 /// </summary>
 public class TransactionReferenceGuardService : ITransactionReferenceGuardService
 {

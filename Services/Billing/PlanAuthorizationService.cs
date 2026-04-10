@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using ProjectLedger.API.DTOs.Plan;
 using ProjectLedger.API.Models;
@@ -7,12 +7,12 @@ using ProjectLedger.API.Repositories;
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Implementación de IPlanAuthorizationService.
+/// IPlanAuthorizationService implementation.
 /// 
-/// Flujo:
-/// 1. Obtiene el User con su Plan (Include) desde el repositorio
-/// 2. Lee el permiso booleano correspondiente del Plan
-/// 3. Para límites → deserializa PlnLimits (JSONB) y compara contra el count actual
+/// Workflow:
+/// 1. Retrieves User with their Plan (Include) from repository.
+/// 2. Reads the corresponding boolean permission from the Plan.
+/// 3. For limits → deserializes PlnLimits (JSONB) and compares against current count.
 /// </summary>
 public class PlanAuthorizationService : IPlanAuthorizationService
 {
@@ -35,7 +35,7 @@ public class PlanAuthorizationService : IPlanAuthorizationService
         _projectRepo = projectRepo;
     }
 
-    // ── Permisos booleanos ──────────────────────────────────
+    // ── Boolean Permissions ─────────────────────────────────
 
     /// <inheritdoc />
     public async Task<bool> HasPermissionAsync(
@@ -55,7 +55,7 @@ public class PlanAuthorizationService : IPlanAuthorizationService
             throw new PlanDeniedException(permission, plan.PlnName);
     }
 
-    // ── Límites numéricos ───────────────────────────────────
+    // ── Numeric Limits ──────────────────────────────────────
 
     /// <inheritdoc />
     public async Task<bool> IsWithinLimitAsync(
@@ -79,7 +79,7 @@ public class PlanAuthorizationService : IPlanAuthorizationService
             throw new PlanLimitExceededException(limitName, limit.Value, plan.PlnName);
     }
 
-    // ── Carga completa del plan ─────────────────────────────
+    // ── Complete Plan Load ──────────────────────────────────
 
     /// <inheritdoc />
     public async Task<PlanCapabilities> GetCapabilitiesAsync(
@@ -120,7 +120,7 @@ public class PlanAuthorizationService : IPlanAuthorizationService
         };
     }
 
-    // ── Validación de escritura en proyecto ─────────────────
+    // ── Project Write Access Validation ─────────────────────
 
     /// <inheritdoc />
     public async Task ValidateProjectWriteAccessAsync(
@@ -132,15 +132,15 @@ public class PlanAuthorizationService : IPlanAuthorizationService
         if (project.PrjIsDeleted)
             throw new KeyNotFoundException("ProjectNotFound");
 
-        // El plan del OWNER gobierna todo el proyecto
+        // The OWNER's plan governs the entire project
         var ownerPlan = await GetUserPlanAsync(project.PrjOwnerUserId, ct);
 
         // 1. El plan del owner debe permitir ediciones
         if (!EvaluatePermission(ownerPlan, PlanPermission.CanEditProjects))
             throw new PlanDeniedException(PlanPermission.CanEditProjects, ownerPlan.PlnName);
 
-        // 2. Si el que actúa NO es el owner → es un miembro compartido
-        //    El plan del owner debe permitir compartir proyectos
+        // 2. If the actor is NOT the owner → they are a shared member.
+        //    The owner's plan must allow project sharing.
         if (actingUserId != project.PrjOwnerUserId)
         {
             if (!EvaluatePermission(ownerPlan, PlanPermission.CanShareProjects))
@@ -152,7 +152,7 @@ public class PlanAuthorizationService : IPlanAuthorizationService
     //  Private Helpers
     // ═══════════════════════════════════════════════════════════
 
-    /// <summary>Obtiene el Plan del usuario. Lanza si no existe.</summary>
+    /// <summary>Gets the User's Plan. Throws if not found.</summary>
     private async Task<Plan> GetUserPlanAsync(Guid userId, CancellationToken ct)
     {
         var user = await _userRepo.GetByIdAsync(userId, ct);
@@ -168,7 +168,7 @@ public class PlanAuthorizationService : IPlanAuthorizationService
         return plan;
     }
 
-    /// <summary>Evalúa un permiso booleano del plan.</summary>
+    /// <summary>Evaluates a boolean permission from the plan.</summary>
     private static bool EvaluatePermission(Plan plan, PlanPermission permission) => permission switch
     {
         PlanPermission.CanCreateProjects     => plan.PlnCanCreateProjects,
@@ -185,7 +185,7 @@ public class PlanAuthorizationService : IPlanAuthorizationService
         _ => false
     };
 
-    /// <summary>Obtiene un valor de límite del JSONB del plan por nombre.</summary>
+    /// <summary>Gets a limit value from the plan's JSONB by name.</summary>
     private static int? GetLimitValue(Plan plan, string limitName)
     {
         var limits = DeserializeLimits(plan.PlnLimits);
@@ -205,7 +205,7 @@ public class PlanAuthorizationService : IPlanAuthorizationService
         };
     }
 
-    /// <summary>Deserializa el JSONB de límites del plan.</summary>
+    /// <summary>Deserializes the plan's limits JSONB.</summary>
     private static PlanLimitsDto? DeserializeLimits(string? json)
     {
         if (string.IsNullOrWhiteSpace(json)) return null;
@@ -219,7 +219,7 @@ public class PlanAuthorizationService : IPlanAuthorizationService
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
 
-            // Compatibilidad con datasets legacy.
+            // Compatibility with legacy datasets.
             if (limits.MaxExpensesPerMonth is null
                 && TryGetNullableInt(root, "max_expenses", out var legacyMaxExpenses))
             {

@@ -1,17 +1,17 @@
 namespace ProjectLedger.API.Common.Settings;
 
 /// <summary>
-/// Configuración global del chatbot de IA con rotación de proveedores.
-/// Los API keys se resuelven desde variables de entorno.
+/// Global configuration for the AI chatbot with provider rotation.
+/// API keys are resolved from environment variables.
 /// </summary>
 public class ChatbotSettings
 {
     public const string SectionName = "Chatbot";
 
     /// <summary>
-    /// Mensaje de sistema enviado como primer mensaje en cada petición.
-    /// Define la personalidad, el idioma y el contexto del asistente.
-    /// Si está vacío no se incluye ningún system prompt.
+    /// System message sent as the first message in each request.
+    /// Defines the assistant's personality, language, and context.
+    /// If empty, no system prompt is included.
     /// </summary>
     public string SystemPrompt { get; set; } = string.Empty;
 

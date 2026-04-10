@@ -3,16 +3,16 @@ using Microsoft.AspNetCore.Authorization;
 namespace ProjectLedger.API.Authorization.Requirements;
 
 /// <summary>
-/// Requisito de autorización que valida que el plan del usuario
-/// tenga habilitado un permiso específico.
-/// Se usa con policies de formato "Plan:{PlanPermission}".
+/// Authorization requirement that validates that the user's plan
+/// has a specific permission enabled.
+/// Used with policies of format "Plan:{PlanPermission}".
 /// 
-/// Ejemplo:
+/// Example:
 ///   [Authorize(Policy = "Plan:CanExportData")]
 /// </summary>
 public class PlanPermissionRequirement : IAuthorizationRequirement
 {
-    /// <summary>Permiso del plan que se requiere.</summary>
+    /// <summary>Plan permission that is required.</summary>
     public PlanPermission Permission { get; }
 
     public PlanPermissionRequirement(PlanPermission permission)

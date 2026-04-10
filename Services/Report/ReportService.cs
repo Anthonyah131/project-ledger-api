@@ -3,6 +3,11 @@ using ProjectLedger.API.Repositories;
 
 namespace ProjectLedger.API.Services;
 
+/// <summary>
+/// Implementation of IReportService.
+/// The main reporting engine providing various financial and analytical views for projects.
+/// This is a partial class distributed across multiple files for organization.
+/// </summary>
 public partial class ReportService : IReportService
 {
     private readonly IExpenseRepository _expenseRepo;

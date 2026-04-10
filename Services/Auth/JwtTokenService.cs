@@ -9,8 +9,8 @@ using ProjectLedger.API.Models;
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Implementación concreta de IJwtTokenService.
-/// Genera access tokens firmados con HS256 y refresh tokens aleatorios.
+/// Concrete implementation of IJwtTokenService.
+/// Generates access tokens signed with HS256 and random refresh tokens.
 /// </summary>
 public class JwtTokenService : IJwtTokenService
 {
@@ -84,7 +84,7 @@ public class JwtTokenService : IJwtTokenService
             ValidIssuer              = _settings.Issuer,
             ValidAudience            = _settings.Audience,
             IssuerSigningKey         = key,
-            ValidateLifetime         = false     // Permitir token expirado
+            ValidateLifetime         = false     // Allow expired token
         };
 
         try

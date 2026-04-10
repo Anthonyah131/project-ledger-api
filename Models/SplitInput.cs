@@ -1,8 +1,8 @@
 namespace ProjectLedger.API.Models;
 
 /// <summary>
-/// Datos de un split explícito enviado desde el frontend.
-/// Usado como parámetro de servicio; no es una entidad persistida.
+/// Explicit split data sent from the frontend.
+/// Used as a service parameter; it is not a persisted entity.
 /// </summary>
 public record SplitInput(
     Guid PartnerId,
@@ -12,12 +12,12 @@ public record SplitInput(
     IReadOnlyList<SplitCurrencyExchangeInput>? CurrencyExchanges = null);
 
 /// <summary>
-/// Equivalencia en moneda alternativa para un split. Calculada por el frontend.
+/// Alternative currency equivalence for a split. Calculated by the frontend.
 /// </summary>
 public record SplitCurrencyExchangeInput(string CurrencyCode, decimal ExchangeRate, decimal ConvertedAmount);
 
 /// <summary>
-/// Conversión a moneda alternativa de una transacción (gasto/ingreso).
-/// Usado como parámetro de servicio para bulk create; no es una entidad persistida directamente.
+/// Conversion to an alternative currency of a transaction (expense/income).
+/// Used as a service parameter for bulk create; not a directly persisted entity.
 /// </summary>
 public record TransactionExchangeInput(string CurrencyCode, decimal ExchangeRate, decimal ConvertedAmount);

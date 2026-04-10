@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Localization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.Common;
@@ -11,14 +11,14 @@ using ProjectLedger.API.Services;
 namespace ProjectLedger.API.Controllers;
 
 /// <summary>
-/// Controlador de gastos con autorización multi-tenant.
+/// Expense controller with multi-tenant authorization.
 /// 
-/// Ruta anidada: /api/projects/{projectId}/expenses
-/// El projectId viene SIEMPRE de la ruta, nunca del body.
-/// El userId viene SIEMPRE del JWT, nunca del body.
+/// Nested route: /api/projects/{projectId}/expenses
+/// projectId ALWAYS comes from the route, never from the body.
+/// userId ALWAYS comes from the JWT, never from the body.
 /// 
-/// Usa [Authorize(Policy = "...")] para validación declarativa
-/// + IProjectAccessService para validación imperativa extra.
+/// Uses [Authorize(Policy = "...")] for declarative validation
+/// + IProjectAccessService for extra imperative validation.
 /// </summary>
 [ApiController]
 [Route("api/projects/{projectId:guid}/expenses")]
@@ -63,10 +63,10 @@ public class ExpenseController : ControllerBase
     // ── GET /api/projects/{projectId}/expenses ──────────────
 
     /// <summary>
-    /// Lista todos los gastos del proyecto con paginación.
+    /// Lists all project expenses with pagination.
     /// </summary>
-    /// <response code="200">Lista paginada de gastos del proyecto.</response>
-    /// <response code="403">Sin acceso al proyecto.</response>
+    /// <response code="200">Paged list of project expenses.</response>
+    /// <response code="403">No access to the project.</response>
     [HttpGet]
     [Authorize(Policy = "ProjectViewer")]
     [ProducesResponseType(typeof(PagedResponse<ExpenseResponse>), StatusCodes.Status200OK)]
@@ -84,7 +84,7 @@ public class ExpenseController : ControllerBase
         if (from.HasValue && to.HasValue && from > to)
             return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["InvalidDateRange"]));
 
-        // Solo Editor+ puede ver gastos eliminados
+        // Only Editor+ can view deleted expenses
         if (includeDeleted)
         {
             var userId = User.GetRequiredUserId();
@@ -104,10 +104,10 @@ public class ExpenseController : ControllerBase
     // ── GET /api/projects/{projectId}/expenses/templates ───
 
     /// <summary>
-    /// Lista todas las plantillas de gasto del proyecto.
-    /// Las plantillas no son movimientos financieros reales.
+    /// Lists all project expense templates.
+    /// Templates are not actual financial movements.
     /// </summary>
-    /// <response code="200">Lista de plantillas.</response>
+    /// <response code="200">List of templates.</response>
     [HttpGet("templates")]
     [Authorize(Policy = "ProjectViewer")]
     [ProducesResponseType(typeof(IEnumerable<ExpenseResponse>), StatusCodes.Status200OK)]
@@ -120,13 +120,13 @@ public class ExpenseController : ControllerBase
     // ── POST /api/projects/{projectId}/expenses/from-template/{templateId}
 
     /// <summary>
-    /// Crea un gasto real a partir de una plantilla existente.
-    /// Reutiliza: categoría, método de pago, moneda, descripción, exchange rate, alt currency.
-    /// El usuario puede sobreescribir monto y fecha.
+    /// Creates an actual expense from an existing template.
+    /// Reuses: category, payment method, currency, description, exchange rate, alt currency.
+    /// The user can override amount and date.
     /// </summary>
-    /// <response code="201">Gasto creado desde la plantilla.</response>
-    /// <response code="404">Plantilla no encontrada o no pertenece al proyecto.</response>
-    /// <response code="400">El gasto origen no es una plantilla.</response>
+    /// <response code="201">Expense created from the template.</response>
+    /// <response code="404">Template not found or does not belong to the project.</response>
+    /// <response code="400">Source expense is not a template.</response>
     [HttpPost("from-template/{templateId:guid}")]
     [Authorize(Policy = "ProjectEditor")]
     [ProducesResponseType(typeof(ExpenseResponse), StatusCodes.Status201Created)]
@@ -155,7 +155,7 @@ public class ExpenseController : ControllerBase
 
         await _expenseService.CreateAsync(expense, ct: ct);
 
-        // Copiar los exchanges de la plantilla al nuevo gasto
+        // Copy exchanges from template to new expense
         if (template.CurrencyExchanges.Count > 0)
         {
             var templateExchanges = template.CurrencyExchanges
@@ -178,10 +178,10 @@ public class ExpenseController : ControllerBase
     // ── GET /api/projects/{projectId}/expenses/{expenseId} ──
 
     /// <summary>
-    /// Obtiene un gasto por ID. Requiere al menos ser viewer del proyecto.
+    /// Gets an expense by ID. Requires at least viewer role on the project.
     /// </summary>
-    /// <response code="200">Gasto encontrado.</response>
-    /// <response code="404">Gasto no encontrado o no pertenece al proyecto.</response>
+    /// <response code="200">Expense found.</response>
+    /// <response code="404">Expense not found or does not belong to the project.</response>
     [HttpGet("{expenseId:guid}")]
     [Authorize(Policy = "ProjectViewer")]
     [ProducesResponseType(typeof(ExpenseResponse), StatusCodes.Status200OK)]
@@ -198,11 +198,11 @@ public class ExpenseController : ControllerBase
     // ── GET /api/projects/{projectId}/expenses/extract-from-image/quota ──
 
     /// <summary>
-    /// Retorna el cupo mensual de lecturas de documentos (OCR) para este proyecto,
-    /// gobernado por el plan del owner del proyecto.
+    /// Returns the monthly document reading (OCR) quota for this project,
+    /// governed by the project owner's plan.
     /// </summary>
-    /// <response code="200">Cupo mensual y lecturas restantes.</response>
-    /// <response code="403">Sin acceso de edición al proyecto.</response>
+    /// <response code="200">Monthly quota and remaining reads.</response>
+    /// <response code="403">No edit access to the project.</response>
     [HttpGet("extract-from-image/quota")]
     [Authorize(Policy = "ProjectEditor")]
     [ProducesResponseType(typeof(DocumentReadQuotaResponse), StatusCodes.Status200OK)]
@@ -220,12 +220,12 @@ public class ExpenseController : ControllerBase
     // ── POST /api/projects/{projectId}/expenses/extract-from-image ──
 
     /// <summary>
-    /// Analiza una imagen/PDF de recibo o factura y retorna un borrador de gasto
-    /// para que el usuario lo revise y lo ajuste manualmente antes de guardar.
+    /// Analyzes an image/PDF of a receipt or invoice and returns an expense draft
+    /// for the user to review and adjust manually before saving.
     /// </summary>
-    /// <response code="200">Borrador de gasto extraido por IA.</response>
-    /// <response code="400">Archivo invalido o error de extraccion.</response>
-    /// <response code="403">Sin acceso al proyecto.</response>
+    /// <response code="200">Expense draft extracted by AI.</response>
+    /// <response code="400">Invalid file or extraction error.</response>
+    /// <response code="403">No access to the project.</response>
     [HttpPost("extract-from-image")]
     [Authorize(Policy = "ProjectEditor")]
     [Consumes("multipart/form-data")]
@@ -283,16 +283,16 @@ public class ExpenseController : ControllerBase
     // ── POST /api/projects/{projectId}/expenses ─────────────
 
     /// <summary>
-    /// Crea un gasto en el proyecto. Requiere rol editor+.
-    /// Valida límite de gastos por mes según el plan del owner.
+    /// Creates an expense in the project. Requires editor+ role.
+    /// Validates the monthly expenses limit according to the owner's plan.
     ///
-    /// PROTECCIÓN CONTRA ESCALAMIENTO DE PRIVILEGIOS:
-    /// - ProjectId viene de la RUTA, no del body
-    /// - CreatedByUserId viene del JWT, no del body
+    /// PRIVILEGE ESCALATION PROTECTION:
+    /// - ProjectId comes from the ROUTE, not the body
+    /// - CreatedByUserId comes from the JWT, not the body
     /// </summary>
-    /// <response code="201">Gasto creado.</response>
-    /// <response code="400">Datos inválidos.</response>
-    /// <response code="403">Sin acceso o plan no permite más gastos.</response>
+    /// <response code="201">Expense created.</response>
+    /// <response code="400">Invalid data.</response>
+    /// <response code="403">No access or plan limits exceeded.</response>
     [HttpPost]
     [Authorize(Policy = "ProjectEditor")]
     [ProducesResponseType(typeof(ExpenseResponse), StatusCodes.Status201Created)]
@@ -306,13 +306,13 @@ public class ExpenseController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        // ⚠️ userId del JWT — NUNCA del request body
+        // ⚠️ userId from JWT — NEVER from request body
         var userId = User.GetRequiredUserId();
 
-        // Validar que el plan del owner permite escritura (y sharing si es miembro)
+        // Validate owner's plan allows write access (and sharing if member)
         await _planAuth.ValidateProjectWriteAccessAsync(projectId, userId, ct);
 
-        // Validación imperativa extra (defensa en profundidad)
+        // Extra imperative validation (defense in depth)
         await _accessService.ValidateAccessAsync(userId, projectId, ProjectRoles.Editor, ct);
 
         var expense = request.ToEntity(projectId, userId);
@@ -322,11 +322,11 @@ public class ExpenseController : ControllerBase
         )).ToList();
         await _expenseService.CreateAsync(expense, splits, ct);
 
-        // Guardar conversiones a monedas alternativas
+        // Save alternative currency conversions
         if (request.CurrencyExchanges?.Count > 0)
         {
             await _exchangeService.SaveExchangesAsync("expense", expense.ExpId, request.CurrencyExchanges, ct);
-            // Re-fetch para incluir exchanges en la respuesta
+            // Re-fetch to include exchanges in response
             expense = (await _expenseService.GetByIdAsync(expense.ExpId, ct))!;
         }
 
@@ -339,14 +339,14 @@ public class ExpenseController : ControllerBase
     // ── POST /api/projects/{projectId}/expenses/bulk ────────
 
     /// <summary>
-    /// Importación rápida: crea hasta 100 gastos en un solo request.
-    /// Los campos comunes (categoría, método de pago, moneda, tipo de cambio) se envían
-    /// una vez a nivel del lote. El converted_amount se calcula como amount × exchangeRate.
-    /// Operación all-or-nothing: si algún item falla validación, no se crea ninguno.
+    /// Fast import: creates up to 100 expenses in a single request.
+    /// Common fields (category, payment method, currency, exchange rate) are sent
+    /// once at the batch level. The converted_amount is calculated as amount × exchangeRate.
+    /// All-or-nothing operation: if any item validation fails, none are created.
     /// </summary>
-    /// <response code="201">Gastos creados.</response>
-    /// <response code="400">Datos inválidos.</response>
-    /// <response code="403">Sin acceso o plan no permite más gastos.</response>
+    /// <response code="201">Expenses created.</response>
+    /// <response code="400">Invalid data.</response>
+    /// <response code="403">No access or plan limits exceeded.</response>
     [HttpPost("bulk")]
     [Authorize(Policy = "ProjectEditor")]
     [ProducesResponseType(typeof(BulkCreateExpenseResponse), StatusCodes.Status201Created)]
@@ -418,13 +418,13 @@ public class ExpenseController : ControllerBase
     // ── PUT /api/projects/{projectId}/expenses/{expenseId} ──
 
     /// <summary>
-    /// Actualiza un gasto. Requiere rol editor+.
-    /// Valida que el gasto pertenezca al proyecto de la ruta.
+    /// Updates an expense. Requires editor+ role.
+    /// Validates that the expense belongs to the route's project.
     /// </summary>
-    /// <response code="200">Gasto actualizado.</response>
-    /// <response code="400">Datos inválidos.</response>
-    /// <response code="404">Gasto no encontrado o no pertenece al proyecto.</response>
-    /// <response code="403">Sin acceso al proyecto.</response>
+    /// <response code="200">Expense updated.</response>
+    /// <response code="400">Invalid data.</response>
+    /// <response code="404">Expense not found or does not belong to the project.</response>
+    /// <response code="403">No access to the project.</response>
     [HttpPut("{expenseId:guid}")]
     [Authorize(Policy = "ProjectEditor")]
     [ProducesResponseType(typeof(ExpenseResponse), StatusCodes.Status200OK)]
@@ -455,7 +455,7 @@ public class ExpenseController : ControllerBase
         )).ToList();
         await _expenseService.UpdateAsync(expense, updateSplits, ct);
 
-        // Actualizar conversiones a monedas alternativas
+        // Update alternative currency conversions
         if (request.CurrencyExchanges is not null)
             await _exchangeService.ReplaceExchangesAsync("expense", expense.ExpId, request.CurrencyExchanges, ct);
 
@@ -466,10 +466,10 @@ public class ExpenseController : ControllerBase
     // ── PATCH /api/projects/{projectId}/expenses/{expenseId}/active-state ──
 
     /// <summary>
-    /// Activa o desactiva un gasto sin requerir el payload completo de actualización.
+    /// Activates or deactivates an expense without requiring the full update payload.
     /// </summary>
-    /// <response code="200">Estado del gasto actualizado.</response>
-    /// <response code="404">Gasto no encontrado o no pertenece al proyecto.</response>
+    /// <response code="200">Expense active state updated.</response>
+    /// <response code="404">Expense not found or does not belong to the project.</response>
     [HttpPatch("{expenseId:guid}/active-state")]
     [Authorize(Policy = "ProjectEditor")]
     [ProducesResponseType(typeof(ExpenseResponse), StatusCodes.Status200OK)]
@@ -499,11 +499,11 @@ public class ExpenseController : ControllerBase
     // ── DELETE /api/projects/{projectId}/expenses/{expenseId}
 
     /// <summary>
-    /// Soft-delete de un gasto. Requiere rol editor+.
+    /// Soft-deletes an expense. Requires editor+ role.
     /// </summary>
-    /// <response code="204">Gasto eliminado.</response>
-    /// <response code="404">Gasto no encontrado o no pertenece al proyecto.</response>
-    /// <response code="403">Sin acceso al proyecto.</response>
+    /// <response code="204">Expense deleted.</response>
+    /// <response code="404">Expense not found or does not belong to the project.</response>
+    /// <response code="403">No access to the project.</response>
     [HttpDelete("{expenseId:guid}")]
     [Authorize(Policy = "ProjectEditor")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

@@ -6,9 +6,9 @@ namespace ProjectLedger.API.DTOs.Report;
 // ── Partner Balance Report ───────────────────────────────────
 
 /// <summary>
-/// Reporte de balances entre partners de un proyecto.
-/// Usa la misma estructura y lógica que GET /projects/:id/partners/balance.
-/// Requiere PrjPartnersEnabled + CanUseAdvancedReports.
+/// Partner balances report for a project.
+/// Uses the same structure and logic as GET /projects/:id/partners/balance.
+/// Requires PrjPartnersEnabled + CanUseAdvancedReports.
 /// </summary>
 public class PartnerBalanceReportResponse
 {
@@ -19,16 +19,16 @@ public class PartnerBalanceReportResponse
     public DateOnly? DateTo { get; set; }
     public DateTime GeneratedAt { get; set; }
 
-    /// <summary>Mismos datos que GET /projects/:id/partners/balance → partners[].</summary>
+    /// <summary>Same data as GET /projects/:id/partners/balance → partners[].</summary>
     public List<PartnerBalanceItem> Partners { get; set; } = [];
 
-    /// <summary>Mismos datos que GET /projects/:id/partners/balance → pairwiseBalances[].</summary>
+    /// <summary>Same data as GET /projects/:id/partners/balance → pairwiseBalances[].</summary>
     public List<PairwiseBalanceItem> PairwiseBalances { get; set; } = [];
 
-    /// <summary>Lista detallada de settlements (para exportación).</summary>
+    /// <summary>Detailed list of settlements (for export).</summary>
     public List<SettlementRow> Settlements { get; set; } = [];
 
-    /// <summary>Splits sin currency exchanges cuando otros en el proyecto sí los tienen.</summary>
+    /// <summary>Splits without currency exchanges when others in the project have them.</summary>
     public List<MissingCurrencyExchangeWarning> Warnings { get; set; } = [];
 }
 

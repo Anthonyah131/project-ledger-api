@@ -4,18 +4,18 @@ using System.Security.Claims;
 namespace ProjectLedger.API.Extensions;
 
 /// <summary>
-/// Extensiones para extraer claims del usuario autenticado.
-/// REGLA DE ORO: NUNCA aceptar UserId desde el body del request — siempre del JWT.
+/// Extensions for extracting claims from the authenticated user.
+/// GOLDEN RULE: NEVER accept UserId from the request body — always from the JWT.
 /// </summary>
 public static class ClaimsPrincipalExtensions
 {
     /// <summary>
-    /// Obtiene el UserId (Guid) desde el claim "sub" del JWT.
-    /// Retorna null si no existe o no es un Guid válido.
+    /// Gets the UserId (Guid) from the JWT "sub" claim.
+    /// Returns null if it doesn't exist or is not a valid Guid.
     /// </summary>
     public static Guid? GetUserId(this ClaimsPrincipal principal)
     {
-        // Con MapInboundClaims = false, el claim mantiene su nombre JWT original "sub"
+        // With MapInboundClaims = false, the claim keeps its original JWT name "sub"
         var sub = principal.FindFirstValue(JwtRegisteredClaimNames.Sub)
                   ?? principal.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -23,8 +23,8 @@ public static class ClaimsPrincipalExtensions
     }
 
     /// <summary>
-    /// Obtiene el UserId o lanza UnauthorizedAccessException.
-    /// Usar solo en endpoints protegidos con [Authorize].
+    /// Gets the UserId or throws UnauthorizedAccessException.
+    /// Use only in endpoints protected with [Authorize].
     /// </summary>
     public static Guid GetRequiredUserId(this ClaimsPrincipal principal)
     {
@@ -33,7 +33,7 @@ public static class ClaimsPrincipalExtensions
     }
 
     /// <summary>
-    /// Obtiene el email desde el claim "email" del JWT.
+    /// Gets the email from the JWT "email" claim.
     /// </summary>
     public static string? GetEmail(this ClaimsPrincipal principal)
     {

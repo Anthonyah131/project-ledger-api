@@ -1,8 +1,8 @@
 namespace ProjectLedger.API.Common.Exceptions;
 
 /// <summary>
-/// Excepción lanzada cuando el usuario ha alcanzado un límite numérico de su plan.
-/// El GlobalExceptionHandler la convierte en un 403 con mensaje descriptivo.
+/// Exception thrown when the user has reached a numeric limit of their plan.
+/// The GlobalExceptionHandler converts it into a 403 with a descriptive message.
 /// </summary>
 public class PlanLimitExceededException : Exception
 {

@@ -2,7 +2,7 @@ namespace ProjectLedger.API.DTOs.Currency;
 
 // ── Responses ───────────────────────────────────────────────
 
-/// <summary>Respuesta pública de una moneda del catálogo.</summary>
+/// <summary>Public response for a catalog currency.</summary>
 public class CurrencyResponse
 {
     public string Code { get; set; } = null!;               // ISO 4217

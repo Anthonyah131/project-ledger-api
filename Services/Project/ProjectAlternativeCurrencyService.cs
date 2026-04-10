@@ -1,11 +1,11 @@
-﻿using ProjectLedger.API.Models;
+using ProjectLedger.API.Models;
 using ProjectLedger.API.Repositories;
 
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Gestión de monedas alternativas por proyecto.
-/// Valida permiso CanUseMultiCurrency y límite por plan.
+/// Project alternative currencies management.
+/// Validates CanUseMultiCurrency permission and plan limits.
 /// </summary>
 public class ProjectAlternativeCurrencyService : IProjectAlternativeCurrencyService
 {
@@ -45,27 +45,27 @@ public class ProjectAlternativeCurrencyService : IProjectAlternativeCurrencyServ
         if (project.PrjIsDeleted)
             throw new KeyNotFoundException("ProjectNotFound");
 
-        // Validar permiso multi-moneda
+        // Validate multi-currency permission
         await _planAuth.ValidatePermissionAsync(
             project.PrjOwnerUserId, PlanPermission.CanUseMultiCurrency, ct);
 
-        // Validar que la moneda existe y está activa
+        // Validate that the currency exists and is active
         var currency = await _currencyRepo.GetByCodeAsync(currencyCode, ct)
             ?? throw new KeyNotFoundException("CurrencyNotFound");
 
         if (!currency.CurIsActive)
             throw new InvalidOperationException("CurrencyNotActive");
 
-        // No permitir que la moneda alternativa sea la misma que la base del proyecto
+        // Do not allow the alternative currency to be the same as the project's base currency
         if (string.Equals(project.PrjCurrencyCode, currencyCode, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("AlternativeCurrencyCannotBeBaseCurrency");
 
-        // Verificar si ya existe
+        // Verify if it already exists
         var existing = await _pacRepo.GetByProjectAndCurrencyAsync(projectId, currencyCode, ct);
         if (existing is not null)
             throw new InvalidOperationException("AlternativeCurrencyAlreadyExists");
 
-        // Validar límite de monedas alternativas
+        // Validate alternative currencies limit
         var currentCount = await _pacRepo.CountByProjectIdAsync(projectId, ct);
         await _planAuth.ValidateLimitAsync(
             project.PrjOwnerUserId, PlanLimits.MaxAlternativeCurrenciesPerProject, currentCount, ct);

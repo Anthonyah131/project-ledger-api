@@ -8,9 +8,9 @@ public static class ObligationMappingExtensions
     // ── Entity → Response ───────────────────────────────────
 
     /// <summary>
-    /// Convierte una Obligation a su response DTO.
-    /// Los campos PaidAmount y Status se calculan a nivel de servicio
-    /// en base a los Expenses vinculados.
+    /// Converts an Obligation to its response DTO.
+    /// The PaidAmount and Status fields are calculated at the service level
+    /// based on the linked Expenses.
     /// </summary>
     public static ObligationResponse ToResponse(
         this Obligation entity,

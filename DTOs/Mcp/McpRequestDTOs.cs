@@ -249,6 +249,6 @@ public class McpPartnerSettlementsQuery : PagedRequest
     public DateOnly? From { get; set; }
     public DateOnly? To { get; set; }
 
-    /// <summary>Filtra por nombre del partner origen o destino.</summary>
+    /// <summary>Filter by source or destination partner name.</summary>
     public string? PartnerName { get; set; }
 }

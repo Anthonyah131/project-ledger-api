@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
 using ProjectLedger.API.DTOs.Currency;
@@ -10,7 +10,7 @@ using ProjectLedger.API.Services;
 namespace ProjectLedger.API.Controllers;
 
 /// <summary>
-/// Catálogo de monedas ISO 4217. Solo lectura, público (no requiere auth).
+/// ISO 4217 currencies catalog. Read-only, public (no auth required).
 /// </summary>
 [ApiController]
 [Route("api/currencies")]
@@ -32,9 +32,9 @@ public class CurrencyController : ControllerBase
     // ── GET /api/currencies ─────────────────────────────────
 
     /// <summary>
-    /// Lista todas las monedas activas del catálogo.
+    /// Lists all active currencies in the catalog.
     /// </summary>
-    /// <response code="200">Lista de monedas activas.</response>
+    /// <response code="200">List of active currencies.</response>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<CurrencyResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll(CancellationToken ct)
@@ -46,11 +46,11 @@ public class CurrencyController : ControllerBase
     // ── GET /api/currencies/{code} ──────────────────────────
 
     /// <summary>
-    /// Obtiene una moneda por su código ISO 4217.
+    /// Gets a currency by its ISO 4217 code.
     /// </summary>
-    /// <param name="code">Código ISO 4217 (e.g. USD, EUR, DOP).</param>
-    /// <response code="200">Moneda encontrada.</response>
-    /// <response code="404">Moneda no encontrada.</response>
+    /// <param name="code">ISO 4217 code (e.g., USD, EUR, DOP).</param>
+    /// <response code="200">Currency found.</response>
+    /// <response code="404">Currency not found.</response>
     [HttpGet("{code}")]
     [ProducesResponseType(typeof(CurrencyResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

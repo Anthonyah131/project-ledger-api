@@ -1,9 +1,9 @@
 namespace ProjectLedger.API.Models;
 
 /// <summary>
-/// Obligación/deuda financiera dentro de un proyecto.
-/// El estado (open, partially_paid, paid, overdue) se calcula dinámicamente
-/// en la aplicación a partir de los pagos asociados, NO se persiste en DB.
+/// Financial obligation/debt within a project.
+/// The state (open, partially_paid, paid, overdue) is calculated dynamically
+/// in the application based on associated payments, it is NOT persisted in DB.
 /// </summary>
 public class Obligation
 {
@@ -29,5 +29,5 @@ public class Obligation
     public User? DeletedByUser { get; set; }
     public Currency Currency { get; set; } = null!;
 
-    public ICollection<Expense> Payments { get; set; } = [];   // Gastos asociados como pagos
+    public ICollection<Expense> Payments { get; set; } = [];   // Expenses associated as payments
 }

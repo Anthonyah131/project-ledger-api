@@ -1,11 +1,11 @@
-﻿using ProjectLedger.API.Models;
+using ProjectLedger.API.Models;
 using ProjectLedger.API.Repositories;
 
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Servicio de miembros de proyecto. Agrega, actualiza rol y remueve miembros.
-/// Valida permisos del plan (sharing) y límites de team members.
+/// Project members service. Adds, updates role, and removes members.
+/// Validates plan permissions (sharing) and team members limits.
 /// </summary>
 public class ProjectMemberService : IProjectMemberService
 {
@@ -29,20 +29,20 @@ public class ProjectMemberService : IProjectMemberService
 
     public async Task<ProjectMember> AddMemberAsync(ProjectMember member, CancellationToken ct = default)
     {
-        // Obtener el proyecto para saber quién es el owner y validar su plan
+        // Get the project to know who the owner is and validate their plan
         var project = await _projectRepo.GetByIdAsync(member.PrmProjectId, ct)
             ?? throw new KeyNotFoundException("ProjectNotFound");
 
-        // Validar que el plan del owner permite compartir proyectos
+        // Validate that the owner's plan allows sharing projects
         await _planAuth.ValidatePermissionAsync(
             project.PrjOwnerUserId, PlanPermission.CanShareProjects, ct);
 
-        // Validar límite de miembros por proyecto
+        // Validate members limit per project
         var currentMembers = await _memberRepo.GetByProjectIdAsync(member.PrmProjectId, ct);
         await _planAuth.ValidateLimitAsync(
             project.PrjOwnerUserId, PlanLimits.MaxTeamMembersPerProject, currentMembers.Count(), ct);
 
-        // Verificar que no sea un duplicado
+        // Verify that it is not a duplicate
         var existing = await _memberRepo.GetByProjectAndUserAsync(
             member.PrmProjectId, member.PrmUserId, ct);
         if (existing is not null)
@@ -66,7 +66,7 @@ public class ProjectMemberService : IProjectMemberService
         if (member.PrmIsDeleted)
             throw new KeyNotFoundException("MemberNotFound");
 
-        // No se puede cambiar el rol del owner
+        // Cannot change the owner's role
         if (member.PrmRole == ProjectRoles.Owner)
             throw new InvalidOperationException("MemberCannotChangeOwnerRole");
 
@@ -85,7 +85,7 @@ public class ProjectMemberService : IProjectMemberService
         if (member.PrmIsDeleted)
             throw new KeyNotFoundException("MemberNotFound");
 
-        // No se puede remover al owner
+        // Cannot remove the owner
         if (member.PrmRole == ProjectRoles.Owner)
             throw new InvalidOperationException("MemberCannotRemoveOwner");
 

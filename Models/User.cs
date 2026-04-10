@@ -1,8 +1,8 @@
 namespace ProjectLedger.API.Models;
 
 /// <summary>
-/// Usuario del sistema. Nuevo usuario inicia desactivado (UsrIsActive = false).
-/// Soporta autenticación local (password hash) y/o OAuth externo.
+/// System user. New user starts deactivated (UsrIsActive = false).
+/// Supports local authentication (password hash) and/or external OAuth.
 /// </summary>
 public class User
 {

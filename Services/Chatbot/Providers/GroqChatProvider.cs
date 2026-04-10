@@ -5,13 +5,13 @@ using ProjectLedger.API.Common.Settings;
 namespace ProjectLedger.API.Services.Chatbot.Providers;
 
 /// <summary>
-/// Proveedor Groq: inferencia ultra-rápida sobre hardware LPU propio.
-/// Capa gratuita con límite de tokens/minuto por modelo.
-/// Documentación: https://console.groq.com/docs/overview
+/// Groq Provider: Ultra-fast inference on proprietary LPU hardware.
+/// Free tier with token/minute limits per model.
+/// Documentation: https://console.groq.com/docs/overview
 /// </summary>
 public class GroqChatProvider : OpenAiCompatibleChatProvider
 {
-    // Modelo gratuito de alta capacidad en Groq
+    // High-capacity free model on Groq
     private const string DefaultModel = "meta-llama/llama-4-scout-17b-16e-instruct";
 
     private readonly ChatbotProviderSettings _settings;

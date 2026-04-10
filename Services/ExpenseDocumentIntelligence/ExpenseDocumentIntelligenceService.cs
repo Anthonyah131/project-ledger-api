@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Headers;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
@@ -8,8 +8,8 @@ using ProjectLedger.API.Models;
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Integracion con Azure Document Intelligence para extraer un borrador de gasto
-/// desde imagen/PDF de recibo o factura.
+/// Integration with Azure Document Intelligence to extract an expense draft
+/// from a receipt or invoice image/PDF.
 /// </summary>
 public class ExpenseDocumentIntelligenceService : IExpenseDocumentIntelligenceService
 {

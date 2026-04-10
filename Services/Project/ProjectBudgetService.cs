@@ -1,11 +1,11 @@
-﻿using ProjectLedger.API.Models;
+using ProjectLedger.API.Models;
 using ProjectLedger.API.Repositories;
 
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Servicio de presupuesto de proyecto. Un solo presupuesto activo por proyecto.
-/// Valida permiso del plan (CanSetBudgets) antes de crear/actualizar.
+/// Project budget service. Only one active budget per project.
+/// Validates plan permission (CanSetBudgets) before creation/update.
 /// </summary>
 public class ProjectBudgetService : IProjectBudgetService
 {
@@ -29,14 +29,14 @@ public class ProjectBudgetService : IProjectBudgetService
 
     public async Task<ProjectBudget> CreateAsync(ProjectBudget budget, CancellationToken ct = default)
     {
-        // Validar que el plan del owner permite definir presupuestos
+        // Validate that the owner's plan allows setting budgets
         var project = await _projectRepo.GetByIdAsync(budget.PjbProjectId, ct)
             ?? throw new KeyNotFoundException("ProjectNotFound");
 
         await _planAuth.ValidatePermissionAsync(
             project.PrjOwnerUserId, PlanPermission.CanSetBudgets, ct);
 
-        // Verificar que no exista un presupuesto activo — solo uno por proyecto
+        // Verify that there is no active budget — only one per project
         var existing = await _budgetRepo.GetActiveByProjectIdAsync(budget.PjbProjectId, ct);
         if (existing is not null)
             throw new InvalidOperationException("BudgetAlreadyExists");
@@ -52,7 +52,7 @@ public class ProjectBudgetService : IProjectBudgetService
 
     public async Task UpdateAsync(ProjectBudget budget, CancellationToken ct = default)
     {
-        // Validar que el plan del owner permite definir presupuestos
+        // Validate that the owner's plan allows setting budgets
         var project = await _projectRepo.GetByIdAsync(budget.PjbProjectId, ct)
             ?? throw new KeyNotFoundException("ProjectNotFound");
 

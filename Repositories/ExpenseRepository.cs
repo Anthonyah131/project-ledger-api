@@ -192,7 +192,7 @@ public class ExpenseRepository : Repository<Expense>, IExpenseRepository
 
         var totalCount = await query.CountAsync(ct);
 
-        // Total de movimientos activos con los mismos filtros de fecha y proyecto
+        // Total active movements with the same date and project filters
         var activeAmountQuery = DbSet
             .Where(e => e.ExpPaymentMethodId == paymentMethodId && !e.ExpIsDeleted && e.ExpIsActive);
 

@@ -2,7 +2,7 @@ namespace ProjectLedger.API.DTOs.Report;
 
 // ── Month Comparison ────────────────────────────────────────
 
-/// <summary>Comparación de gasto mes actual vs mes anterior.</summary>
+/// <summary>Expense comparison current month vs previous month.</summary>
 public class MonthComparisonResponse
 {
     public Guid ProjectId { get; set; }
@@ -12,13 +12,13 @@ public class MonthComparisonResponse
     public MonthSummary CurrentMonth { get; set; } = null!;
     public MonthSummary PreviousMonth { get; set; } = null!;
 
-    /// <summary>Positivo = aumento, negativo = disminución.</summary>
+    /// <summary>Positive = increase, negative = decrease.</summary>
     public decimal ChangeAmount { get; set; }
 
-    /// <summary>Cambio porcentual vs mes anterior. null si previous = 0.</summary>
+    /// <summary>Percentage change vs previous month. null if previous = 0.</summary>
     public decimal? ChangePercentage { get; set; }
 
-    /// <summary>false cuando previousMonth no tiene gastos registrados.</summary>
+    /// <summary>false when previousMonth has no registered expenses.</summary>
     public bool HasPreviousData { get; set; }
 }
 
@@ -33,6 +33,6 @@ public class MonthSummary
     public int IncomeCount { get; set; }
     public decimal NetBalance { get; set; }
 
-    /// <summary>Totales en monedas alternativas del proyecto. null si no hay monedas alternativas.</summary>
+    /// <summary>Alternative currency totals of the project. null if no alternative currencies.</summary>
     public List<AlternativeCurrencyTotal>? AlternativeCurrencyTotals { get; set; }
 }

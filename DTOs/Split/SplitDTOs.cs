@@ -3,7 +3,7 @@ using ProjectLedger.API.DTOs.Common;
 
 namespace ProjectLedger.API.DTOs.Split;
 
-/// <summary>Split explícito enviado por el frontend al crear o actualizar un movimiento.</summary>
+/// <summary>Explicit split sent by the frontend when creating or updating a transaction.</summary>
 public class SplitInputDto
 {
     [Required]
@@ -16,15 +16,15 @@ public class SplitInputDto
     [Range(0.0001, 9999999999.9999, ErrorMessage = "Split value must be between 0.0001 and 9,999,999,999.9999.")]
     public decimal SplitValue { get; set; }
 
-    /// <summary>Monto resuelto del split en la moneda original del movimiento. Calculado por el frontend.</summary>
+    /// <summary>Resolved amount of the split in the original currency of the transaction. Calculated by the frontend.</summary>
     [Range(0.01, 999999999999.99, ErrorMessage = "Resolved amount must be between 0.01 and 999,999,999,999.99.")]
     public decimal ResolvedAmount { get; set; }
 
-    /// <summary>Equivalencias en monedas alternativas del proyecto. Calculadas por el frontend, igual que en el movimiento padre.</summary>
+    /// <summary>Equivalents in alternative currencies of the project. Calculated by the frontend, same as in the parent movement.</summary>
     public List<CurrencyExchangeRequest>? CurrencyExchanges { get; set; }
 }
 
-/// <summary>Split retornado en la respuesta de detalle de un gasto o ingreso.</summary>
+/// <summary>Split returned in the detail response of an expense or income.</summary>
 public class SplitResponseDto
 {
     public Guid PartnerId { get; set; }
@@ -32,6 +32,6 @@ public class SplitResponseDto
     public string SplitType { get; set; } = null!;
     public decimal SplitValue { get; set; }
     public decimal ResolvedAmount { get; set; }
-    /// <summary>Equivalencias del monto del split en las monedas alternativas del proyecto. Null si no hay monedas alternativas configuradas.</summary>
+    /// <summary>Equivalents of the split amount in the project's alternative currencies. Null if no alternative currencies are configured.</summary>
     public List<CurrencyExchangeResponse>? CurrencyExchanges { get; set; }
 }

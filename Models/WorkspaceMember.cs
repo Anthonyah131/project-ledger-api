@@ -1,8 +1,8 @@
 namespace ProjectLedger.API.Models;
 
 /// <summary>
-/// Membresía de un usuario en un workspace.
-/// Los miembros de un workspace NO heredan acceso automático a sus proyectos.
+/// User's membership in a workspace.
+/// Workspace members DO NOT inherit automatic access to its projects.
 /// </summary>
 public class WorkspaceMember
 {
@@ -25,7 +25,7 @@ public class WorkspaceMember
     public User? DeletedByUser { get; set; }
 }
 
-/// <summary>Roles posibles de un miembro en un workspace.</summary>
+/// <summary>Possible roles of a member in a workspace.</summary>
 public static class WorkspaceRoles
 {
     public const string Owner = "owner";

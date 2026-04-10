@@ -1,7 +1,7 @@
 namespace ProjectLedger.API.Common.Settings;
 
 /// <summary>
-/// Configuración CORS leída desde appsettings.json → sección "Cors".
+/// CORS configuration read from appsettings.json → "Cors" section.
 /// </summary>
 public class CorsSettings
 {

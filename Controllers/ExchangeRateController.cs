@@ -9,8 +9,8 @@ using ProjectLedger.API.Services;
 namespace ProjectLedger.API.Controllers;
 
 /// <summary>
-/// Consulta de tasas de cambio via ExchangeRate-API.
-/// Requiere autenticación pero no pertenece a un proyecto específico.
+/// Exchange rate queries via ExchangeRate-API.
+/// Requires authentication but does not belong to a specific project.
 /// </summary>
 [ApiController]
 [Route("api/exchange-rates")]
@@ -32,12 +32,12 @@ public class ExchangeRateController : ControllerBase
     // ── GET /api/exchange-rates?from=CRC&to=USD&amount=100000 ──
 
     /// <summary>
-    /// Obtiene el tipo de cambio entre dos monedas, con conversión opcional.
+    /// Gets the exchange rate between two currencies, with optional conversion.
     /// </summary>
-    /// <param name="from">Código ISO 4217 de la moneda origen (e.g. CRC).</param>
-    /// <param name="to">Código ISO 4217 de la moneda destino (e.g. USD).</param>
-    /// <param name="amount">Monto opcional a convertir.</param>
-    /// <param name="ct">Token de cancelación.</param>
+    /// <param name="from">ISO 4217 code of the source currency (e.g., CRC).</param>
+    /// <param name="to">ISO 4217 code of the target currency (e.g., USD).</param>
+    /// <param name="amount">Optional amount to convert.</param>
+    /// <param name="ct">Cancellation token.</param>
     [HttpGet]
     [ProducesResponseType(typeof(ExchangeRateResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -57,10 +57,10 @@ public class ExchangeRateController : ControllerBase
     // ── GET /api/exchange-rates/latest?base=CRC ──
 
     /// <summary>
-    /// Obtiene las tasas de cambio más recientes para una moneda base.
+    /// Gets the latest exchange rates for a base currency.
     /// </summary>
-    /// <param name="baseCurrency">Código ISO 4217 de la moneda base (default: USD).</param>
-    /// <param name="ct">Token de cancelación.</param>
+    /// <param name="baseCurrency">ISO 4217 code of the base currency (default: USD).</param>
+    /// <param name="ct">Cancellation token.</param>
     [HttpGet("latest")]
     [ProducesResponseType(typeof(ExchangeRateLatestResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

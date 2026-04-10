@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,8 +15,8 @@ using ProjectLedger.API.Common.Settings;
 namespace ProjectLedger.API.Controllers;
 
 /// <summary>
-/// Controlador de autenticación: registro, login, refresh y logout.
-/// Rate-limited para prevenir ataques de fuerza bruta.
+/// Authentication controller: register, login, refresh, and logout.
+/// Rate-limited to prevent brute-force attacks.
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -45,11 +45,11 @@ public class AuthController : ControllerBase
     // ── POST /api/auth/register ─────────────────────────────
 
     /// <summary>
-    /// Registra un nuevo usuario. Retorna access + refresh tokens.
+    /// Registers a new user. Returns access + refresh tokens.
     /// </summary>
-    /// <response code="201">Usuario registrado con tokens.</response>
-    /// <response code="400">Datos inválidos.</response>
-    /// <response code="409">Ya existe un usuario con ese email.</response>
+    /// <response code="201">User registered with tokens.</response>
+    /// <response code="400">Invalid data.</response>
+    /// <response code="409">A user with that email already exists.</response>
     [HttpPost("register")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status201Created)]
@@ -72,11 +72,11 @@ public class AuthController : ControllerBase
     // ── POST /api/auth/login ────────────────────────────────
 
     /// <summary>
-    /// Autentica con email/password. Retorna access + refresh tokens.
+    /// Authenticates with email/password. Returns access + refresh tokens.
     /// </summary>
-    /// <response code="200">Login exitoso con tokens.</response>
-    /// <response code="400">Datos inválidos.</response>
-    /// <response code="401">Email o contraseña incorrectos.</response>
+    /// <response code="200">Successful login with tokens.</response>
+    /// <response code="400">Invalid data.</response>
+    /// <response code="401">Incorrect email or password.</response>
     [HttpPost("login")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
@@ -99,10 +99,10 @@ public class AuthController : ControllerBase
     // ── GET /api/auth/google/login ─────────────────────────
 
     /// <summary>
-    /// Inicia el flujo OAuth con Google.
+    /// Initiates the OAuth flow with Google.
     /// </summary>
-    /// <response code="302">Redirección a Google OAuth.</response>
-    /// <response code="400">Google OAuth no está configurado.</response>
+    /// <response code="302">Redirection to Google OAuth.</response>
+    /// <response code="400">Google OAuth is not configured.</response>
     [HttpGet("google/login")]
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status302Found)]
@@ -133,9 +133,9 @@ public class AuthController : ControllerBase
     // ── GET /api/auth/google/callback ──────────────────────
 
     /// <summary>
-    /// Completa el flujo OAuth de Google, vincula/crea usuario y redirige al frontend con JWT.
+    /// Completes the Google OAuth flow, links/creates user and redirects to the frontend with JWT.
     /// </summary>
-    /// <response code="302">Redirección al frontend con el token o error.</response>
+    /// <response code="302">Redirection to the frontend with the token or error.</response>
     [HttpGet("google/callback")]
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status302Found)]
@@ -201,12 +201,12 @@ public class AuthController : ControllerBase
     // ── POST /api/auth/refresh ──────────────────────────────
 
     /// <summary>
-    /// Renueva el access token usando un refresh token válido.
-    /// El refresh token anterior queda revocado (rotación).
+    /// Renews the access token using a valid refresh token.
+    /// The previous refresh token is revoked (rotation).
     /// </summary>
-    /// <response code="200">Tokens renovados.</response>
-    /// <response code="400">Datos inválidos.</response>
-    /// <response code="401">Refresh token inválido o expirado.</response>
+    /// <response code="200">Tokens renewed.</response>
+    /// <response code="400">Invalid data.</response>
+    /// <response code="401">Invalid or expired refresh token.</response>
     [HttpPost("refresh")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
@@ -229,11 +229,11 @@ public class AuthController : ControllerBase
     // ── POST /api/auth/revoke ───────────────────────────────
 
     /// <summary>
-    /// Revoca el refresh token activo (logout del dispositivo actual).
-    /// Requiere autenticación válida.
+    /// Revokes the active refresh token (logout from the current device).
+    /// Requires valid authentication.
     /// </summary>
-    /// <response code="200">Token revocado exitosamente.</response>
-    /// <response code="404">Token no encontrado o ya revocado.</response>
+    /// <response code="200">Token revoked successfully.</response>
+    /// <response code="404">Token not found or already revoked.</response>
     [HttpPost("revoke")]
     [Authorize]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -252,10 +252,10 @@ public class AuthController : ControllerBase
     // ── POST /api/auth/revoke-all ───────────────────────────
 
     /// <summary>
-    /// Revoca TODOS los refresh tokens del usuario (logout de todos los dispositivos).
-    /// Requiere autenticación válida. El UserId se obtiene del JWT, NUNCA del body.
+    /// Revokes ALL user refresh tokens (logout from all devices).
+    /// Requires valid authentication. The UserId is obtained from the JWT, NEVER from the body.
     /// </summary>
-    /// <response code="200">Todos los tokens revocados.</response>
+    /// <response code="200">All tokens revoked.</response>
     [HttpPost("revoke-all")]
     [Authorize]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -270,10 +270,10 @@ public class AuthController : ControllerBase
     // ── GET /api/auth/me ────────────────────────────────────
 
     /// <summary>
-    /// Retorna la información del usuario autenticado desde el JWT.
-    /// No accede a la base de datos — solo lee claims.
+    /// Returns the authenticated user information from the JWT.
+    /// Does not access the database — only reads claims.
     /// </summary>
-    /// <response code="200">Información del usuario autenticado.</response>
+    /// <response code="200">Authenticated user information.</response>
     [HttpGet("me")]
     [Authorize]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -288,11 +288,11 @@ public class AuthController : ControllerBase
     // ── POST /api/auth/verify-otp ────────────────────────────────────
 
     /// <summary>
-    /// Verifica si un código OTP de restablecimiento es válido sin consumirlo.
-    /// Úsalo para habilitar el paso de nueva contraseña en el frontend solo si el OTP es correcto.
+    /// Verifies if a reset OTP code is valid without consuming it.
+    /// Use it to enable the new password step in the frontend only if the OTP is correct.
     /// </summary>
-    /// <response code="200">OTP válido.</response>
-    /// <response code="400">OTP inválido, expirado o email no encontrado.</response>
+    /// <response code="200">Valid OTP.</response>
+    /// <response code="400">Invalid OTP, expired, or email not found.</response>
     [HttpPost("verify-otp")]
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -314,12 +314,12 @@ public class AuthController : ControllerBase
     // ── POST /api/auth/forgot-password ──────────────────────────────
 
     /// <summary>
-    /// Inicia el flujo de restablecimiento de contraseña.
-    /// Envía un código OTP de 6 dígitos al correo registrado.
-    /// Siempre retorna 200 para no revelar si el email existe.
+    /// Initiates the password reset flow.
+    /// Sends a 6-digit OTP code to the registered email.
+    /// Always returns 200 to not reveal if the email exists.
     /// </summary>
-    /// <response code="200">Solicitud procesada (ver correo).</response>
-    /// <response code="400">Datos inválidos.</response>
+    /// <response code="200">Request processed (check email).</response>
+    /// <response code="400">Invalid data.</response>
     [HttpPost("forgot-password")]
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -333,17 +333,17 @@ public class AuthController : ControllerBase
 
         await _authService.ForgotPasswordAsync(request.Email, ct);
 
-        // Respuesta genérica: nunca revelar si el email existe
+        // Generic response: never reveal if the email exists
         return Ok(LocalizedResponse.Create("SUCCESS", _localizer["ForgotPasswordSent"]));
     }
 
     // ── POST /api/auth/reset-password ───────────────────────────────
 
     /// <summary>
-    /// Restablece la contraseña usando el código OTP recibido por correo.
+    /// Resets the password using the OTP code received by email.
     /// </summary>
-    /// <response code="200">Contraseña actualizada correctamente.</response>
-    /// <response code="400">Datos inválidos o código OTP incorrecto/expirado.</response>
+    /// <response code="200">Password updated successfully.</response>
+    /// <response code="400">Invalid data or incorrect/expired OTP code.</response>
     [HttpPost("reset-password")]
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]

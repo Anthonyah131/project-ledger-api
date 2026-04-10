@@ -1,8 +1,8 @@
 namespace ProjectLedger.API.Models;
 
 /// <summary>
-/// Proyecto financiero. Eje central del sistema multi-tenant.
-/// Cada proyecto tiene su propia moneda base, categorías, gastos y presupuestos.
+/// Financial project. Central axis of the multi-tenant system.
+/// Each project has its own base currency, categories, expenses and budgets.
 /// </summary>
 public class Project
 {
@@ -14,7 +14,7 @@ public class Project
     public DateTime PrjCreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime PrjUpdatedAt { get; set; } = DateTime.UtcNow;
 
-    // ── Workspace (Fase 2b) ──────────────────────────────────
+    // ── Workspace (Phase 2b) ──────────────────────────────────
     public Guid? PrjWorkspaceId { get; set; }
     public bool PrjPartnersEnabled { get; set; }
 

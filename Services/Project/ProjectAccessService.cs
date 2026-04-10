@@ -3,8 +3,8 @@ using ProjectLedger.API.Repositories;
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Implementación de IProjectAccessService.
-/// Verifica en este orden: 1) Owner del proyecto → acceso total, 2) ProjectMember → según rol.
+/// Implementation of IProjectAccessService.
+/// Checks in this order: 1) Project Owner → full access, 2) ProjectMember → according to role.
 /// </summary>
 public class ProjectAccessService : IProjectAccessService
 {
@@ -46,15 +46,15 @@ public class ProjectAccessService : IProjectAccessService
         Guid userId, Guid projectId,
         CancellationToken ct = default)
     {
-        // 1. Verificar que el proyecto existe y no está borrado
+        // 1. Verify project exists and is not deleted
         var project = await _projectRepo.GetByIdAsync(projectId, ct);
         if (project == null) return null;
 
-        // 2. Si es el owner → acceso automático como "owner"
+        // 2. If user is owner → automatic access as "owner"
         if (project.PrjOwnerUserId == userId)
             return ProjectRoles.Owner;
 
-        // 3. Buscar membresía explícita
+        // 3. Look for explicit membership
         var member = await _memberRepo.GetByProjectAndUserAsync(projectId, userId, ct);
         return member?.PrmRole;
     }

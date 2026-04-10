@@ -7,8 +7,8 @@ using ProjectLedger.API.Services;
 namespace ProjectLedger.API.Controllers;
 
 /// <summary>
-/// Reportes a nivel de usuario (transversales a proyectos).
-/// Solo accede a datos propios del usuario autenticado.
+/// User level reports (cross-project).
+/// Only accesses the authenticated user's own data.
 /// </summary>
 [ApiController]
 [Route("api/reports")]
@@ -34,17 +34,17 @@ public class UserReportController : ControllerBase
     // ── GET /api/reports/payment-methods ────────────────────
 
     /// <summary>
-    /// Reporte de métodos de pago del usuario con estadísticas individualizadas
-    /// por método, desglose por proyecto y tendencia mensual.
-    /// Todos los montos se expresan en la moneda de cada método de pago.
-    /// JSON devuelve los últimos 10 movimientos por método; Excel/PDF incluyen todos.
+    /// User payment methods report with individualized statistics
+    /// per method, breakdown by project and monthly trend.
+    /// All amounts are expressed in the currency of each payment method.
+    /// JSON returns the last 10 movements per method; Excel/PDF include all.
     /// </summary>
-    /// <param name="from">Fecha inicio (opcional).</param>
-    /// <param name="to">Fecha fin (opcional).</param>
-    /// <param name="paymentMethodIds">Filtrar por métodos específicos (opcional, vacío = todos).</param>
-    /// <param name="format">Formato de exportación: json (default), excel, pdf.</param>
-    /// <response code="200">Reporte generado.</response>
-    /// <response code="403">Plan no permite reportes avanzados.</response>
+    /// <param name="from">Start date (optional).</param>
+    /// <param name="to">End date (optional).</param>
+    /// <param name="paymentMethodIds">Filter by specific methods (optional, empty = all).</param>
+    /// <param name="format">Export format: json (default), excel, pdf.</param>
+    /// <response code="200">Report generated.</response>
+    /// <response code="403">Plan does not allow advanced reports.</response>
     [HttpGet("payment-methods")]
     [ProducesResponseType(typeof(PaymentMethodReportResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -57,17 +57,17 @@ public class UserReportController : ControllerBase
     {
         var userId = User.GetRequiredUserId();
 
-        // Requiere reportes avanzados
+        // Requires advanced reports
         await _planAuth.ValidatePermissionAsync(userId, PlanPermission.CanUseAdvancedReports, ct);
 
-        // Excel/PDF también requieren CanExportData
+        // Excel/PDF also require CanExportData
         var isExport = format.Equals("excel", StringComparison.OrdinalIgnoreCase)
                     || format.Equals("pdf", StringComparison.OrdinalIgnoreCase);
 
         if (isExport)
             await _planAuth.ValidatePermissionAsync(userId, PlanPermission.CanExportData, ct);
 
-        // JSON: 10 movimientos por método; Export: todos
+        // JSON: 10 movements per method; Export: all
         int? maxMovements = isExport ? null : 10;
 
         var report = await _userReportService.GetPaymentMethodReportAsync(

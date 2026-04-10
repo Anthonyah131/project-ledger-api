@@ -3,20 +3,20 @@ using ProjectLedger.API.Models;
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Servicio responsable de generar y validar tokens JWT.
-/// Separado de IAuthService para poder usarse en otros contextos (ej: tests).
+/// Service responsible for generating and validating JWT tokens.
+/// Separated from IAuthService to be usable in other contexts (e.g., tests).
 /// </summary>
 public interface IJwtTokenService
 {
-    /// <summary>Genera un access token JWT firmado para el usuario dado.</summary>
+    /// <summary>Generates a signed JWT access token for the given user.</summary>
     string GenerateAccessToken(User user);
 
-    /// <summary>Genera un refresh token criptográficamente aleatorio (base64url).</summary>
+    /// <summary>Generates a cryptographically random refresh token (base64url).</summary>
     string GenerateRefreshToken();
 
     /// <summary>
-    /// Obtiene el Guid del usuario desde un access token expirado.
-    /// Utilizado en el flujo de refresh para identificar al usuario sin validar la expiración.
+    /// Retrieves the user's Guid from an expired access token.
+    /// Used in the refresh flow to identify the user without validating expiration.
     /// </summary>
     Guid? GetUserIdFromExpiredToken(string token);
 }

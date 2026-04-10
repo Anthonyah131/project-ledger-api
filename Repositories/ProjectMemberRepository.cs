@@ -31,6 +31,24 @@ public class ProjectMemberRepository : Repository<ProjectMember>, IProjectMember
             .OrderByDescending(m => m.PrmPinnedAt)
             .ToListAsync(ct);
 
+    public async Task<IEnumerable<ProjectMember>> GetPinnedByUserIdWithSearchAsync(Guid userId, string? search, CancellationToken ct = default)
+    {
+        var query = DbSet
+            .Include(m => m.Project)
+                .ThenInclude(p => p.Workspace)
+            .Where(m => m.PrmUserId == userId &&
+                        m.PrmIsPinned &&
+                        !m.PrmIsDeleted &&
+                        !m.Project.PrjIsDeleted);
+
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(m => m.Project.PrjName.ToLower().Contains(search.ToLower()));
+
+        return await query
+            .OrderByDescending(m => m.PrmPinnedAt)
+            .ToListAsync(ct);
+    }
+
     public async Task<int> GetPinnedCountAsync(Guid userId, CancellationToken ct = default)
         => await DbSet
             .CountAsync(m => m.PrmUserId == userId &&

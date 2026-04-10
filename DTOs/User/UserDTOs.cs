@@ -5,7 +5,7 @@ namespace ProjectLedger.API.DTOs.User;
 
 // ── Requests ────────────────────────────────────────────────
 
-/// <summary>Request para actualizar perfil. Solo campos que el usuario puede cambiar.</summary>
+/// <summary>Request to update profile. Only fields the user can change.</summary>
 public class UpdateProfileRequest
 {
     [Required]
@@ -30,7 +30,7 @@ public class UpdateProfileRequest
     public bool AvatarUrlSpecified { get; private set; }
 }
 
-/// <summary>Request para cambiar contraseña.</summary>
+/// <summary>Request to change password.</summary>
 public class ChangePasswordRequest
 {
     [Required]
@@ -45,7 +45,7 @@ public class ChangePasswordRequest
 
 // ── Responses ───────────────────────────────────────────────
 
-/// <summary>Respuesta pública del perfil (datos no sensibles).</summary>
+/// <summary>Public profile response (non-sensitive data).</summary>
 public class UserProfileResponse
 {
     public Guid Id { get; set; }
@@ -59,7 +59,7 @@ public class UserProfileResponse
     public UserPlanSummaryDto Plan { get; set; } = null!;
 }
 
-/// <summary>Resumen del plan asignado al usuario.</summary>
+/// <summary>Summary of the plan assigned to the user.</summary>
 public class UserPlanSummaryDto
 {
     public Guid Id { get; set; }
@@ -67,7 +67,7 @@ public class UserPlanSummaryDto
     public string Slug { get; set; } = null!;
 }
 
-/// <summary>Respuesta mínima de usuario (para listas, miembros, etc.).</summary>
+/// <summary>Minimal user response (for lists, members, etc.).</summary>
 public class UserSummaryResponse
 {
     public Guid Id { get; set; }

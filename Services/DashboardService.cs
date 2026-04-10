@@ -5,6 +5,10 @@ using ProjectLedger.API.Repositories;
 
 namespace ProjectLedger.API.Services;
 
+/// <summary>
+/// Implementation of IDashboardService.
+/// Provides consolidated views and trend analysis for projects and user activity.
+/// </summary>
 public class DashboardService : IDashboardService
 {
     private readonly IExpenseRepository _expenseRepo;

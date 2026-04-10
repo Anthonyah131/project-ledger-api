@@ -1,8 +1,8 @@
 namespace ProjectLedger.API.Models;
 
 /// <summary>
-/// Liquidación directa entre dos partners de un proyecto.
-/// Registra pagos que saldan deudas sin pasar por métodos de pago del proyecto.
+/// Direct settlement between two project partners.
+/// Records payments that settle debts without going through project payment methods.
 /// </summary>
 public class PartnerSettlement
 {

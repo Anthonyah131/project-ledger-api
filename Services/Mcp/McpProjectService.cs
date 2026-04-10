@@ -3,6 +3,9 @@ using ProjectLedger.API.Models;
 
 namespace ProjectLedger.API.Services;
 
+/// <summary>
+/// Partial implementation of McpService focusing on project portfolio health, activity status, and upcoming deadlines.
+/// </summary>
 public partial class McpService
 {
     public async Task<McpPagedResponse<McpProjectPortfolioItemResponse>> GetProjectPortfolioAsync(

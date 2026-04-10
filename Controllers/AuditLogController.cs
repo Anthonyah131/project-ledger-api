@@ -8,10 +8,10 @@ using ProjectLedger.API.Services;
 namespace ProjectLedger.API.Controllers;
 
 /// <summary>
-/// Controlador de logs de auditoría. Solo lectura.
+/// Audit log controller. Read-only.
 /// 
-/// Solo accesible por el usuario autenticado sobre sus propias acciones,
-/// o por admins (por entidad).
+/// Only accessible by the authenticated user for their own actions,
+/// or by admins (per entity).
 /// </summary>
 [ApiController]
 [Route("api/audit-logs")]
@@ -30,11 +30,11 @@ public class AuditLogController : ControllerBase
     // ── GET /api/audit-logs/me ──────────────────────────────
 
     /// <summary>
-    /// Lista los registros de auditoría de las acciones del usuario autenticado (paginado).
-    /// Siempre ordenados por fecha descendente (más recientes primero).
-    /// SortBy y SortDirection se ignoran — el orden cronológico es fijo.
+    /// Lists the audit records of the authenticated user's actions (paginated).
+    /// Always ordered by descending date (most recent first).
+    /// SortBy and SortDirection are ignored — chronological order is fixed.
     /// </summary>
-    /// <response code="200">Lista paginada de registros de auditoría.</response>
+    /// <response code="200">Paginated list of audit records.</response>
     [HttpGet("me")]
     [ProducesResponseType(typeof(PagedResponse<AuditLogResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMyAuditLogs(
@@ -54,13 +54,13 @@ public class AuditLogController : ControllerBase
     // ── GET /api/audit-logs/entity/{entityName}/{entityId} ──
 
     /// <summary>
-    /// Lista los registros de auditoría de una entidad específica (paginado).
-    /// Útil para ver el historial de cambios de un project, expense, etc.
-    /// Siempre ordenados por fecha descendente. SortBy/SortDirection se ignoran.
+    /// Lists the audit records of a specific entity (paginated).
+    /// Useful for viewing the change history of a project, expense, etc.
+    /// Always ordered by descending date. SortBy/SortDirection are ignored.
     /// </summary>
-    /// <param name="entityName">Nombre de la entidad (e.g. Project, Expense, Category).</param>
-    /// <param name="entityId">ID de la entidad.</param>
-    /// <response code="200">Lista paginada de registros de auditoría.</response>
+    /// <param name="entityName">Entity name (e.g., Project, Expense, Category).</param>
+    /// <param name="entityId">Entity ID.</param>
+    /// <response code="200">Paginated list of audit records.</response>
     [HttpGet("entity/{entityName}/{entityId:guid}")]
     [ProducesResponseType(typeof(PagedResponse<AuditLogResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByEntity(

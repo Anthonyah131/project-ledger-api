@@ -4,8 +4,8 @@ using ProjectLedger.API.Data;
 namespace ProjectLedger.API.Repositories;
 
 /// <summary>
-/// Implementación genérica base de IRepository&lt;T&gt; usando EF Core.
-/// Todas las entidades heredan de aquí para reutilizar operaciones CRUD.
+/// Generic base implementation of IRepository&lt;T&gt; using EF Core.
+/// All entities inherit from here to reuse CRUD operations.
 /// </summary>
 public class Repository<T> : IRepository<T> where T : class
 {

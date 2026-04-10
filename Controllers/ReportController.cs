@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Localization;
 using ProjectLedger.API.DTOs.Common;
 using ProjectLedger.API.Resources;
 using Microsoft.AspNetCore.Authorization;
@@ -10,10 +10,10 @@ using ProjectLedger.API.Services;
 namespace ProjectLedger.API.Controllers;
 
 /// <summary>
-/// Reportes e insights por proyecto.
+/// Project reports and insights.
 ///
-/// Todos los cálculos se realizan con lógica de aplicación sobre los datos existentes.
-/// No se usan APIs externas.
+/// All calculations are performed with application logic on existing data.
+/// No external APIs are used.
 /// </summary>
 [ApiController]
 [Route("api/projects/{projectId:guid}/reports")]
@@ -48,10 +48,10 @@ public class ReportController : ControllerBase
     // ── GET /api/projects/{projectId}/reports/summary ───────
 
     /// <summary>
-    /// Resumen financiero del proyecto con desglose por categoría y método de pago.
-    /// Soporta filtro opcional por rango de fechas.
+    /// Financial summary of the project with breakdown by category and payment method.
+    /// Supports optional filtering by date range.
     /// </summary>
-    /// <response code="200">Resumen del proyecto.</response>
+    /// <response code="200">Project summary.</response>
     [HttpGet("summary")]
     [Authorize(Policy = "ProjectViewer")]
     [ProducesResponseType(typeof(ProjectReportResponse), StatusCodes.Status200OK)]
@@ -73,10 +73,10 @@ public class ReportController : ControllerBase
     // ── GET /api/projects/{projectId}/reports/month-comparison
 
     /// <summary>
-    /// Compara el gasto del mes actual vs el mes anterior.
+    /// Compares the current month's expenses vs the previous month.
     /// </summary>
-    /// <response code="200">Comparación mensual.</response>
-    /// <response code="403">Plan no permite reportes avanzados.</response>
+    /// <response code="200">Monthly comparison.</response>
+    /// <response code="403">Plan does not allow advanced reports.</response>
     [HttpGet("month-comparison")]
     [Authorize(Policy = "ProjectViewer")]
     [ProducesResponseType(typeof(MonthComparisonResponse), StatusCodes.Status200OK)]
@@ -97,11 +97,11 @@ public class ReportController : ControllerBase
     // ── GET /api/projects/{projectId}/reports/category-growth
 
     /// <summary>
-    /// Identifica las categorías con mayor crecimiento comparando mes actual vs anterior.
-    /// Ordenado por mayor crecimiento absoluto.
+    /// Identifies the categories with the highest growth comparing current month vs previous.
+    /// Ordered by highest absolute growth.
     /// </summary>
-    /// <response code="200">Lista de categorías con crecimiento.</response>
-    /// <response code="403">Plan no permite reportes avanzados.</response>
+    /// <response code="200">List of categories with growth.</response>
+    /// <response code="403">Plan does not allow advanced reports.</response>
     [HttpGet("category-growth")]
     [Authorize(Policy = "ProjectViewer")]
     [ProducesResponseType(typeof(CategoryGrowthEnvelopeResponse), StatusCodes.Status200OK)]
@@ -122,14 +122,14 @@ public class ReportController : ControllerBase
     // ── GET /api/projects/{projectId}/reports/expenses ──────
 
     /// <summary>
-    /// Reporte detallado de gastos del proyecto con secciones mensuales.
-    /// Basic: líneas de gastos + totales.
-    /// Premium: + análisis de categorías/presupuestos + obligaciones.
-    /// Accesible para owner, editor y viewer del proyecto.
+    /// Detailed project expense report with monthly sections.
+    /// Basic: expense lines + totals.
+    /// Premium: + analysis of categories/budgets + obligations.
+    /// Accessible for project owner, editor and viewer.
     /// </summary>
-    /// <param name="format">Formato de exportación: json (default), excel, pdf.</param>
-    /// <response code="200">Reporte generado.</response>
-    /// <response code="403">Plan insuficiente.</response>
+    /// <param name="format">Export format: json (default), excel, pdf.</param>
+    /// <response code="200">Report generated.</response>
+    /// <response code="403">Insufficient plan.</response>
     [HttpGet("expenses")]
     [Authorize(Policy = "ProjectViewer")]
     [ProducesResponseType(typeof(DetailedExpenseReportResponse), StatusCodes.Status200OK)]
@@ -149,16 +149,16 @@ public class ReportController : ControllerBase
         var userId = User.GetRequiredUserId();
         var ownerId = project.PrjOwnerUserId;
 
-        // Verificar permiso de exportación de datos (plan del dueño del proyecto)
+        // Verify data export permission (project owner's plan)
         await _planAuth.ValidatePermissionAsync(ownerId, PlanPermission.CanExportData, ct);
 
-        // PDF requiere CanUseAdvancedReports
+        // PDF requires CanUseAdvancedReports
         if (format.Equals("pdf", StringComparison.OrdinalIgnoreCase))
             await _planAuth.ValidatePermissionAsync(ownerId, PlanPermission.CanUseAdvancedReports, ct);
 
         var report = await _reportService.GetDetailedExpensesAsync(projectId, userId, from, to, ct);
 
-        // Exportar según formato
+        // Export according to format
         return format.ToLowerInvariant() switch
         {
             "excel" => ExportExcel(
@@ -174,14 +174,14 @@ public class ReportController : ControllerBase
     // ── GET /api/projects/{projectId}/reports/incomes ────────
 
     /// <summary>
-    /// Reporte detallado de ingresos del proyecto con secciones mensuales.
-    /// Basic: líneas de ingresos + totales.
-    /// Premium: + análisis de categorías/métodos de pago + partners.
-    /// Accesible para owner, editor y viewer del proyecto.
+    /// Detailed project income report with monthly sections.
+    /// Basic: income lines + totals.
+    /// Premium: + analysis of categories/payment methods + partners.
+    /// Accessible for project owner, editor and viewer.
     /// </summary>
-    /// <param name="format">Formato de exportación: json (default), excel, pdf.</param>
-    /// <response code="200">Reporte generado.</response>
-    /// <response code="403">Plan insuficiente.</response>
+    /// <param name="format">Export format: json (default), excel, pdf.</param>
+    /// <response code="200">Report generated.</response>
+    /// <response code="403">Insufficient plan.</response>
     [HttpGet("incomes")]
     [Authorize(Policy = "ProjectViewer")]
     [ProducesResponseType(typeof(DetailedIncomeReportResponse), StatusCodes.Status200OK)]
@@ -223,14 +223,14 @@ public class ReportController : ControllerBase
     // ── GET /api/projects/{projectId}/reports/partner-balances
 
     /// <summary>
-    /// Reporte de balances entre partners del proyecto.
-    /// Incluye splits de gastos/ingresos, settlements y balances netos por par.
-    /// Requiere que el proyecto tenga partners habilitados.
+    /// Partner balances report for the project.
+    /// Includes expense/income splits, settlements and net balances per pair.
+    /// Requires partners to be enabled for the project.
     /// </summary>
-    /// <response code="200">Reporte de balances.</response>
-    /// <param name="format">Formato de exportación: json (default), excel, pdf.</param>
-    /// <response code="400">Partners no habilitados en el proyecto.</response>
-    /// <response code="403">Plan no permite reportes avanzados.</response>
+    /// <response code="200">Balances report.</response>
+    /// <param name="format">Export format: json (default), excel, pdf.</param>
+    /// <response code="400">Partners not enabled in the project.</response>
+    /// <response code="403">Plan does not allow advanced reports.</response>
     [HttpGet("partner-balances")]
     [Authorize(Policy = "ProjectViewer")]
     [ProducesResponseType(typeof(PartnerBalanceReportResponse), StatusCodes.Status200OK)]
@@ -290,7 +290,7 @@ public class ReportController : ControllerBase
 
     private IActionResult ReturnJsonReport(DetailedExpenseReportResponse report)
     {
-        // JSON: limitar gastos a 10 por sección (totales ya calculados con todos)
+        // JSON: limit expenses to 10 per section (totals already calculated with all)
         foreach (var section in report.Sections)
             section.Expenses = section.Expenses.Take(10).ToList();
 
@@ -299,7 +299,7 @@ public class ReportController : ControllerBase
 
     private IActionResult ReturnJsonIncomeReport(DetailedIncomeReportResponse report)
     {
-        // JSON: limitar ingresos a 10 por sección (totales ya calculados con todos)
+        // JSON: limit incomes to 10 per section (totals already calculated with all)
         foreach (var section in report.Sections)
             section.Incomes = section.Incomes.Take(10).ToList();
 

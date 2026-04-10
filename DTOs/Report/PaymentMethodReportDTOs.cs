@@ -3,9 +3,9 @@ namespace ProjectLedger.API.DTOs.Report;
 // ── Payment Method Report (User-scoped) ─────────────────────
 
 /// <summary>
-/// Reporte de métodos de pago del usuario. Sin totales generales;
-/// cada método muestra sus propios totales en la moneda del método.
-/// Requiere CanUseAdvancedReports.
+/// User payment methods report. Without general totals;
+/// each method shows its own totals in the method's currency.
+/// Requires CanUseAdvancedReports.
 /// </summary>
 public class PaymentMethodReportResponse
 {
@@ -27,7 +27,7 @@ public class PaymentMethodReportRow
     public string? BankName { get; set; }
     public string? OwnerPartnerName { get; set; }
 
-    // Estadísticas (en la moneda del método de pago)
+    // Statistics (in the payment method's currency)
     public decimal TotalSpent { get; set; }
     public int ExpenseCount { get; set; }
     public decimal TotalIncome { get; set; }

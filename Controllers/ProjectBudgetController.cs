@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Localization;
 using ProjectLedger.API.DTOs.Common;
 using ProjectLedger.API.Resources;
 using Microsoft.AspNetCore.Authorization;
@@ -11,12 +11,12 @@ using ProjectLedger.API.Services;
 namespace ProjectLedger.API.Controllers;
 
 /// <summary>
-/// Controlador de presupuesto de proyecto.
+/// Project budget controller.
 /// 
-/// Ruta anidada: /api/projects/{projectId}/budget
-/// - Solo un presupuesto activo por proyecto (singleton-like).
-/// - Requiere Plan:CanSetBudgets para crear/actualizar.
-/// - Viewer+ puede consultar. Editor+ puede crear/editar/eliminar.
+/// Nested route: /api/projects/{projectId}/budget
+/// - Only one active budget per project (singleton-like).
+/// - Requires Plan:CanSetBudgets to create/update.
+/// - Viewer+ can query. Editor+ can create/edit/delete.
 /// </summary>
 [ApiController]
 [Route("api/projects/{projectId:guid}/budget")]
@@ -48,10 +48,10 @@ public class ProjectBudgetController : ControllerBase
     // ── GET /api/projects/{projectId}/budget ────────────────
 
     /// <summary>
-    /// Obtiene el presupuesto activo del proyecto con el monto gastado calculado.
+    /// Gets the active project budget with the calculated spent amount.
     /// </summary>
-    /// <response code="200">Presupuesto encontrado.</response>
-    /// <response code="404">No hay presupuesto activo para este proyecto.</response>
+    /// <response code="200">Budget found.</response>
+    /// <response code="404">No active budget for this project.</response>
     [HttpGet]
     [Authorize(Policy = "ProjectViewer")]
     [ProducesResponseType(typeof(ProjectBudgetResponse), StatusCodes.Status200OK)]
@@ -69,12 +69,12 @@ public class ProjectBudgetController : ControllerBase
     // ── PUT /api/projects/{projectId}/budget ────────────────
 
     /// <summary>
-    /// Crea o actualiza el presupuesto del proyecto (upsert).
-    /// Requiere editor+ y Plan:CanSetBudgets.
+    /// Creates or updates the project budget (upsert).
+    /// Requires editor+ and Plan:CanSetBudgets.
     /// </summary>
-    /// <response code="200">Presupuesto actualizado.</response>
-    /// <response code="201">Presupuesto creado.</response>
-    /// <response code="403">Plan no permite setear presupuestos.</response>
+    /// <response code="200">Budget updated.</response>
+    /// <response code="201">Budget created.</response>
+    /// <response code="403">Plan does not allow setting budgets.</response>
     [HttpPut]
     [Authorize(Policy = "ProjectEditor")]
     [ProducesResponseType(typeof(ProjectBudgetResponse), StatusCodes.Status200OK)]
@@ -116,10 +116,10 @@ public class ProjectBudgetController : ControllerBase
     // ── DELETE /api/projects/{projectId}/budget ─────────────
 
     /// <summary>
-    /// Soft-delete del presupuesto activo. Requiere owner.
+    /// Soft-deletes the active budget. Requires owner.
     /// </summary>
-    /// <response code="204">Presupuesto eliminado.</response>
-    /// <response code="404">No hay presupuesto activo.</response>
+    /// <response code="204">Budget deleted.</response>
+    /// <response code="404">No active budget found.</response>
     [HttpDelete]
     [Authorize(Policy = "ProjectOwner")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

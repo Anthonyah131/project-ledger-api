@@ -1,7 +1,7 @@
 namespace ProjectLedger.API.Models;
 
 /// <summary>
-/// Membresía de un usuario en un proyecto.
+/// User's membership in a project.
 /// Roles: owner, editor, viewer.
 /// </summary>
 public class ProjectMember

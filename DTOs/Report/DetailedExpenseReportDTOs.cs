@@ -5,9 +5,9 @@ namespace ProjectLedger.API.DTOs.Report;
 // ── Detailed Expense Report ─────────────────────────────────
 
 /// <summary>
-/// Reporte detallado de gastos del proyecto.
-/// Basic: secciones de gastos + totales.
-/// Premium: + análisis de categorías, presupuestos, obligaciones.
+/// Detailed project expense report.
+/// Basic: expense sections + totals.
+/// Premium: + category analysis, budgets, obligations.
 /// </summary>
 public class DetailedExpenseReportResponse
 {
@@ -28,21 +28,21 @@ public class DetailedExpenseReportResponse
     public PeakMonthInfo? PeakMonth { get; set; }
     public LargestExpenseInfo? LargestExpense { get; set; }
 
-    /// <summary>Totales calculados en monedas alternativas.</summary>
+    /// <summary>Totals calculated in alternative currencies.</summary>
     public List<AlternativeCurrencyTotals>? AlternativeCurrencies { get; set; }
 
-    /// <summary>Gastos agrupados por mes, ordenados del más viejo al más nuevo.</summary>
+    /// <summary>Expenses grouped by month, ordered from oldest to newest.</summary>
     public List<MonthlyExpenseSection> Sections { get; set; } = [];
 
-    // ── Solo con CanUseAdvancedReports ──────────────────────
+    // ── Only with CanUseAdvancedReports ──────────────────────
 
-    /// <summary>Análisis por categoría con presupuesto. null si plan básico.</summary>
+    /// <summary>Analysis by category with budget. null if basic plan.</summary>
     public List<CategoryAnalysisRow>? CategoryAnalysis { get; set; }
 
-    /// <summary>Análisis por método de pago. null si plan básico.</summary>
+    /// <summary>Analysis by payment method. null if basic plan.</summary>
     public List<PaymentMethodAnalysisRow>? PaymentMethodAnalysis { get; set; }
 
-    /// <summary>Resumen de obligaciones/deudas. null si plan básico.</summary>
+    /// <summary>Summary of obligations/debts. null if basic plan.</summary>
     public ObligationSummarySection? ObligationSummary { get; set; }
 }
 

@@ -14,4 +14,6 @@ public interface IProjectRepository : IRepository<Project>
         Guid workspaceId, Guid userId, int skip, int take, string? sortBy = null, bool isDescending = true, CancellationToken ct = default);
     Task<(IEnumerable<Project> Items, int TotalCount)> GetByWorkspaceIdPagedExcludingAsync(
         Guid workspaceId, Guid userId, IEnumerable<Guid> excludeProjectIds, int skip, int take, string? sortBy = null, bool isDescending = true, CancellationToken ct = default);
+    Task<(IEnumerable<Project> Items, int TotalCount)> GetByUserIdPagedExcludingWithSearchAsync(
+        Guid userId, IEnumerable<Guid> excludeProjectIds, string? search, int skip, int take, CancellationToken ct = default);
 }

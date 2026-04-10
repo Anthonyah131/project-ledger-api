@@ -1,9 +1,9 @@
 namespace ProjectLedger.API.Models;
 
 /// <summary>
-/// Ingreso financiero registrado en un proyecto.
-/// Soporta multi-moneda con tipo de cambio manual.
-/// Estructura similar a Expense pero sin plantillas ni obligaciones.
+/// Financial income registered in a project.
+/// Supports multi-currency with manual exchange rate.
+/// Structure similar to Expense but without templates or obligations.
 /// </summary>
 public class Income
 {
@@ -13,7 +13,7 @@ public class Income
     public Guid IncPaymentMethodId { get; set; }
     public Guid IncCreatedByUserId { get; set; }
 
-    // ── Montos y moneda ─────────────────────────────────────
+    // ── Amounts and currency ─────────────────────────────────────
     public decimal IncOriginalAmount { get; set; }
     public string IncOriginalCurrency { get; set; } = null!;   // ISO 4217
     public decimal IncExchangeRate { get; set; } = 1.000000m;
@@ -21,15 +21,15 @@ public class Income
     public decimal? IncAccountAmount { get; set; }
     public string? IncAccountCurrency { get; set; }
 
-    // ── Datos descriptivos ──────────────────────────────────
+    // ── Descriptive data ──────────────────────────────────
     public string IncTitle { get; set; } = null!;
     public string? IncDescription { get; set; }
     public DateOnly IncIncomeDate { get; set; }
     public string? IncReceiptNumber { get; set; }
     public string? IncNotes { get; set; }
 
-    // ── Estado contable ──────────────────────────────────────
-    // false = recordatorio (no cuenta en totales)
+    // ── Accounting state ──────────────────────────────────────
+    // false = reminder (does not count in totals)
     public bool IncIsActive { get; set; } = true;
 
     // ── Timestamps y soft delete ────────────────────────────
@@ -47,9 +47,9 @@ public class Income
     public User? DeletedByUser { get; set; }
     public Currency OriginalCurrencyNavigation { get; set; } = null!;
 
-    // ── Splits entre partners ────────────────────────────────
+    // ── Splits between partners ────────────────────────────────
     public ICollection<IncomeSplit> Splits { get; set; } = [];
 
-    // ── Exchange values para monedas alternativas ───────────
+    // ── Exchange values for alternative currencies ───────────
     public ICollection<TransactionCurrencyExchange> CurrencyExchanges { get; set; } = [];
 }

@@ -6,9 +6,9 @@ namespace ProjectLedger.API.DTOs.Report;
 // ── Partner General Report ───────────────────────────────────
 
 /// <summary>
-/// Reporte general de un partner: actividad consolidada por proyecto y método de pago.
-/// Los montos por proyecto están en la moneda base de cada proyecto.
-/// Los montos por método de pago están en la moneda del método de pago.
+/// General partner report: consolidated activity by project and payment method.
+/// Amounts per project are in each project's base currency.
+/// Amounts per payment method are in the payment method's currency.
 /// </summary>
 public class PartnerGeneralReportResponse
 {
@@ -24,9 +24,9 @@ public class PartnerGeneralReportResponse
 }
 
 /// <summary>
-/// Actividad del partner en un proyecto específico.
-/// Todos los montos están en la moneda base del proyecto.
-/// Las monedas alternativas se muestran por transacción solo para referencia.
+/// Partner activity in a specific project.
+/// All amounts are in the project's base currency.
+/// Alternative currencies are shown per transaction only for reference.
 /// </summary>
 public class PartnerProjectSummary
 {
@@ -34,7 +34,7 @@ public class PartnerProjectSummary
     public string ProjectName { get; set; } = null!;
     public string CurrencyCode { get; set; } = null!;
 
-    // Balances en moneda base del proyecto (misma lógica que /partners/balance)
+    // Balances in project's base currency (same logic as /partners/balance)
     public decimal PaidPhysically { get; set; }
     public decimal OthersOweHim { get; set; }
     public decimal HeOwesOthers { get; set; }
@@ -42,7 +42,7 @@ public class PartnerProjectSummary
     public decimal SettlementsPaid { get; set; }
     public decimal NetBalance { get; set; }
 
-    /// <summary>Mismos valores expresados en monedas alternativas del proyecto.</summary>
+    /// <summary>Same values expressed in the project's alternative currencies.</summary>
     public List<PartnerCurrencyTotal> CurrencyTotals { get; set; } = [];
 
     public List<PartnerProjectTransaction> Transactions { get; set; } = [];
@@ -50,9 +50,9 @@ public class PartnerProjectSummary
 }
 
 /// <summary>
-/// Una transacción (gasto o ingreso) donde el partner tiene un split.
-/// SplitAmount está en la moneda base del proyecto.
-/// CurrencyExchanges son los montos alternativos del split — solo para lectura.
+/// A transaction (expense or income) where the partner has a split.
+/// SplitAmount is in the project's base currency.
+/// CurrencyExchanges are the split's alternative amounts — read-only.
 /// </summary>
 public class PartnerProjectTransaction
 {
@@ -63,7 +63,7 @@ public class PartnerProjectTransaction
     public string? Category { get; set; }
     public string? PaymentMethodName { get; set; }
     public string? PayingPartnerName { get; set; }
-    public decimal SplitAmount { get; set; }             // en moneda base del proyecto
+    public decimal SplitAmount { get; set; }             // in project's base currency
     public string SplitType { get; set; } = null!;
     public decimal SplitValue { get; set; }
     public List<SplitCurrencyExchangeItem> CurrencyExchanges { get; set; } = [];
@@ -77,13 +77,13 @@ public class PartnerProjectSettlement
     public string OtherPartnerName { get; set; } = null!;
     public decimal Amount { get; set; }
     public string Currency { get; set; } = null!;
-    public decimal ConvertedAmount { get; set; }         // en moneda base del proyecto
+    public decimal ConvertedAmount { get; set; }         // in project's base currency
     public List<CurrencyExchangeResponse> CurrencyExchanges { get; set; } = [];
 }
 
 /// <summary>
-/// Actividad del partner a través de un método de pago.
-/// Todos los montos están en la moneda del método de pago.
+/// Partner activity through a payment method.
+/// All amounts are in the payment method's currency.
 /// </summary>
 public class PartnerPaymentMethodSummary
 {

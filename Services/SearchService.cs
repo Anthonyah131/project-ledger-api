@@ -3,6 +3,10 @@ using ProjectLedger.API.Repositories;
 
 namespace ProjectLedger.API.Services;
 
+/// <summary>
+/// Implementation of ISearchService.
+/// Provides global search capabilities across expenses and incomes.
+/// </summary>
 public class SearchService : ISearchService
 {
     private readonly ISearchRepository _repo;

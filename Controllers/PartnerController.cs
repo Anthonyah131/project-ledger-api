@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Localization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLedger.API.DTOs.Common;
@@ -12,11 +12,11 @@ using ProjectLedger.API.Services;
 namespace ProjectLedger.API.Controllers;
 
 /// <summary>
-/// Controlador de partners (contactos financieros) del usuario autenticado.
+/// Authenticated user's partners (financial contacts) controller.
 ///
-/// Ruta: /api/partners
-/// - OwnerUserId se obtiene SIEMPRE del JWT, nunca del body.
-/// - Solo el dueño puede ver/editar/eliminar sus partners.
+/// Route: /api/partners
+/// - OwnerUserId is ALWAYS obtained from the JWT, never from the body.
+/// - Only the owner can view/edit/delete their partners.
 /// </summary>
 [ApiController]
 [Route("api/partners")]
@@ -48,7 +48,7 @@ public class PartnerController : ControllerBase
     // ── GET /api/partners ───────────────────────────────────
 
     /// <summary>
-    /// Lista los partners del usuario autenticado. Soporta búsqueda y paginación.
+    /// Lists the authenticated user's partners. Supports search and pagination.
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResponse<PartnerResponse>), StatusCodes.Status200OK)]
@@ -69,8 +69,8 @@ public class PartnerController : ControllerBase
     // ── GET /api/partners/{id} ──────────────────────────────
 
     /// <summary>
-    /// Obtiene un partner por ID. Para acceder a sus métodos de pago y proyectos
-    /// use los endpoints paginados: /payment-methods y /projects.
+    /// Gets a partner by ID. To access their payment methods and projects,
+    /// use the paginated endpoints: /payment-methods and /projects.
     /// </summary>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(PartnerResponse), StatusCodes.Status200OK)]
@@ -89,7 +89,7 @@ public class PartnerController : ControllerBase
     // ── POST /api/partners ──────────────────────────────────
 
     /// <summary>
-    /// Crea un partner para el usuario autenticado.
+    /// Creates a partner for the authenticated user.
     /// </summary>
     [HttpPost]
     [ProducesResponseType(typeof(PartnerResponse), StatusCodes.Status201Created)]
@@ -114,7 +114,7 @@ public class PartnerController : ControllerBase
     // ── PATCH /api/partners/{id} ────────────────────────────
 
     /// <summary>
-    /// Actualiza un partner. No permite cambiar owner_user_id.
+    /// Updates a partner. Does not allow changing owner_user_id.
     /// </summary>
     [HttpPatch("{id:guid}")]
     [ProducesResponseType(typeof(PartnerResponse), StatusCodes.Status200OK)]
@@ -142,8 +142,8 @@ public class PartnerController : ControllerBase
     // ── DELETE /api/partners/{id} ───────────────────────────
 
     /// <summary>
-    /// Soft-delete de un partner. No se puede eliminar si tiene payment methods
-    /// vinculados a proyectos activos.
+    /// Soft-deletes a partner. Cannot be deleted if it has payment methods
+    /// linked to active projects.
     /// </summary>
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -171,7 +171,7 @@ public class PartnerController : ControllerBase
     // ── GET /api/partners/{id}/payment-methods ──────────────
 
     /// <summary>
-    /// Lista paginada de los métodos de pago del partner.
+    /// Paginated list of the partner's payment methods.
     /// </summary>
     [HttpGet("{id:guid}/payment-methods")]
     [ProducesResponseType(typeof(PagedResponse<PartnerPaymentMethodResponse>), StatusCodes.Status200OK)]
@@ -206,7 +206,7 @@ public class PartnerController : ControllerBase
     // ── GET /api/partners/{id}/projects ─────────────────────
 
     /// <summary>
-    /// Lista paginada de los proyectos vinculados al partner a través de sus métodos de pago.
+    /// Paginated list of projects linked to the partner through their payment methods.
     /// </summary>
     [HttpGet("{id:guid}/projects")]
     [ProducesResponseType(typeof(PagedResponse<PartnerProjectResponse>), StatusCodes.Status200OK)]
@@ -242,15 +242,15 @@ public class PartnerController : ControllerBase
     // ── GET /api/partners/{id}/reports/general ───────────────
 
     /// <summary>
-    /// Reporte general del partner: actividad consolidada por proyecto y método de pago.
-    /// Incluye balances, transacciones con splits y settlements de cada proyecto.
-    /// Los montos por proyecto están en la moneda base del proyecto.
-    /// Los montos por método de pago están en la moneda del método de pago.
+    /// General partner report: consolidated activity by project and payment method.
+    /// Includes balances, transactions with splits, and settlements for each project.
+    /// Project amounts are in the project's base currency.
+    /// Payment method amounts are in the payment method's currency.
     /// </summary>
-    /// <param name="format">Formato: json (default) | excel</param>
-    /// <response code="200">Reporte generado.</response>
-    /// <response code="403">Plan no permite reportes avanzados o exportación.</response>
-    /// <response code="404">Partner no encontrado.</response>
+    /// <param name="format">Format: json (default) | excel</param>
+    /// <response code="200">Report generated.</response>
+    /// <response code="403">Plan does not allow advanced reports or exportation.</response>
+    /// <response code="404">Partner not found.</response>
     [HttpGet("{id:guid}/reports/general")]
     [Tags("Reports & Insights")]
     [ProducesResponseType(typeof(PartnerGeneralReportResponse), StatusCodes.Status200OK)]

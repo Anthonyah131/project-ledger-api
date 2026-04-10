@@ -1,11 +1,11 @@
-﻿using ProjectLedger.API.Models;
+using ProjectLedger.API.Models;
 using ProjectLedger.API.Repositories;
 
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Servicio de usuarios. Gestión de perfil, soft delete, activación/desactivación.
-/// La autenticación (login/register) se maneja en AuthService.
+/// User service. Manages profile, soft delete, activation/deactivation.
+/// Authentication (login/register) is handled in AuthService.
 /// </summary>
 public class UserService : IUserService
 {
@@ -75,14 +75,14 @@ public class UserService : IUserService
     {
         var user = await _userRepo.GetByIdAsync(userId, ct);
         if (user is null || user.UsrIsDeleted) return false;
-        if (user.UsrIsActive) return true; // Ya está activo
+        if (user.UsrIsActive) return true; // Already active
 
         user.UsrIsActive = true;
         user.UsrUpdatedAt = DateTime.UtcNow;
         _userRepo.Update(user);
         await _userRepo.SaveChangesAsync(ct);
 
-        // Notificar al usuario por correo
+        // Notify the user via email
         _ = _emailService.SendAccountActivatedEmailAsync(user.UsrEmail, user.UsrFullName, ct);
 
         return true;
@@ -92,14 +92,14 @@ public class UserService : IUserService
     {
         var user = await _userRepo.GetByIdAsync(userId, ct);
         if (user is null || user.UsrIsDeleted) return false;
-        if (!user.UsrIsActive) return true; // Ya está desactivado
+        if (!user.UsrIsActive) return true; // Already deactivated
 
         user.UsrIsActive = false;
         user.UsrUpdatedAt = DateTime.UtcNow;
         _userRepo.Update(user);
         await _userRepo.SaveChangesAsync(ct);
 
-        // Notificar al usuario por correo
+        // Notify the user via email
         _ = _emailService.SendAccountDeactivatedEmailAsync(user.UsrEmail, user.UsrFullName, ct);
 
         return true;

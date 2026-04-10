@@ -9,14 +9,14 @@ using ProjectLedger.API.Services.Chatbot.Interfaces;
 namespace ProjectLedger.API.Services.Chatbot;
 
 /// <summary>
-/// Orquesta el pipeline de 2 pasos basado en intents:
+/// Orchestrates the 2-step intent-based pipeline:
 ///
-/// LLM Call #1 (Intent Parser): clasifica domain + action + filters como JSON estructurado.
-/// Backend (IntentRouter): mapea el intent a IMcpService y ejecuta la query.
-/// LLM Call #2 (Response Formatter): genera la respuesta final en lenguaje natural.
+/// LLM Call #1 (Intent Parser): classifies domain + action + filters as structured JSON.
+/// Backend (IntentRouter): maps the intent to IMcpService and executes the query.
+/// LLM Call #2 (Response Formatter): generates the final natural language response.
 ///
-/// Para greeting/context_only/off_topic se salta el paso de tools (0 tool executions).
-/// Usa rotación round-robin de proveedores (máximo 2 providers por request).
+/// For greeting/context_only/off_topic, it skips the tools step (0 tool executions).
+/// Uses round-robin provider rotation (max 2 providers per request).
 /// </summary>
 public class ChatbotService : IChatbotService
 {
@@ -91,7 +91,7 @@ public class ChatbotService : IChatbotService
         if (intent is null)
         {
             yield return MetaEvent(parserProvider, usedFinancialContext, 0);
-            yield return ChunkEvent("Lo siento, no pude procesar tu consulta en este momento. Intenta de nuevo.");
+            yield return ChunkEvent("I'm sorry, I couldn't process your request at this time. Please try again.");
             yield return DoneEvent();
             yield break;
         }
@@ -206,7 +206,7 @@ public class ChatbotService : IChatbotService
         if (!anyChunk)
         {
             _logger.LogWarning("Response Formatter ({Provider}) returned no chunks", provider.ProviderName);
-            yield return ChunkEvent("Lo siento, no pude procesar tu consulta en este momento. Intenta de nuevo.");
+            yield return ChunkEvent("I'm sorry, I couldn't process your request at this time. Please try again.");
         }
     }
 
@@ -239,13 +239,13 @@ public class ChatbotService : IChatbotService
     {
         try
         {
-            // Extraer el JSON del response (puede venir con texto extra)
+            // Extract JSON from the response (may include extraneous text)
             var firstBrace = response.IndexOf('{');
             var lastBrace = response.LastIndexOf('}');
 
             if (firstBrace < 0 || lastBrace <= firstBrace)
             {
-                _logger.LogWarning("Intent Parser no devolvió JSON válido: {R}", response);
+                _logger.LogWarning("Intent Parser did not return valid JSON: {R}", response);
                 return new ParsedIntent { Domain = "context_only", Action = "none" };
             }
 
@@ -254,7 +254,7 @@ public class ChatbotService : IChatbotService
 
             if (intent is null || string.IsNullOrWhiteSpace(intent.Domain))
             {
-                _logger.LogWarning("Intent Parser devolvió JSON vacío o sin domain: {R}", response);
+                _logger.LogWarning("Intent Parser returned empty JSON or missing domain: {R}", response);
                 return new ParsedIntent { Domain = "context_only", Action = "none" };
             }
 
@@ -262,7 +262,7 @@ public class ChatbotService : IChatbotService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "No se pudo parsear el intent del LLM: {R}", response);
+            _logger.LogWarning(ex, "Could not parse the LLM intent: {R}", response);
             return new ParsedIntent { Domain = "context_only", Action = "none" };
         }
     }
@@ -377,7 +377,7 @@ public class ChatbotService : IChatbotService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "No se pudo cargar el resumen mensual en el system prompt (userId={UserId})", userId);
+            _logger.LogWarning(ex, "Could not load the monthly overview into the system prompt (userId={UserId})", userId);
         }
 
         try
@@ -398,7 +398,7 @@ public class ChatbotService : IChatbotService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "No se pudieron cargar los pagos vencidos en el system prompt (userId={UserId})", userId);
+            _logger.LogWarning(ex, "Could not load overdue payments into the system prompt (userId={UserId})", userId);
         }
 
         return (sb.ToString().TrimEnd(), usedFinancialContext);

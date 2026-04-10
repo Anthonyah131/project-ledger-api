@@ -2,15 +2,15 @@
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Servicio de validación de acceso a proyectos.
-/// Centraliza la lógica de verificación de membresía y rol.
-/// Usado por Authorization Handlers y por la capa de servicios (validación imperativa).
+/// Service for validating project access.
+/// Centralizes the verification logic for membership and roles.
+/// Used by Authorization Handlers and by the service layer (imperative validation).
 /// </summary>
 public interface IProjectAccessService
 {
     /// <summary>
-    /// Verifica si el usuario tiene al menos el rol especificado en el proyecto.
-    /// Considera tanto ownership como membership.
+    /// Verifies if the user has at least the specified role in the project.
+    /// Considers both ownership and membership.
     /// </summary>
     Task<bool> HasAccessAsync(
         Guid userId,
@@ -19,8 +19,8 @@ public interface IProjectAccessService
         CancellationToken ct = default);
 
     /// <summary>
-    /// Igual que HasAccessAsync pero lanza ForbiddenAccessException si no tiene acceso.
-    /// Usar en la capa Application/Service para validación imperativa.
+    /// Same as HasAccessAsync but throws ForbiddenAccessException if access is denied.
+    /// Used in the Application/Service layer for imperative validation.
     /// </summary>
     Task ValidateAccessAsync(
         Guid userId,
@@ -29,8 +29,8 @@ public interface IProjectAccessService
         CancellationToken ct = default);
 
     /// <summary>
-    /// Obtiene el rol efectivo del usuario en el proyecto.
-    /// Retorna null si no tiene acceso.
+    /// Retrieves the effective role of the user in the project.
+    /// Returns null if the user has no access.
     /// </summary>
     Task<string?> GetUserRoleAsync(
         Guid userId,

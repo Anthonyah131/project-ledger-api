@@ -2,6 +2,9 @@ namespace ProjectLedger.API.DTOs.Search;
 
 // ── Responses ────────────────────────────────────────────────
 
+/// <summary>
+/// Response containing both expense and income search results.
+/// </summary>
 public class GlobalSearchResponse
 {
     public IReadOnlyList<ExpenseSearchResult> Expenses { get; set; } = [];

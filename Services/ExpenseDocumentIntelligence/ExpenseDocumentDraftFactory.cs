@@ -2,6 +2,9 @@ using ProjectLedger.API.DTOs.Expense;
 
 namespace ProjectLedger.API.Services;
 
+/// <summary>
+/// Factory class for creating expense document drafts.
+/// </summary>
 internal static class ExpenseDocumentDraftFactory
 {
     public static ExpenseDocumentDraftResponse BuildDraft(

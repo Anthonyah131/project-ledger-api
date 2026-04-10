@@ -1,8 +1,8 @@
 namespace ProjectLedger.API.Middleware;
 
 /// <summary>
-/// Middleware de seguridad que agrega HTTP Security Headers a todas las respuestas.
-/// Protege contra XSS, clickjacking, sniffing de contenido, etc.
+/// Security middleware that adds HTTP Security Headers to all responses.
+/// Protects against XSS, clickjacking, content sniffing, etc.
 /// </summary>
 public class SecurityHeadersMiddleware
 {
@@ -15,28 +15,28 @@ public class SecurityHeadersMiddleware
         var headers = context.Response.Headers;
         var isSwaggerPath = context.Request.Path.StartsWithSegments("/swagger");
 
-        // Evita que el navegador haga MIME-type sniffing
+        // Prevents the browser from doing MIME-type sniffing
         headers["X-Content-Type-Options"] = "nosniff";
 
-        // Protección contra clickjacking (Swagger UI necesita poder renderizar)
+        // Protection against clickjacking (Swagger UI needs to be able to render)
         if (!isSwaggerPath)
             headers["X-Frame-Options"] = "DENY";
 
-        // Habilita protección XSS en navegadores legacy
+        // Enables XSS protection in legacy browsers
         headers["X-XSS-Protection"] = "1; mode=block";
 
-        // Fuerza HTTPS en el navegador por 1 año
+        // Forces HTTPS in the browser for 1 year
         headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
 
-        // Política de referrer conservadora
+        // Conservative referrer policy
         headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
 
-        // CSP: más permisiva en /swagger para que Swagger UI cargue sus assets
+        // CSP: more permissive in /swagger so Swagger UI can load its assets
         headers["Content-Security-Policy"] = isSwaggerPath
             ? "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"
             : "default-src 'none'; frame-ancestors 'none'";
 
-        // Elimina el header que revela que es ASP.NET
+        // Removes the header that reveals it is ASP.NET
         headers.Remove("Server");
         headers.Remove("X-Powered-By");
 

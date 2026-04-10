@@ -4,7 +4,7 @@ using ProjectLedger.API.Repositories;
 namespace ProjectLedger.API.Services;
 
 /// <summary>
-/// Servicio de monedas. Solo lectura (catálogo ISO 4217).
+/// Currency service. Read-only (ISO 4217 catalog).
 /// </summary>
 public class CurrencyService : ICurrencyService
 {

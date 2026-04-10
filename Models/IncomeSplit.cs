@@ -1,8 +1,8 @@
 namespace ProjectLedger.API.Models;
 
 /// <summary>
-/// División de un ingreso entre partners del proyecto.
-/// Por defecto se crea un split 100% al partner dueño del método de pago.
+/// Division of an income among project partners.
+/// By default, a 100% split is created to the partner who owns the payment method.
 /// </summary>
 public class IncomeSplit
 {
@@ -11,7 +11,7 @@ public class IncomeSplit
     public Guid InsPartnerId { get; set; }
     public string InsSplitType { get; set; } = null!;      // 'percentage' | 'fixed'
     public decimal InsSplitValue { get; set; }
-    public decimal InsResolvedAmount { get; set; }         // Siempre en moneda original del ingreso
+    public decimal InsResolvedAmount { get; set; }         // Always in the original currency of the income
     public DateTime InsCreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime InsUpdatedAt { get; set; } = DateTime.UtcNow;
 

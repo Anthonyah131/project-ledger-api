@@ -5,13 +5,13 @@ using ProjectLedger.API.Models;
 namespace ProjectLedger.API.Repositories;
 
 /// <summary>
-/// Repositorio de solo lectura para calcular balances y historial por partner.
+/// Read-only repository for calculating balances and history per partner.
 ///
-/// Lógica del balance (todo en moneda base del proyecto):
-///   Componente gastos A  = SUM(splits de otros en gastos que pagó A)  - SUM(split de A en gastos que pagaron otros)
-///   Componente ingresos A = SUM(split de A en ingresos recibidos por otros) - SUM(splits de otros en ingresos recibidos por A)
-///   Componente liquidaciones = recibidas - pagadas
-///   Balance neto = gastos + ingresos + liquidaciones
+/// Balance logic (all in project base currency):
+///   Expense component A = SUM(others' splits in expenses paid by A) - SUM(A's split in expenses paid by others)
+///   Income component A = SUM(A's split in income received by others) - SUM(others' splits in income received by A)
+///   Settlement component = received - paid
+///   Net balance = expenses + incomes + settlements
 /// </summary>
 public class PartnerBalanceRepository : IPartnerBalanceRepository
 {

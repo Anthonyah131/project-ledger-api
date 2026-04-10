@@ -3,6 +3,10 @@ using ProjectLedger.API.Repositories;
 
 namespace ProjectLedger.API.Services;
 
+/// <summary>
+/// Implementation of IWorkspaceReportService.
+/// Provides consolidated reports for all projects within a workspace.
+/// </summary>
 public class WorkspaceReportService : IWorkspaceReportService
 {
     private readonly IWorkspaceService _workspaceService;

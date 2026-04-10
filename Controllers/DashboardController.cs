@@ -11,8 +11,8 @@ using ProjectLedger.API.Services;
 namespace ProjectLedger.API.Controllers;
 
 /// <summary>
-/// Dashboard mensual a nivel usuario (transversal a proyectos visibles).
-/// Regla principal: navegacion por mes con formato YYYY-MM.
+/// User-level monthly dashboard (cross-cutting visible projects).
+/// Main rule: month navigation with YYYY-MM format.
 /// </summary>
 [ApiController]
 [Route("api/dashboard")]
@@ -34,7 +34,7 @@ public class DashboardController : ControllerBase
     }
 
     /// <summary>
-    /// Devuelve el bloque superior del dashboard mensual (navegación, resumen y alertas).
+    /// Returns the top block of the monthly dashboard (navigation, summary, and alerts).
     /// </summary>
     [HttpGet("monthly-summary")]
     [ProducesResponseType(typeof(MonthlySummaryDashboardResponse), StatusCodes.Status200OK)]
@@ -75,7 +75,7 @@ public class DashboardController : ControllerBase
     }
 
     /// <summary>
-    /// Devuelve tendencia diaria de gasto/ingreso para el mes seleccionado.
+    /// Returns the daily spending/income trend for the selected month.
     /// </summary>
     [HttpGet("monthly-daily-trend")]
     [ProducesResponseType(typeof(MonthlyDailyTrendResponse), StatusCodes.Status200OK)]
@@ -109,7 +109,7 @@ public class DashboardController : ControllerBase
     }
 
     /// <summary>
-    /// Devuelve top categorías de gasto del mes (todos los proyectos visibles o proyecto puntual).
+    /// Returns the top spending categories of the month (all visible projects or a specific project).
     /// </summary>
     [HttpGet("monthly-top-categories")]
     [ProducesResponseType(typeof(MonthlyTopCategoriesResponse), StatusCodes.Status200OK)]
@@ -143,7 +143,7 @@ public class DashboardController : ControllerBase
     }
 
     /// <summary>
-    /// Devuelve la distribución de gasto mensual por método de pago.
+    /// Returns the distribution of monthly spending by payment method.
     /// </summary>
     [HttpGet("monthly-payment-methods")]
     [ProducesResponseType(typeof(MonthlyPaymentMethodsResponse), StatusCodes.Status200OK)]
@@ -177,11 +177,11 @@ public class DashboardController : ControllerBase
     }
 
     /// <summary>
-    /// Devuelve el overview mensual completo (compatibilidad legado).
+    /// Returns the complete monthly overview (legacy compatibility).
     /// </summary>
-    /// <param name="month">Mes en formato YYYY-MM.</param>
-    /// <response code="200">Overview mensual generado.</response>
-    /// <response code="400">Formato de month invalido.</response>
+    /// <param name="month">Month in YYYY-MM format.</param>
+    /// <response code="200">Monthly overview generated.</response>
+    /// <response code="400">Invalid month format.</response>
     [HttpGet("monthly-overview")]
     [Obsolete("Deprecated. Use monthly-summary, monthly-daily-trend, monthly-top-categories and monthly-payment-methods.")]
     [ProducesResponseType(typeof(MonthlyOverviewResponse), StatusCodes.Status200OK)]
@@ -220,9 +220,9 @@ public class DashboardController : ControllerBase
     }
 
     /// <summary>
-    /// Selector ligero de proyectos para el dashboard.
-    /// Página 1: incluye proyectos pineados del usuario + proyectos no pineados paginados.
-    /// Páginas > 1: solo proyectos no pineados paginados (los pineados NO se repiten).
+    /// Lightweight project selector for the dashboard.
+    /// Page 1: includes the user's pinned projects + paginated non-pinned projects.
+    /// Pages > 1: only paginated non-pinned projects (pinned are NOT repeated).
     /// </summary>
     [HttpGet("projects")]
     [ProducesResponseType(typeof(DashboardProjectsPagedResponse), StatusCodes.Status200OK)]

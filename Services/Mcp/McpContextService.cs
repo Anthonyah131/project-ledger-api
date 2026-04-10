@@ -6,6 +6,10 @@ using ProjectLedger.API.Repositories;
 
 namespace ProjectLedger.API.Services;
 
+/// <summary>
+/// Orchestrates Multi-Currency Project (MCP) assistant operations, providing complex financial context and analysis 
+/// via a set of partial implementations covering expenses, income, obligations, and summaries.
+/// </summary>
 public partial class McpService : IMcpService
 {
     private readonly IProjectService _projectService;

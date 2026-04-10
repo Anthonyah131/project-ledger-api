@@ -1,8 +1,8 @@
 namespace ProjectLedger.API.Models;
 
 /// <summary>
-/// Moneda alternativa configurada para un proyecto (visualización).
-/// Cada proyecto puede tener 0..N monedas alternativas según el plan del owner.
+/// Alternative currency configured for a project (display).
+/// Each project can have 0..N alternative currencies depending on the owner's plan.
 /// </summary>
 public class ProjectAlternativeCurrency
 {
