@@ -1,0 +1,87 @@
+name: Build and publish Docker image to GHCR
+
+# ── Triggers ────────────────────────────────────────────────────────────────
+# Se ejecuta en dos situaciones:
+#   1. Push a main → publica imagen con tag "latest" + SHA del commit
+#   2. workflow_dispatch → ejecución manual desde la pestaña Actions en GitHub
+#
+# NO interfiere con el workflow de Azure App Service (main_pledger-api.yml).
+# Ambos pueden convivir: uno despliega el binario, este publica la imagen.
+# Cuando quieras migrar el despliegue a Docker, solo tendrás que agregar
+# un job de deploy aquí y apagar el workflow de Azure.
+on:
+  push:
+    branches:
+      - feature/docker
+  workflow_dispatch:
+
+# ── Variables de entorno globales ───────────────────────────────────────────
+env:
+  REGISTRY: ghcr.io
+  # github.repository tiene el formato "owner/repo" (ej: anthonyah131/project-ledger-api)
+  # Lo usamos como nombre base de la imagen.
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    # Permisos necesarios para este job:
+    #   contents: read   → clonar el repo
+    #   packages: write  → publicar en GitHub Container Registry
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      # 1. Clonar el código fuente
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Configurar Docker Buildx
+      # Buildx es el backend moderno de Docker. Habilita:
+      #   - Build multi-plataforma (amd64, arm64)
+      #   - Cache avanzado (usado en el paso 5)
+      #   - Mejor rendimiento general
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 3. Autenticarse en GitHub Container Registry
+      # GITHUB_TOKEN es un secreto automático que GitHub inyecta en cada
+      # ejecución — no necesitas configurar nada en Settings > Secrets.
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 4. Generar los tags y labels de la imagen automáticamente
+      # Este action analiza el contexto del push y produce:
+      #   - latest          → siempre que sea push a la rama main
+      #   - sha-abc1234     → SHA corto del commit (trazabilidad)
+      #
+      # Con esto puedes saber exactamente qué commit está corriendo
+      # en producción con solo leer el tag de la imagen.
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=dev
+            type=sha,prefix=sha-,format=short
+
+      # 5. Construir y publicar la imagen
+      # cache-from / cache-to: reutiliza capas de builds anteriores
+      # guardadas en GitHub Actions Cache. La primera vez es lenta;
+      # desde la segunda, solo reconstruye las capas que cambiaron.
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -330,6 +330,10 @@ builder.Services.AddRateLimiting(builder.Configuration);
 builder.Services.AddRepositories();
 builder.Services.AddApplicationServices();
 
+// Health check — endpoint GET /health para que Docker y load balancers
+// puedan verificar que la API está viva y respondiendo.
+builder.Services.AddHealthChecks();
+
 // Exchange rate service (ExchangeRate-API) + caching
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient<IExchangeRateService, ExchangeRateService>((serviceProvider, client) =>
@@ -436,6 +440,10 @@ app.UseAuthorization();
 
 // 8. Controllers
 app.MapControllers();
+
+// 9. Health check — responde 200 OK si la API está corriendo.
+// No requiere autenticación. Docker lo llama internamente cada N segundos.
+app.MapHealthChecks("/health");
 
 app.Run();
 

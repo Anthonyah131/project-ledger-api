@@ -26,7 +26,7 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
         builder.Property(c => c.CatBudgetAmount).HasColumnName("cat_budget_amount").HasColumnType("numeric(14,2)");
         builder.Property(c => c.CatCreatedAt).HasColumnName("cat_created_at").HasDefaultValueSql("now()");
         builder.Property(c => c.CatUpdatedAt).HasColumnName("cat_updated_at").HasDefaultValueSql("now()");
-        builder.Property(c => c.CatIsDeleted).HasColumnName("cat_is_default").HasDefaultValue(false);
+        builder.Property(c => c.CatIsDeleted).HasColumnName("cat_is_deleted").HasDefaultValue(false);
         builder.Property(c => c.CatDeletedAt).HasColumnName("cat_deleted_at");
         builder.Property(c => c.CatDeletedByUserId).HasColumnName("cat_deleted_by_user_id");
 

@@ -1,0 +1,61 @@
+services:
+  api:
+    # ── Modo desarrollo (build local) ──────────────────────────
+    # Construye la imagen desde el Dockerfile local.
+    # Usa esto cuando estás desarrollando y quieres probar cambios.
+    #
+    #   docker compose up --build
+    #
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    # ── Modo producción (imagen publicada en GHCR) ─────────────
+    # En vez de build local, descarga la imagen publicada por el
+    # workflow de GitHub Actions. Ideal para servidores o VMs.
+    # Para usarlo: comenta el bloque "build" de arriba y descomenta:
+    #
+    # image: ghcr.io/TU_USUARIO_GITHUB/project-ledger-api:latest
+    #
+    # Luego corre:  docker compose pull && docker compose up -d
+
+    # Nombre del contenedor para identificarlo fácilmente.
+    container_name: pledger-api
+
+    # Puerto: host:contenedor
+    # Accederás a la API en http://localhost:5000
+    # El contenedor expone el 8080 (definido en Dockerfile/EXPOSE).
+    ports:
+      - "5000:8080"
+
+    # Variables de entorno inyectadas al contenedor.
+    # Docker reemplaza ${VAR} leyendo el archivo .env automáticamente
+    # (si está en el mismo directorio que docker-compose.yml).
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - DB_PASSWORD=${DB_PASSWORD}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - MCP_SERVICE_TOKEN=${MCP_SERVICE_TOKEN}
+      - GMAIL_USER=${GMAIL_USER}
+      - GMAIL_APP_PASSWORD=${GMAIL_APP_PASSWORD}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - EXCHANGE_RATE_API_KEY=${EXCHANGE_RATE_API_KEY}
+      - CHATBOT_OPENROUTER_API_KEY=${CHATBOT_OPENROUTER_API_KEY}
+      - CHATBOT_GROQ_API_KEY=${CHATBOT_GROQ_API_KEY}
+      - CHATBOT_CEREBRAS_API_KEY=${CHATBOT_CEREBRAS_API_KEY}
+
+    # Health check a nivel de compose.
+    # docker ps mostrará "healthy" / "unhealthy" / "starting" en STATUS.
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # Política de reinicio: si el contenedor crashea, Docker lo reinicia.
+    # Opciones: no | always | on-failure | unless-stopped
+    restart: unless-stopped

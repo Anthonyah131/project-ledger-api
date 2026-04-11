@@ -1,0 +1,30 @@
+# ─────────────────────────────────────────────────────────────
+# .dockerignore — equivalente al .gitignore pero para Docker.
+# Todo lo listado aquí NO se envía al daemon de Docker al hacer
+# "docker build". Esto hace el build más rápido y seguro.
+# ─────────────────────────────────────────────────────────────
+
+# Carpetas de compilación local — Docker compila desde cero
+bin/
+obj/
+artifacts/
+publish/
+
+# Secretos — NUNCA deben entrar a la imagen
+.env
+*.env.*
+
+# Git
+.git/
+.gitignore
+
+# Archivos del IDE
+.vs/
+*.user
+.vscode/
+
+# Workflows de CI — no son parte de la app
+.github/
+
+# Logs locales
+*.log
