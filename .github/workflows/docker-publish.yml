@@ -85,3 +85,10 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # 6. Notificar a Render para que jale la imagen nueva y redespliege.
+      # El Deploy Hook es una URL secreta de Render — un simple POST es suficiente.
+      # Si este paso falla, la imagen en GHCR igual quedó actualizada;
+      # puedes redesplegar manualmente desde el dashboard de Render.
+      - name: Trigger Render redeploy
+        run: curl -s "${{ secrets.RENDER_DEPLOY_HOOK }}"
