@@ -13,7 +13,9 @@ public partial class ReportExportService
     public byte[] GeneratePaymentMethodReportExcel(PaymentMethodReportResponse report)
     {
         using var workbook = new XLWorkbook();
-        ApplyWorkbookDefaults(workbook, "Reporte de Metodos de Pago", "Reporte por metodos de pago del usuario.");
+        ApplyWorkbookDefaults(workbook,
+            _localizer["RptPaymentMethod_ReportTitle"].Value,
+            _localizer["RptPaymentMethod_ReportSubject"].Value);
 
         AddPaymentMethodSummarySheet(workbook, report);
         AddPaymentMethodByProjectSheet(workbook, report);
@@ -29,23 +31,35 @@ public partial class ReportExportService
     }
 
     /// <summary>Adds the payment method summary worksheet.</summary>
-    private static void AddPaymentMethodSummarySheet(XLWorkbook workbook, PaymentMethodReportResponse report)
+    private void AddPaymentMethodSummarySheet(XLWorkbook workbook, PaymentMethodReportResponse report)
     {
-        var ws = workbook.Worksheets.Add("Métodos de Pago");
+        var ws = workbook.Worksheets.Add(_localizer["RptSheet_PaymentMethods"].Value);
 
-        // ── Encabezado ──────────────────────────────────────────
-        ws.Cell(1, 1).Value = "Período";   ws.Cell(1, 2).Value = FormatDateRange(report.DateFrom, report.DateTo);
-        ws.Cell(2, 1).Value = "Generado";  ws.Cell(2, 2).Value = report.GeneratedAt.ToString("yyyy-MM-dd HH:mm UTC");
+        // ── Header ──────────────────────────────────────────────
+        ws.Cell(1, 1).Value = _localizer["RptCommon_Period"].Value;    ws.Cell(1, 2).Value = FormatDateRange(report.DateFrom, report.DateTo);
+        ws.Cell(2, 1).Value = _localizer["RptCommon_Generated"].Value; ws.Cell(2, 2).Value = report.GeneratedAt.ToString("yyyy-MM-dd HH:mm UTC");
 
         StyleHeaderRange(ws.Range(1, 1, 2, 1));
 
-        // ── Tabla ─────────────────────────────────────────────
+        // ── Table ─────────────────────────────────────────────
         var headers = new[]
         {
-            "Método de Pago", "Tipo", "Moneda", "Banco", "Partner Dueño",
-            "Total Gastado", "# Gastos", "Total Ingresos", "# Ingresos",
-            "Balance Neto", "Promedio Gasto", "Promedio Ingreso",
-            "Primer Uso", "Último Uso", "Días sin Uso", "Inactivo"
+            _localizer["RptCommon_PaymentMethod"].Value,
+            _localizer["RptCommon_Type"].Value,
+            _localizer["RptCommon_Currency"].Value,
+            _localizer["RptPaymentMethod_BankName"].Value,
+            _localizer["RptPaymentMethod_OwnerPartner"].Value,
+            _localizer["RptCommon_TotalSpent"].Value,
+            _localizer["RptCommon_ExpenseCount"].Value,
+            _localizer["RptCommon_TotalIncome"].Value,
+            _localizer["RptCommon_IncomeCount"].Value,
+            _localizer["RptCommon_Balance"].Value,
+            _localizer["RptPaymentMethod_AvgExpense"].Value,
+            _localizer["RptPaymentMethod_AvgIncome"].Value,
+            _localizer["RptPaymentMethod_FirstUse"].Value,
+            _localizer["RptPaymentMethod_LastUse"].Value,
+            _localizer["RptPaymentMethod_DaysUnused"].Value,
+            _localizer["RptPaymentMethod_Inactive"].Value,
         };
 
         const int tableStartRow = 4;
@@ -76,7 +90,9 @@ public partial class ReportExportService
             ws.Cell(row, 13).Value = pm.FirstUseDate?.ToString("yyyy-MM-dd") ?? "—";
             ws.Cell(row, 14).Value = pm.LastUseDate?.ToString("yyyy-MM-dd") ?? "—";
             ws.Cell(row, 15).Value = pm.DaysSinceLastUse;
-            ws.Cell(row, 16).Value = pm.IsInactive ? "Sí" : "No";
+            ws.Cell(row, 16).Value = pm.IsInactive
+                ? _localizer["RptCommon_YesLabel"].Value
+                : _localizer["RptCommon_NoLabel"].Value;
 
             if (pm.IsInactive)
                 ws.Range(row, 1, row, headers.Length).Style.Fill.BackgroundColor = XLColor.LightYellow;
@@ -95,11 +111,20 @@ public partial class ReportExportService
     }
 
     /// <summary>Adds a worksheet for payment method distribution by project.</summary>
-    private static void AddPaymentMethodByProjectSheet(XLWorkbook workbook, PaymentMethodReportResponse report)
+    private void AddPaymentMethodByProjectSheet(XLWorkbook workbook, PaymentMethodReportResponse report)
     {
-        var ws = workbook.Worksheets.Add("Por Proyecto");
+        var ws = workbook.Worksheets.Add(_localizer["RptSheet_ByProject"].Value);
 
-        var headers = new[] { "Método de Pago", "Moneda Método", "Proyecto", "Moneda Proyecto", "Total Gastado", "# Gastos", "% del Método" };
+        var headers = new[]
+        {
+            _localizer["RptCommon_PaymentMethod"].Value,
+            _localizer["RptPaymentMethod_MethodCurrency"].Value,
+            _localizer["RptCommon_Projects"].Value,
+            _localizer["RptPaymentMethod_ProjectCurrency"].Value,
+            _localizer["RptCommon_TotalSpent"].Value,
+            _localizer["RptCommon_ExpenseCount"].Value,
+            _localizer["RptPaymentMethod_PctOfMethod"].Value,
+        };
         for (var col = 1; col <= headers.Length; col++)
             ws.Cell(1, col).Value = headers[col - 1];
         StyleTableHeader(ws.Range(1, 1, 1, headers.Length));
@@ -126,14 +151,20 @@ public partial class ReportExportService
     }
 
     /// <summary>Adds a worksheet for detailed expense listing related to payment methods.</summary>
-    private static void AddPaymentMethodExpensesSheet(XLWorkbook workbook, PaymentMethodReportResponse report)
+    private void AddPaymentMethodExpensesSheet(XLWorkbook workbook, PaymentMethodReportResponse report)
     {
-        var ws = workbook.Worksheets.Add("Gastos");
+        var ws = workbook.Worksheets.Add(_localizer["RptSheet_Expenses"].Value);
 
         var headers = new[]
         {
-            "Fecha", "Título", "Método de Pago", "Moneda",
-            "Proyecto", "Categoría", "Monto", "Descripción"
+            _localizer["RptCommon_Date"].Value,
+            _localizer["RptCommon_Title"].Value,
+            _localizer["RptCommon_PaymentMethod"].Value,
+            _localizer["RptCommon_Currency"].Value,
+            _localizer["RptCommon_Projects"].Value,
+            _localizer["RptCommon_Category"].Value,
+            _localizer["RptCommon_Amount"].Value,
+            _localizer["RptCommon_Description"].Value,
         };
         for (var col = 1; col <= headers.Length; col++)
             ws.Cell(1, col).Value = headers[col - 1];
@@ -161,14 +192,20 @@ public partial class ReportExportService
     }
 
     /// <summary>Adds a worksheet for detailed income listing related to payment methods.</summary>
-    private static void AddPaymentMethodIncomesSheet(XLWorkbook workbook, PaymentMethodReportResponse report)
+    private void AddPaymentMethodIncomesSheet(XLWorkbook workbook, PaymentMethodReportResponse report)
     {
-        var ws = workbook.Worksheets.Add("Ingresos");
+        var ws = workbook.Worksheets.Add(_localizer["RptSheet_Incomes"].Value);
 
         var headers = new[]
         {
-            "Fecha", "Título", "Método de Pago", "Moneda",
-            "Proyecto", "Categoría", "Monto", "Descripción"
+            _localizer["RptCommon_Date"].Value,
+            _localizer["RptCommon_Title"].Value,
+            _localizer["RptCommon_PaymentMethod"].Value,
+            _localizer["RptCommon_Currency"].Value,
+            _localizer["RptCommon_Projects"].Value,
+            _localizer["RptCommon_Category"].Value,
+            _localizer["RptCommon_Amount"].Value,
+            _localizer["RptCommon_Description"].Value,
         };
         for (var col = 1; col <= headers.Length; col++)
             ws.Cell(1, col).Value = headers[col - 1];
@@ -196,11 +233,21 @@ public partial class ReportExportService
     }
 
     /// <summary>Adds a worksheet for monthly trend analysis of payment methods.</summary>
-    private static void AddMonthlyTrendSheet(XLWorkbook workbook, PaymentMethodReportResponse report)
+    private void AddMonthlyTrendSheet(XLWorkbook workbook, PaymentMethodReportResponse report)
     {
-        var ws = workbook.Worksheets.Add("Tendencia Mensual");
+        var ws = workbook.Worksheets.Add(_localizer["RptSheet_MonthlyTrend"].Value);
 
-        var headers = new[] { "Mes", "Método de Pago", "Moneda", "Total Gastado", "# Gastos", "Total Ingresos", "# Ingresos", "Balance" };
+        var headers = new[]
+        {
+            _localizer["RptCommon_Month"].Value,
+            _localizer["RptCommon_PaymentMethod"].Value,
+            _localizer["RptCommon_Currency"].Value,
+            _localizer["RptCommon_TotalSpent"].Value,
+            _localizer["RptCommon_ExpenseCount"].Value,
+            _localizer["RptCommon_TotalIncome"].Value,
+            _localizer["RptCommon_IncomeCount"].Value,
+            _localizer["RptCommon_Balance"].Value,
+        };
         for (var col = 1; col <= headers.Length; col++)
             ws.Cell(1, col).Value = headers[col - 1];
         StyleTableHeader(ws.Range(1, 1, 1, headers.Length));
@@ -229,11 +276,19 @@ public partial class ReportExportService
     }
 
     /// <summary>Adds a worksheet for top category distribution per payment method.</summary>
-    private static void AddTopCategoriesSheet(XLWorkbook workbook, PaymentMethodReportResponse report)
+    private void AddTopCategoriesSheet(XLWorkbook workbook, PaymentMethodReportResponse report)
     {
-        var ws = workbook.Worksheets.Add("Top Categorías");
+        var ws = workbook.Worksheets.Add(_localizer["RptSheet_TopCategories"].Value);
 
-        var headers = new[] { "Método de Pago", "Moneda", "Categoría", "Total Gastado", "# Gastos", "% del Método" };
+        var headers = new[]
+        {
+            _localizer["RptCommon_PaymentMethod"].Value,
+            _localizer["RptCommon_Currency"].Value,
+            _localizer["RptCommon_Category"].Value,
+            _localizer["RptCommon_TotalSpent"].Value,
+            _localizer["RptCommon_ExpenseCount"].Value,
+            _localizer["RptPaymentMethod_PctOfMethod"].Value,
+        };
         for (var col = 1; col <= headers.Length; col++)
             ws.Cell(1, col).Value = headers[col - 1];
         StyleTableHeader(ws.Range(1, 1, 1, headers.Length));

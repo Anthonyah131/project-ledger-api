@@ -30,18 +30,18 @@ public partial class ReportExportService
     }
 
     /// <summary>Composes the visual header for the workspace report.</summary>
-    private static void ComposeWorkspaceReportHeader(IContainer container, WorkspaceReportResponse report)
+    private void ComposeWorkspaceReportHeader(IContainer container, WorkspaceReportResponse report)
     {
         container.Column(col =>
         {
-            col.Item().Text($"Reporte de Workspace — {report.WorkspaceName}")
+            col.Item().Text(_localizer["RptFmt_WorkspaceReportTitle", report.WorkspaceName].Value)
                 .FontSize(16).Bold().FontColor(Colors.Blue.Darken3);
 
             col.Item().Row(row =>
             {
-                row.RelativeItem().Text($"Período: {FormatDateRange(report.DateFrom, report.DateTo)}").FontSize(9);
+                row.RelativeItem().Text($"{_localizer["RptCommon_Period"].Value}: {FormatDateRange(report.DateFrom, report.DateTo)}").FontSize(9);
                 row.RelativeItem().AlignRight()
-                    .Text($"Generado: {report.GeneratedAt:yyyy-MM-dd HH:mm} UTC").FontSize(8);
+                    .Text($"{_localizer["RptCommon_Generated"].Value}: {report.GeneratedAt:yyyy-MM-dd HH:mm} UTC").FontSize(8);
             });
 
             col.Item().PaddingTop(5).Row(row =>
@@ -50,21 +50,21 @@ public partial class ReportExportService
                 {
                     row.RelativeItem().Background(Colors.Blue.Lighten4).Padding(8).Column(c =>
                     {
-                        c.Item().Text("Total Gastado").FontSize(8).FontColor(Colors.Grey.Darken2);
+                        c.Item().Text(_localizer["RptCommon_TotalSpent"].Value).FontSize(8).FontColor(Colors.Grey.Darken2);
                         c.Item().Text(FormatCurrency(report.ReferenceCurrency ?? "", report.ConsolidatedTotals.TotalSpent))
                             .FontSize(14).Bold();
                     });
                     row.ConstantItem(10);
                     row.RelativeItem().Background(Colors.Green.Lighten4).Padding(8).Column(c =>
                     {
-                        c.Item().Text("Total Ingresos").FontSize(8).FontColor(Colors.Grey.Darken2);
+                        c.Item().Text(_localizer["RptCommon_TotalIncome"].Value).FontSize(8).FontColor(Colors.Grey.Darken2);
                         c.Item().Text(FormatCurrency(report.ReferenceCurrency ?? "", report.ConsolidatedTotals.TotalIncome))
                             .FontSize(14).Bold();
                     });
                     row.ConstantItem(10);
                     row.RelativeItem().Background(Colors.Orange.Lighten4).Padding(8).Column(c =>
                     {
-                        c.Item().Text("Balance Neto").FontSize(8).FontColor(Colors.Grey.Darken2);
+                        c.Item().Text(_localizer["RptCommon_NetBalance"].Value).FontSize(8).FontColor(Colors.Grey.Darken2);
                         c.Item().Text(FormatCurrency(report.ReferenceCurrency ?? "", report.ConsolidatedTotals.NetBalance))
                             .FontSize(14).Bold();
                     });
@@ -73,21 +73,21 @@ public partial class ReportExportService
                 {
                     row.RelativeItem().Background(Colors.Grey.Lighten3).Padding(8).Column(c =>
                     {
-                        c.Item().Text("Proyectos").FontSize(8).FontColor(Colors.Grey.Darken2);
+                        c.Item().Text(_localizer["RptCommon_Projects"].Value).FontSize(8).FontColor(Colors.Grey.Darken2);
                         c.Item().Text($"{report.ProjectCount}").FontSize(14).Bold();
                     });
                     row.ConstantItem(10);
                     row.RelativeItem().Background(Colors.Orange.Lighten4).Padding(8).Column(c =>
                     {
-                        c.Item().Text("Monedas diferentes").FontSize(8).FontColor(Colors.Grey.Darken2);
-                        c.Item().Text("No consolidado").FontSize(10).Bold();
+                        c.Item().Text(_localizer["RptWorkspace_MultiCurrencies"].Value).FontSize(8).FontColor(Colors.Grey.Darken2);
+                        c.Item().Text(_localizer["RptWorkspace_NotConsolidated"].Value).FontSize(10).Bold();
                     });
                 }
 
                 row.ConstantItem(10);
                 row.RelativeItem().Background(Colors.Grey.Lighten3).Padding(8).Column(c =>
                 {
-                    c.Item().Text("Proyectos").FontSize(8).FontColor(Colors.Grey.Darken2);
+                    c.Item().Text(_localizer["RptCommon_Projects"].Value).FontSize(8).FontColor(Colors.Grey.Darken2);
                     c.Item().Text($"{report.ProjectCount}").FontSize(14).Bold();
                 });
             });
@@ -97,18 +97,18 @@ public partial class ReportExportService
     }
 
     /// <summary>Composes the main body sections of the workspace report.</summary>
-    private static void ComposeWorkspaceReportContent(IContainer container, WorkspaceReportResponse report)
+    private void ComposeWorkspaceReportContent(IContainer container, WorkspaceReportResponse report)
     {
         container.Column(col =>
         {
             if (report.Projects.Count == 0)
             {
-                ComposePdfEmptyState(col, "No hay proyectos en este workspace.");
+                ComposePdfEmptyState(col, _localizer["RptWorkspace_NoProjects"].Value);
                 return;
             }
 
             // ── Projects table ───────────────────────────────
-            col.Item().Text("Resumen por Proyecto")
+            col.Item().Text(_localizer["RptWorkspace_ProjectSummary"].Value)
                 .FontSize(12).Bold().FontColor(Colors.Blue.Darken2);
 
             col.Item().PaddingTop(4).Table(table =>
@@ -126,13 +126,13 @@ public partial class ReportExportService
 
                 table.Header(header =>
                 {
-                    PdfTableHeaderCell(header, "Proyecto");
-                    PdfTableHeaderCell(header, "Moneda");
-                    PdfTableHeaderCell(header, "Gastado", true);
-                    PdfTableHeaderCell(header, "Ingresos", true);
-                    PdfTableHeaderCell(header, "Balance", true);
-                    PdfTableHeaderCell(header, "# Gast.", true);
-                    PdfTableHeaderCell(header, "# Ingr.", true);
+                    PdfTableHeaderCell(header, _localizer["RptCommon_Projects"].Value);
+                    PdfTableHeaderCell(header, _localizer["RptCommon_Currency"].Value);
+                    PdfTableHeaderCell(header, _localizer["RptCommon_TotalSpent"].Value, true);
+                    PdfTableHeaderCell(header, _localizer["RptCommon_TotalIncome"].Value, true);
+                    PdfTableHeaderCell(header, _localizer["RptCommon_Balance"].Value, true);
+                    PdfTableHeaderCell(header, _localizer["RptWorkspace_AbbrevExpenses"].Value, true);
+                    PdfTableHeaderCell(header, _localizer["RptWorkspace_AbbrevIncomes"].Value, true);
                 });
 
                 foreach (var p in report.Projects)
@@ -150,7 +150,7 @@ public partial class ReportExportService
             // ── Categories ───────────────────────────────────
             if (report.ConsolidatedByCategory.Count > 0)
             {
-                col.Item().PaddingTop(15).Text("Categorías (Cross-Proyecto)")
+                col.Item().PaddingTop(15).Text(_localizer["RptWorkspace_CrossCategories"].Value)
                     .FontSize(12).Bold().FontColor(Colors.Blue.Darken2);
 
                 col.Item().PaddingTop(4).Table(table =>
@@ -166,11 +166,11 @@ public partial class ReportExportService
 
                     table.Header(header =>
                     {
-                        PdfTableHeaderCell(header, "Categoría");
-                        PdfTableHeaderCell(header, "Total", true);
+                        PdfTableHeaderCell(header, _localizer["RptCommon_Category"].Value);
+                        PdfTableHeaderCell(header, _localizer["RptCommon_Total"].Value, true);
                         PdfTableHeaderCell(header, "%", true);
-                        PdfTableHeaderCell(header, "Proyectos", true);
-                        PdfTableHeaderCell(header, "Gastos", true);
+                        PdfTableHeaderCell(header, _localizer["RptCommon_Projects"].Value, true);
+                        PdfTableHeaderCell(header, _localizer["RptCommon_ExpenseCount"].Value, true);
                     });
 
                     foreach (var cat in report.ConsolidatedByCategory)
@@ -187,7 +187,7 @@ public partial class ReportExportService
             // ── Monthly trend ────────────────────────────────
             if (report.MonthlyTrend.Count > 0)
             {
-                col.Item().PaddingTop(15).Text("Tendencia Mensual")
+                col.Item().PaddingTop(15).Text(_localizer["RptWorkspace_MonthlyTrend"].Value)
                     .FontSize(12).Bold().FontColor(Colors.Blue.Darken2);
 
                 col.Item().PaddingTop(4).Table(table =>
@@ -204,12 +204,12 @@ public partial class ReportExportService
 
                     table.Header(header =>
                     {
-                        PdfTableHeaderCell(header, "Mes");
-                        PdfTableHeaderCell(header, "Gastado", true);
-                        PdfTableHeaderCell(header, "Ingresos", true);
-                        PdfTableHeaderCell(header, "Balance", true);
-                        PdfTableHeaderCell(header, "# Gast.", true);
-                        PdfTableHeaderCell(header, "# Ingr.", true);
+                        PdfTableHeaderCell(header, _localizer["RptCommon_Month"].Value);
+                        PdfTableHeaderCell(header, _localizer["RptCommon_TotalSpent"].Value, true);
+                        PdfTableHeaderCell(header, _localizer["RptCommon_TotalIncome"].Value, true);
+                        PdfTableHeaderCell(header, _localizer["RptCommon_Balance"].Value, true);
+                        PdfTableHeaderCell(header, _localizer["RptWorkspace_AbbrevExpenses"].Value, true);
+                        PdfTableHeaderCell(header, _localizer["RptWorkspace_AbbrevIncomes"].Value, true);
                     });
 
                     foreach (var m in report.MonthlyTrend)

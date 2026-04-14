@@ -16,7 +16,7 @@ public partial class ReportExportService
     public byte[] GenerateExpenseReportExcel(DetailedExpenseReportResponse report)
     {
         using var workbook = new XLWorkbook();
-        ApplyWorkbookDefaults(workbook, "Reporte de Gastos", "Reporte financiero detallado de gastos por proyecto.");
+        ApplyWorkbookDefaults(workbook, _localizer["RptExpense_ReportTitle"].Value, _localizer["RptExpense_ReportSubject"].Value);
 
         AddExpenseSheet(workbook, report);
 
@@ -33,27 +33,27 @@ public partial class ReportExportService
     }
 
     /// <summary>Adds the main detailed expense tracking worksheet.</summary>
-    private static void AddExpenseSheet(XLWorkbook workbook, DetailedExpenseReportResponse report)
+    private void AddExpenseSheet(XLWorkbook workbook, DetailedExpenseReportResponse report)
     {
-        var ws = workbook.Worksheets.Add("Gastos");
+        var ws = workbook.Worksheets.Add(_localizer["RptSheet_Expenses"].Value);
 
         // ── Summary Block (Columns A-B) ─────────────────
-        ws.Cell(1,  1).Value = "Proyecto";           ws.Cell(1,  2).Value = report.ProjectName;
-        ws.Cell(2,  1).Value = "Moneda";             ws.Cell(2,  2).Value = report.CurrencyCode;
-        ws.Cell(3,  1).Value = "Período";            ws.Cell(3,  2).Value = FormatDateRange(report.DateFrom, report.DateTo);
-        ws.Cell(4,  1).Value = "Total Gastado";      ws.Cell(4,  2).Value = report.TotalSpent;
+        ws.Cell(1,  1).Value = _localizer["RptCommon_Project"].Value;    ws.Cell(1,  2).Value = report.ProjectName;
+        ws.Cell(2,  1).Value = _localizer["RptCommon_Currency"].Value;   ws.Cell(2,  2).Value = report.CurrencyCode;
+        ws.Cell(3,  1).Value = _localizer["RptCommon_Period"].Value;     ws.Cell(3,  2).Value = FormatDateRange(report.DateFrom, report.DateTo);
+        ws.Cell(4,  1).Value = _localizer["RptCommon_TotalSpent"].Value; ws.Cell(4,  2).Value = report.TotalSpent;
         ws.Cell(4,  2).Style.NumberFormat.Format = ExcelCurrencyFormat;
-        ws.Cell(5,  1).Value = "Total Ingresos";     ws.Cell(5,  2).Value = report.TotalIncome;
+        ws.Cell(5,  1).Value = _localizer["RptCommon_TotalIncome"].Value; ws.Cell(5,  2).Value = report.TotalIncome;
         ws.Cell(5,  2).Style.NumberFormat.Format = ExcelCurrencyFormat;
-        ws.Cell(6,  1).Value = "Balance Neto";       ws.Cell(6,  2).Value = report.NetBalance;
+        ws.Cell(6,  1).Value = _localizer["RptCommon_NetBalance"].Value; ws.Cell(6,  2).Value = report.NetBalance;
         ws.Cell(6,  2).Style.NumberFormat.Format = ExcelCurrencyFormat;
-        ws.Cell(7,  1).Value = "# Gastos";           ws.Cell(7,  2).Value = report.TotalExpenseCount;
-        ws.Cell(8,  1).Value = "# Ingresos";         ws.Cell(8,  2).Value = report.TotalIncomeCount;
-        ws.Cell(9,  1).Value = "Promedio Gasto";     ws.Cell(9,  2).Value = report.AverageExpenseAmount;
+        ws.Cell(7,  1).Value = _localizer["RptCommon_ExpenseCount"].Value; ws.Cell(7,  2).Value = report.TotalExpenseCount;
+        ws.Cell(8,  1).Value = _localizer["RptCommon_IncomeCount"].Value;  ws.Cell(8,  2).Value = report.TotalIncomeCount;
+        ws.Cell(9,  1).Value = _localizer["RptExpense_AvgExpense"].Value;  ws.Cell(9,  2).Value = report.AverageExpenseAmount;
         ws.Cell(9,  2).Style.NumberFormat.Format = ExcelCurrencyFormat;
-        ws.Cell(10, 1).Value = "Promedio Mensual";   ws.Cell(10, 2).Value = report.AverageMonthlySpend;
+        ws.Cell(10, 1).Value = _localizer["RptExpense_AvgMonthly"].Value;  ws.Cell(10, 2).Value = report.AverageMonthlySpend;
         ws.Cell(10, 2).Style.NumberFormat.Format = ExcelCurrencyFormat;
-        ws.Cell(11, 1).Value = "Generado";           ws.Cell(11, 2).Value = report.GeneratedAt.ToString("yyyy-MM-dd HH:mm UTC");
+        ws.Cell(11, 1).Value = _localizer["RptCommon_Generated"].Value;    ws.Cell(11, 2).Value = report.GeneratedAt.ToString("yyyy-MM-dd HH:mm UTC");
 
         StyleHeaderRange(ws.Range(1, 1, 11, 1));
 
@@ -62,17 +62,17 @@ public partial class ReportExportService
             ? $"{report.PeakMonth.MonthLabel} ({report.PeakMonth.Total:N2})"
             : GetPeakExpenseMonthLabel(report);
 
-        ws.Cell(1, 4).Value = "Mes Mayor Gasto";        ws.Cell(1, 5).Value = peakLabel;
-        ws.Cell(2, 4).Value = "Top Categoría";          ws.Cell(2, 5).Value = GetTopExpenseCategoryLabel(report);
-        ws.Cell(3, 4).Value = "Obligaciones Vencidas";  ws.Cell(3, 5).Value = report.ObligationSummary?.OverdueCount ?? 0;
-        ws.Cell(4, 4).Value = "Monto Vencido";          ws.Cell(4, 5).Value = report.ObligationSummary?.OverdueAmount ?? 0m;
+        ws.Cell(1, 4).Value = _localizer["RptExpense_PeakMonth"].Value;    ws.Cell(1, 5).Value = peakLabel;
+        ws.Cell(2, 4).Value = _localizer["RptExpense_TopCategory"].Value;  ws.Cell(2, 5).Value = GetTopExpenseCategoryLabel(report);
+        ws.Cell(3, 4).Value = _localizer["RptExpense_OverdueObligs"].Value; ws.Cell(3, 5).Value = report.ObligationSummary?.OverdueCount ?? 0;
+        ws.Cell(4, 4).Value = _localizer["RptExpense_OverdueAmount"].Value; ws.Cell(4, 5).Value = report.ObligationSummary?.OverdueAmount ?? 0m;
         ws.Cell(4, 5).Style.NumberFormat.Format = ExcelCurrencyFormat;
 
         if (report.LargestExpense is not null)
         {
-            ws.Cell(5, 4).Value = "Mayor Gasto";
+            ws.Cell(5, 4).Value = _localizer["RptExpense_LargestExpense"].Value;
             ws.Cell(5, 5).Value = $"{report.LargestExpense.Title} ({report.LargestExpense.Amount:N2})";
-            ws.Cell(6, 4).Value = "Fecha Mayor Gasto";
+            ws.Cell(6, 4).Value = _localizer["RptExpense_LargestExpenseDate"].Value;
             ws.Cell(6, 5).Value = report.LargestExpense.ExpenseDate.ToString("yyyy-MM-dd");
         }
 
@@ -83,10 +83,10 @@ public partial class ReportExportService
         if (altCurrencies.Count > 0)
         {
             var altRow = 1;
-            ws.Cell(altRow, 7).Value = "Moneda Alternativa";
-            ws.Cell(altRow, 8).Value = "Total Gastado";
-            ws.Cell(altRow, 9).Value = "Total Ingresos";
-            ws.Cell(altRow, 10).Value = "Balance Neto";
+            ws.Cell(altRow, 7).Value = _localizer["RptExpense_AltCurrency"].Value;
+            ws.Cell(altRow, 8).Value = _localizer["RptCommon_TotalSpent"].Value;
+            ws.Cell(altRow, 9).Value = _localizer["RptCommon_TotalIncome"].Value;
+            ws.Cell(altRow, 10).Value = _localizer["RptCommon_NetBalance"].Value;
             StyleTableHeader(ws.Range(altRow, 7, altRow, 10));
             altRow++;
 
@@ -104,17 +104,28 @@ public partial class ReportExportService
         }
 
         // ── Expense Table ───────────────────────────────────
-        // Build dynamic headers: base columns + one column per alternative currency
         var baseHeaders = new List<string>
         {
-            "Fecha", "Título", "Categoría", "Método de Pago", "Tipo",
-            "Monto Original", "Moneda Orig.", "Tasa Cambio", "Monto Convertido",
-            "Monto Cuenta", "Moneda Cuenta",
-            "Descripción", "Nro. Recibo", "Notas", "Pago Obligación", "Obligación"
+            _localizer["RptCommon_Date"].Value,
+            _localizer["RptCommon_Title"].Value,
+            _localizer["RptCommon_Category"].Value,
+            _localizer["RptCommon_PaymentMethod"].Value,
+            _localizer["RptCommon_Type"].Value,
+            _localizer["RptExpense_OriginalAmount"].Value,
+            _localizer["RptExpense_OrigCurrency"].Value,
+            _localizer["RptExpense_ExchangeRate"].Value,
+            _localizer["RptExpense_ConvertedAmount"].Value,
+            _localizer["RptExpense_AccountAmount"].Value,
+            _localizer["RptExpense_AccountCurrency"].Value,
+            _localizer["RptCommon_Description"].Value,
+            _localizer["RptExpense_ReceiptNo"].Value,
+            _localizer["RptCommon_Notes"].Value,
+            _localizer["RptExpense_IsObligPayment"].Value,
+            _localizer["RptExpense_Obligation"].Value,
         };
         var altCodes = altCurrencies.Select(a => a.CurrencyCode).ToList();
         foreach (var code in altCodes)
-            baseHeaders.Add($"Monto {code}");
+            baseHeaders.Add(code);
         var headers = baseHeaders.ToArray();
 
         const int tableStartRow = 13;
@@ -127,9 +138,10 @@ public partial class ReportExportService
         foreach (var section in report.Sections)
         {
             // ── Monthly Section Row (Enriched) ─────────
-            var sectionLabel = $"── {section.MonthLabel}  |  {section.SectionCount} gastos  |  {section.PercentageOfTotal:N1}% del total  |  Prom: {section.AverageExpenseAmount:N2}";
+            var sectionLabel = _localizer["RptFmt_ExpenseSectionLabel",
+                section.MonthLabel, section.SectionCount, section.PercentageOfTotal, section.AverageExpenseAmount].Value;
             if (section.TopExpense is not null)
-                sectionLabel += $"  |  Mayor: {section.TopExpense.Title} ({section.TopExpense.Amount:N2})";
+                sectionLabel += _localizer["RptFmt_SectionTopItem", section.TopExpense.Title, section.TopExpense.Amount].Value;
 
             ws.Cell(row, 1).Value = sectionLabel;
             ws.Cell(row, 1).Style.Font.Bold   = true;
@@ -167,7 +179,7 @@ public partial class ReportExportService
                 ws.Cell(row, 12).Value = exp.Description    ?? "";
                 ws.Cell(row, 13).Value = exp.ReceiptNumber  ?? "";
                 ws.Cell(row, 14).Value = exp.Notes          ?? "";
-                ws.Cell(row, 15).Value = exp.IsObligationPayment ? "Sí" : "No";
+                ws.Cell(row, 15).Value = exp.IsObligationPayment ? _localizer["RptCommon_YesLabel"].Value : _localizer["RptCommon_NoLabel"].Value;
                 ws.Cell(row, 16).Value = exp.ObligationTitle ?? "";
 
                 // Alternative currency columns
@@ -206,7 +218,7 @@ public partial class ReportExportService
     }
 
     /// <summary>Writes monthly subtotal summary rows for a specific section.</summary>
-    private static void WriteSectionTotals(IXLWorksheet ws, int startRow, MonthlyExpenseSection section, List<string> altCodes)
+    private void WriteSectionTotals(IXLWorksheet ws, int startRow, MonthlyExpenseSection section, List<string> altCodes)
     {
         void TotalRow(int offset, string label, decimal value)
         {
@@ -217,9 +229,9 @@ public partial class ReportExportService
             ws.Cell(startRow + offset, 9).Style.Font.Bold = true;
         }
 
-        TotalRow(0, "Subtotal:",     section.SectionTotal);
-        TotalRow(1, "Ingresos:",     section.SectionIncomeTotal);
-        TotalRow(2, "Balance Neto:", section.SectionNetBalance);
+        TotalRow(0, _localizer["RptCommon_Subtotal"].Value, section.SectionTotal);
+        TotalRow(1, _localizer["RptCommon_TotalIncome"].Value + ":", section.SectionIncomeTotal);
+        TotalRow(2, _localizer["RptCommon_NetBalance"].Value + ":", section.SectionNetBalance);
 
         // Alternative currency subtotals in the same rows
         var sectionAlt = section.AlternativeCurrencies ?? [];
@@ -241,14 +253,21 @@ public partial class ReportExportService
     }
 
     /// <summary>Adds a worksheet for category-based budgetary analysis.</summary>
-    private static void AddCategoryAnalysisSheet(XLWorkbook workbook, DetailedExpenseReportResponse report)
+    private void AddCategoryAnalysisSheet(XLWorkbook workbook, DetailedExpenseReportResponse report)
     {
-        var ws = workbook.Worksheets.Add("Categorías");
+        var ws = workbook.Worksheets.Add(_localizer["RptSheet_Categories"].Value);
 
         var headers = new[]
         {
-            "Categoría", "Es Default", "Presupuesto", "Gastado",
-            "# Gastos", "% del Total", "Restante", "% Usado", "Excedido"
+            _localizer["RptCommon_Category"].Value,
+            _localizer["RptExpense_IsDefault"].Value,
+            _localizer["RptExpense_Budget"].Value,
+            _localizer["RptExpense_Spent"].Value,
+            _localizer["RptCommon_ExpenseCount"].Value,
+            "%",
+            _localizer["RptExpense_Remaining"].Value,
+            _localizer["RptExpense_UsedPct"].Value,
+            _localizer["RptExpense_Exceeded"].Value,
         };
 
         for (var col = 1; col <= headers.Length; col++)
@@ -259,7 +278,7 @@ public partial class ReportExportService
         foreach (var cat in report.CategoryAnalysis!)
         {
             ws.Cell(row, 1).Value = cat.CategoryName;
-            ws.Cell(row, 2).Value = cat.IsDefault ? "Sí" : "No";
+            ws.Cell(row, 2).Value = cat.IsDefault ? _localizer["RptCommon_YesLabel"].Value : _localizer["RptCommon_NoLabel"].Value;
             ws.Cell(row, 3).Value = cat.BudgetAmount ?? 0;
             ws.Cell(row, 3).Style.NumberFormat.Format = ExcelCurrencyFormat;
             ws.Cell(row, 4).Value = cat.SpentAmount;
@@ -271,7 +290,7 @@ public partial class ReportExportService
             ws.Cell(row, 7).Style.NumberFormat.Format = ExcelCurrencyFormat;
             ws.Cell(row, 8).Value = cat.BudgetUsedPercentage ?? 0;
             ws.Cell(row, 8).Style.NumberFormat.Format = ExcelPercentFormat;
-            ws.Cell(row, 9).Value = cat.BudgetExceeded == true ? "⚠ Sí" : "No";
+            ws.Cell(row, 9).Value = cat.BudgetExceeded == true ? _localizer["RptExpense_ExceededMark"].Value : _localizer["RptCommon_NoLabel"].Value;
 
             if (cat.BudgetExceeded == true)
                 ws.Range(row, 1, row, headers.Length).Style.Fill.BackgroundColor = XLColor.LightCoral;
@@ -302,13 +321,18 @@ public partial class ReportExportService
     }
 
     /// <summary>Adds a worksheet for payment method distribution analysis.</summary>
-    private static void AddExpensePaymentMethodAnalysisSheet(XLWorkbook workbook, DetailedExpenseReportResponse report)
+    private void AddExpensePaymentMethodAnalysisSheet(XLWorkbook workbook, DetailedExpenseReportResponse report)
     {
-        var ws = workbook.Worksheets.Add("Por Método de Pago");
+        var ws = workbook.Worksheets.Add(_localizer["RptSheet_PaymentMethod"].Value);
 
         var headers = new[]
         {
-            "Método de Pago", "Tipo", "Total Gastado", "# Gastos", "% del Total", "Promedio Gasto"
+            _localizer["RptCommon_PaymentMethod"].Value,
+            _localizer["RptCommon_Type"].Value,
+            _localizer["RptCommon_TotalSpent"].Value,
+            _localizer["RptCommon_ExpenseCount"].Value,
+            "%",
+            _localizer["RptExpense_AvgExpense"].Value,
         };
 
         for (var col = 1; col <= headers.Length; col++)
@@ -343,21 +367,21 @@ public partial class ReportExportService
     }
 
     /// <summary>Adds a worksheet for obligation status and tracking.</summary>
-    private static void AddObligationsSheet(XLWorkbook workbook, DetailedExpenseReportResponse report)
+    private void AddObligationsSheet(XLWorkbook workbook, DetailedExpenseReportResponse report)
     {
-        var ws  = workbook.Worksheets.Add("Obligaciones");
+        var ws  = workbook.Worksheets.Add(_localizer["RptSheet_Obligations"].Value);
         var obl = report.ObligationSummary!;
 
         // ── Summary ───────────────────────────────────────────
-        ws.Cell(1, 1).Value = "Total Obligaciones"; ws.Cell(1, 2).Value = obl.TotalObligations;
-        ws.Cell(2, 1).Value = "Monto Total";        ws.Cell(2, 2).Value = obl.TotalAmount;
+        ws.Cell(1, 1).Value = _localizer["RptExpense_ObligTotalObligs"].Value; ws.Cell(1, 2).Value = obl.TotalObligations;
+        ws.Cell(2, 1).Value = _localizer["RptExpense_ObligTotalAmount"].Value; ws.Cell(2, 2).Value = obl.TotalAmount;
         ws.Cell(2, 2).Style.NumberFormat.Format = ExcelCurrencyFormat;
-        ws.Cell(3, 1).Value = "Total Pagado";       ws.Cell(3, 2).Value = obl.TotalPaid;
+        ws.Cell(3, 1).Value = _localizer["RptExpense_ObligTotalPaid"].Value;   ws.Cell(3, 2).Value = obl.TotalPaid;
         ws.Cell(3, 2).Style.NumberFormat.Format = ExcelCurrencyFormat;
-        ws.Cell(4, 1).Value = "Total Pendiente";    ws.Cell(4, 2).Value = obl.TotalPending;
+        ws.Cell(4, 1).Value = _localizer["RptExpense_ObligTotalPending"].Value; ws.Cell(4, 2).Value = obl.TotalPending;
         ws.Cell(4, 2).Style.NumberFormat.Format = ExcelCurrencyFormat;
-        ws.Cell(5, 1).Value = "Vencidas";           ws.Cell(5, 2).Value = obl.OverdueCount;
-        ws.Cell(6, 1).Value = "Monto Vencido";      ws.Cell(6, 2).Value = obl.OverdueAmount;
+        ws.Cell(5, 1).Value = _localizer["RptExpense_ObligOverdue"].Value;     ws.Cell(5, 2).Value = obl.OverdueCount;
+        ws.Cell(6, 1).Value = _localizer["RptExpense_OverdueAmount"].Value;    ws.Cell(6, 2).Value = obl.OverdueAmount;
         ws.Cell(6, 2).Style.NumberFormat.Format = ExcelCurrencyFormat;
 
         StyleHeaderRange(ws.Range(1, 1, 6, 1));
@@ -365,9 +389,17 @@ public partial class ReportExportService
         // ── Table ─────────────────────────────────────────────
         var headers = new[]
         {
-            "Estado", "Título", "Descripción", "Monto Total",
-            "Pagado", "Restante", "% Pagado", "Moneda", "Fecha Vencimiento",
-            "# Pagos", "Último Pago"
+            _localizer["RptCommon_Status"].Value,
+            _localizer["RptCommon_Title"].Value,
+            _localizer["RptCommon_Description"].Value,
+            _localizer["RptExpense_ObligTotalAmount"].Value,
+            _localizer["RptCommon_Paid"].Value,
+            _localizer["RptExpense_Remaining"].Value,
+            "%",
+            _localizer["RptCommon_Currency"].Value,
+            _localizer["RptExpense_DueDate"].Value,
+            _localizer["RptExpense_PaymentCount"].Value,
+            _localizer["RptExpense_LastPayment"].Value,
         };
 
         const int tableStartRow = 8;

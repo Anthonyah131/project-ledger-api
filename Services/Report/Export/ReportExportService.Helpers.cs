@@ -120,11 +120,11 @@ public partial class ReportExportService : IReportExportService
     }
 
     /// <summary>Renders a placeholder section when no data is available for a report segment.</summary>
-    private static void ComposePdfEmptyState(ColumnDescriptor col, string message)
+    private void ComposePdfEmptyState(ColumnDescriptor col, string message)
     {
         col.Item().PaddingTop(10).Background(Colors.Grey.Lighten3).Padding(10).Column(inner =>
         {
-            inner.Item().Text("Sin datos para mostrar")
+            inner.Item().Text(_localizer["RptCommon_NoData"].Value)
                 .FontSize(11).Bold().FontColor(Colors.Grey.Darken2);
             inner.Item().PaddingTop(2).Text(message)
                 .FontSize(9).FontColor(Colors.Grey.Darken1);
@@ -132,13 +132,13 @@ public partial class ReportExportService : IReportExportService
     }
 
     /// <summary>Composes the standard page footer with numbering.</summary>
-    private static void ComposeFooter(IContainer container)
+    private void ComposeFooter(IContainer container)
     {
         container.AlignCenter().Text(text =>
         {
-            text.Span("Project Ledger — Pagina ").FontSize(8).FontColor(Colors.Grey.Medium);
+            text.Span(_localizer["RptFmt_FooterPagePrefix"].Value).FontSize(8).FontColor(Colors.Grey.Medium);
             text.CurrentPageNumber().FontSize(8).FontColor(Colors.Grey.Medium);
-            text.Span(" de ").FontSize(8).FontColor(Colors.Grey.Medium);
+            text.Span(_localizer["RptFmt_FooterPageMiddle"].Value).FontSize(8).FontColor(Colors.Grey.Medium);
             text.TotalPages().FontSize(8).FontColor(Colors.Grey.Medium);
         });
     }
@@ -152,21 +152,21 @@ public partial class ReportExportService : IReportExportService
             : $"{currencyCode} {amount:N2}";
 
     /// <summary>Generates a human-readable date range label.</summary>
-    private static string FormatDateRange(DateOnly? from, DateOnly? to) => (from, to) switch
+    private string FormatDateRange(DateOnly? from, DateOnly? to) => (from, to) switch
     {
         ({ } f, { } t) => $"{f:yyyy-MM-dd} — {t:yyyy-MM-dd}",
-        ({ } f, null) => $"Desde {f:yyyy-MM-dd}",
-        (null, { } t) => $"Hasta {t:yyyy-MM-dd}",
-        _             => "Todo el historial"
+        ({ } f, null) => _localizer["RptFmt_DateFrom", $"{f:yyyy-MM-dd}"].Value,
+        (null, { } t) => _localizer["RptFmt_DateTo", $"{t:yyyy-MM-dd}"].Value,
+        _             => _localizer["RptFmt_AllHistory"].Value
     };
 
     /// <summary>Translates internal status codes to display-friendly labels.</summary>
-    private static string FormatStatus(string status) => status switch
+    private string FormatStatus(string status) => status switch
     {
-        "open"           => "Abierta",
-        "partially_paid" => "Parcial",
-        "paid"           => "Pagada",
-        "overdue"        => "Vencida",
+        "open"           => _localizer["RptStatus_Open"].Value,
+        "partially_paid" => _localizer["RptStatus_PartiallyPaid"].Value,
+        "paid"           => _localizer["RptStatus_Paid"].Value,
+        "overdue"        => _localizer["RptStatus_Overdue"].Value,
         _                => status
     };
 

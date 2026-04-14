@@ -14,8 +14,8 @@ public partial class ReportExportService
     {
         using var workbook = new XLWorkbook();
         ApplyWorkbookDefaults(workbook,
-            $"Reporte Partner — {report.PartnerName}",
-            "Actividad consolidada del partner por proyecto y método de pago.");
+            _localizer["RptFmt_PartnerReportTitle", report.PartnerName].Value,
+            _localizer["RptPartnerGeneral_ReportSubject"].Value);
 
         AddPartnerGeneralSummarySheet(workbook, report);
 
@@ -31,23 +31,23 @@ public partial class ReportExportService
     // ── Sheet 1: Summary ─────────────────────────────────────
 
     /// <summary>Adds the main partner activity summary worksheet.</summary>
-    private static void AddPartnerGeneralSummarySheet(XLWorkbook workbook, PartnerGeneralReportResponse report)
+    private void AddPartnerGeneralSummarySheet(XLWorkbook workbook, PartnerGeneralReportResponse report)
     {
-        var ws = workbook.Worksheets.Add("Resumen");
+        var ws = workbook.Worksheets.Add(_localizer["RptSheet_Summary"].Value);
 
         // Header block
-        ws.Cell(1, 1).Value = "Partner";     ws.Cell(1, 2).Value = report.PartnerName;
-        ws.Cell(2, 1).Value = "Email";       ws.Cell(2, 2).Value = report.PartnerEmail ?? "—";
-        ws.Cell(3, 1).Value = "Período";     ws.Cell(3, 2).Value = FormatDateRange(report.DateFrom, report.DateTo);
-        ws.Cell(4, 1).Value = "Proyectos";   ws.Cell(4, 2).Value = report.Projects.Count;
-        ws.Cell(5, 1).Value = "Métodos Pago"; ws.Cell(5, 2).Value = report.PaymentMethods.Count;
-        ws.Cell(6, 1).Value = "Generado";    ws.Cell(6, 2).Value = report.GeneratedAt.ToString("yyyy-MM-dd HH:mm UTC");
+        ws.Cell(1, 1).Value = _localizer["RptCommon_Partner"].Value;        ws.Cell(1, 2).Value = report.PartnerName;
+        ws.Cell(2, 1).Value = _localizer["RptCommon_Email"].Value;          ws.Cell(2, 2).Value = report.PartnerEmail ?? "—";
+        ws.Cell(3, 1).Value = _localizer["RptCommon_Period"].Value;         ws.Cell(3, 2).Value = FormatDateRange(report.DateFrom, report.DateTo);
+        ws.Cell(4, 1).Value = _localizer["RptCommon_Projects"].Value;       ws.Cell(4, 2).Value = report.Projects.Count;
+        ws.Cell(5, 1).Value = _localizer["RptPartnerGeneral_PaymentMethods"].Value; ws.Cell(5, 2).Value = report.PaymentMethods.Count;
+        ws.Cell(6, 1).Value = _localizer["RptCommon_Generated"].Value;      ws.Cell(6, 2).Value = report.GeneratedAt.ToString("yyyy-MM-dd HH:mm UTC");
 
         StyleHeaderRange(ws.Range(1, 1, 6, 1));
 
         if (report.Projects.Count == 0)
         {
-            ws.Cell(9, 1).Value = "Sin actividad en el período seleccionado.";
+            ws.Cell(9, 1).Value = _localizer["RptPartnerGeneral_NoActivity"].Value;
             ws.Cell(9, 1).Style.Font.Italic = true;
             return;
         }
@@ -59,8 +59,14 @@ public partial class ReportExportService
         const int headerRow = 9;
         string[] headers =
         [
-            "Proyecto", "Moneda", "Pagó Físicamente", "Otros le Deben",
-            "Él Debe", "Stl. Pagados", "Stl. Recibidos", "Balance Neto"
+            _localizer["RptCommon_Projects"].Value,
+            _localizer["RptCommon_Currency"].Value,
+            _localizer["RptPartnerGeneral_PaidPhysically"].Value,
+            _localizer["RptPartnerGeneral_OthersOwe"].Value,
+            _localizer["RptPartnerGeneral_HeOwes"].Value,
+            _localizer["RptPartnerGeneral_StlPaid"].Value,
+            _localizer["RptPartnerGeneral_StlReceived"].Value,
+            _localizer["RptCommon_NetBalance"].Value,
         ];
 
         for (var c = 0; c < headers.Length; c++)
@@ -98,7 +104,7 @@ public partial class ReportExportService
         if (singleCurrency is not null)
         {
             // Totals row when all projects share the same currency
-            ws.Cell(row, 1).Value = "TOTAL";
+            ws.Cell(row, 1).Value = _localizer["RptCommon_Total"].Value;
             ws.Cell(row, 1).Style.Font.Bold = true;
             ws.Cell(row, 2).Value = singleCurrency;
             for (var c = 3; c <= 8; c++)
@@ -121,7 +127,7 @@ public partial class ReportExportService
         else
         {
             // Note: multiple currencies
-            ws.Cell(row + 1, 1).Value = "Nota: los proyectos tienen monedas base distintas — no se muestran totales globales.";
+            ws.Cell(row + 1, 1).Value = _localizer["RptPartnerGeneral_MultiCurrencyNote"].Value;
             ws.Cell(row + 1, 1).Style.Font.Italic = true;
             ws.Cell(row + 1, 1).Style.Font.FontColor = XLColor.DarkOrange;
             ws.Range(row + 1, 1, row + 1, headers.Length).Merge();
@@ -130,10 +136,10 @@ public partial class ReportExportService
         FinalizeSheetLayout(ws, headerRow, row, headers.Length, headerRow);
     }
 
-    // ── Hojas por proyecto ──────────────────────────────────
+    // ── Sheets per project ──────────────────────────────────
 
     /// <summary>Adds a dedicated worksheet for a specific project's partner activity.</summary>
-    private static void AddPartnerProjectSheet(
+    private void AddPartnerProjectSheet(
         XLWorkbook workbook, PartnerProjectSummary project, string partnerName)
     {
         // ClosedXML sheet names are max 31 chars
@@ -151,15 +157,15 @@ public partial class ReportExportService
         var ws = workbook.Worksheets.Add(finalName);
 
         // ── Block 1: Project header (rows 1-5) ───────────────
-        ws.Cell(1, 1).Value = "Proyecto";  ws.Cell(1, 2).Value = project.ProjectName;
-        ws.Cell(2, 1).Value = "Moneda";    ws.Cell(2, 2).Value = project.CurrencyCode;
-        ws.Cell(3, 1).Value = "Período";   ws.Cell(3, 2).Value = "Según filtros del reporte";
-        ws.Cell(4, 1).Value = "Partner";   ws.Cell(4, 2).Value = partnerName;
+        ws.Cell(1, 1).Value = _localizer["RptCommon_Projects"].Value; ws.Cell(1, 2).Value = project.ProjectName;
+        ws.Cell(2, 1).Value = _localizer["RptCommon_Currency"].Value; ws.Cell(2, 2).Value = project.CurrencyCode;
+        ws.Cell(3, 1).Value = _localizer["RptCommon_Period"].Value;   ws.Cell(3, 2).Value = _localizer["RptPartnerGeneral_ReportFilter"].Value;
+        ws.Cell(4, 1).Value = _localizer["RptCommon_Partner"].Value;  ws.Cell(4, 2).Value = partnerName;
         StyleHeaderRange(ws.Range(1, 1, 4, 1));
 
         // ── Block 2: Balance summary (rows 6-13) ─────────────
         var balanceRow = 6;
-        ws.Cell(balanceRow, 1).Value = "Resumen de Balance";
+        ws.Cell(balanceRow, 1).Value = _localizer["RptPartnerGeneral_BalanceSummary"].Value;
         ws.Cell(balanceRow, 1).Style.Font.Bold = true;
         ws.Cell(balanceRow, 1).Style.Font.FontColor = XLColor.DarkBlue;
         balanceRow++;
@@ -179,25 +185,33 @@ public partial class ReportExportService
         }
 
         StyleHeaderRange(ws.Range(balanceRow, 1, balanceRow, 1));
-        WriteBalanceLine(balanceRow, $"Moneda base: {project.CurrencyCode}", 0);
-        WriteBalanceLine(balanceRow + 1, "  Pagó Físicamente", project.PaidPhysically);
-        WriteBalanceLine(balanceRow + 2, "  Otros le Deben", project.OthersOweHim);
-        WriteBalanceLine(balanceRow + 3, "  Él Debe a Otros", project.HeOwesOthers);
-        WriteBalanceLine(balanceRow + 4, "  Settlements Pagados", project.SettlementsPaid);
-        WriteBalanceLine(balanceRow + 5, "  Settlements Recibidos", project.SettlementsReceived);
-        WriteBalanceLine(balanceRow + 6, "  Balance Neto", project.NetBalance, highlight: true);
+        WriteBalanceLine(balanceRow,     _localizer["RptFmt_BaseCurrency", project.CurrencyCode].Value, 0);
+        WriteBalanceLine(balanceRow + 1, $"  {_localizer["RptPartnerGeneral_PaidPhysically"].Value}", project.PaidPhysically);
+        WriteBalanceLine(balanceRow + 2, $"  {_localizer["RptPartnerGeneral_OthersOwe"].Value}", project.OthersOweHim);
+        WriteBalanceLine(balanceRow + 3, $"  {_localizer["RptPartnerGeneral_HeOwes"].Value}", project.HeOwesOthers);
+        WriteBalanceLine(balanceRow + 4, $"  {_localizer["RptPartnerGeneral_StlPaid"].Value}", project.SettlementsPaid);
+        WriteBalanceLine(balanceRow + 5, $"  {_localizer["RptPartnerGeneral_StlReceived"].Value}", project.SettlementsReceived);
+        WriteBalanceLine(balanceRow + 6, $"  {_localizer["RptCommon_NetBalance"].Value}", project.NetBalance, highlight: true);
 
         var nextRow = balanceRow + 8;
 
         // Currency totals sub-block
         if (project.CurrencyTotals.Count > 0)
         {
-            ws.Cell(nextRow, 1).Value = "Totales en Monedas Alternativas";
+            ws.Cell(nextRow, 1).Value = _localizer["RptPartnerGeneral_AltCurrencyTotals"].Value;
             ws.Cell(nextRow, 1).Style.Font.Bold = true;
             ws.Cell(nextRow, 1).Style.Font.FontColor = XLColor.DarkBlue;
             nextRow++;
 
-            string[] altHeaders = ["Moneda", "Otros le Deben", "Él Debe", "Stl. Pagados", "Stl. Recibidos", "Balance Neto"];
+            string[] altHeaders =
+            [
+                _localizer["RptCommon_Currency"].Value,
+                _localizer["RptPartnerGeneral_OthersOwe"].Value,
+                _localizer["RptPartnerGeneral_HeOwesShort"].Value,
+                _localizer["RptPartnerBalance_StlPaid"].Value,
+                _localizer["RptPartnerBalance_StlReceived"].Value,
+                _localizer["RptCommon_NetBalance"].Value,
+            ];
             for (var c = 0; c < altHeaders.Length; c++)
                 ws.Cell(nextRow, c + 1).Value = altHeaders[c];
             StyleTableHeader(ws.Range(nextRow, 1, nextRow, altHeaders.Length));
@@ -228,7 +242,7 @@ public partial class ReportExportService
         // ── Block 3: Transactions table ──────────────────────
         if (project.Transactions.Count > 0)
         {
-            ws.Cell(nextRow, 1).Value = $"Transacciones — {project.CurrencyCode} (moneda base)";
+            ws.Cell(nextRow, 1).Value = _localizer["RptFmt_TransactionsCurrency", project.CurrencyCode].Value;
             ws.Cell(nextRow, 1).Style.Font.Bold = true;
             ws.Cell(nextRow, 1).Style.Font.FontColor = XLColor.DarkBlue;
             nextRow++;
@@ -243,11 +257,18 @@ public partial class ReportExportService
 
             var txHeaders = new List<string>
             {
-                "Fecha", "Tipo", "Título", "Categoría", "Método de Pago", "Paga",
-                $"Monto Split ({project.CurrencyCode})", "Tipo Split", "Valor Split"
+                _localizer["RptCommon_Date"].Value,
+                _localizer["RptCommon_Type"].Value,
+                _localizer["RptCommon_Title"].Value,
+                _localizer["RptCommon_Category"].Value,
+                _localizer["RptCommon_PaymentMethod"].Value,
+                _localizer["RptPartnerGeneral_PayingPartner"].Value,
+                _localizer["RptFmt_SplitAmountCurrency", project.CurrencyCode].Value,
+                _localizer["RptPartnerGeneral_SplitType"].Value,
+                _localizer["RptPartnerGeneral_SplitValue"].Value,
             };
             // Add one column per alternative currency (informative only)
-            txHeaders.AddRange(altCurrencies.Select(c => $"{c} (ref)"));
+            txHeaders.AddRange(altCurrencies.Select(c => _localizer["RptFmt_AltCurrencyRef", c].Value));
 
             var txHeaderRow = nextRow;
             for (var c = 0; c < txHeaders.Count; c++)
@@ -303,15 +324,19 @@ public partial class ReportExportService
         // ── Block 4: Settlements table ───────────────────────
         if (project.Settlements.Count > 0)
         {
-            ws.Cell(nextRow, 1).Value = "Settlements";
+            ws.Cell(nextRow, 1).Value = _localizer["RptCommon_Settlements"].Value;
             ws.Cell(nextRow, 1).Style.Font.Bold = true;
             ws.Cell(nextRow, 1).Style.Font.FontColor = XLColor.DarkBlue;
             nextRow++;
 
             string[] stlHeaders =
             [
-                "Fecha", "Dirección", "Contraparte", "Monto Original", "Moneda",
-                $"Monto Convertido ({project.CurrencyCode})"
+                _localizer["RptCommon_Date"].Value,
+                _localizer["RptCommon_Direction"].Value,
+                _localizer["RptPartnerGeneral_Counterparty"].Value,
+                _localizer["RptPartnerGeneral_OriginalAmount"].Value,
+                _localizer["RptCommon_Currency"].Value,
+                _localizer["RptFmt_ConvertedAmountCurrency", project.CurrencyCode].Value,
             ];
 
             for (var c = 0; c < stlHeaders.Length; c++)
@@ -324,7 +349,9 @@ public partial class ReportExportService
             foreach (var s in project.Settlements)
             {
                 ws.Cell(nextRow, 1).Value = s.Date.ToString("yyyy-MM-dd");
-                ws.Cell(nextRow, 2).Value = s.Direction == "paid_to" ? "Pagó a" : "Recibió de";
+                ws.Cell(nextRow, 2).Value = s.Direction == "paid_to"
+                    ? _localizer["RptPartnerGeneral_PaidTo"].Value
+                    : _localizer["RptPartnerGeneral_ReceivedFrom"].Value;
                 ws.Cell(nextRow, 3).Value = s.OtherPartnerName;
                 ws.Cell(nextRow, 4).Value = s.Amount;
                 ws.Cell(nextRow, 4).Style.NumberFormat.Format = ExcelCurrencyFormat;
@@ -355,20 +382,25 @@ public partial class ReportExportService
     // ── Payment Methods sheet ───────────────────────────────
 
     /// <summary>Adds a worksheet detailing payment method usage for the partner.</summary>
-    private static void AddPartnerPaymentMethodsSheet(
+    private void AddPartnerPaymentMethodsSheet(
         XLWorkbook workbook, PartnerGeneralReportResponse report)
     {
-        var ws = workbook.Worksheets.Add("Métodos de Pago");
+        var ws = workbook.Worksheets.Add(_localizer["RptSheet_PaymentMethods"].Value);
 
-        ws.Cell(1, 1).Value = "Nota: los montos están en la moneda nativa de cada método de pago.";
+        ws.Cell(1, 1).Value = _localizer["RptPartnerGeneral_PmNote"].Value;
         ws.Cell(1, 1).Style.Font.Italic = true;
         ws.Cell(1, 1).Style.Font.FontColor = XLColor.DarkOrange;
         ws.Range(1, 1, 1, 7).Merge();
 
         string[] headers =
         [
-            "Método de Pago", "Moneda", "Banco",
-            "Total Gastos", "Total Ingresos", "Flujo Neto", "# Transacciones"
+            _localizer["RptCommon_PaymentMethod"].Value,
+            _localizer["RptCommon_Currency"].Value,
+            _localizer["RptPartnerGeneral_BankName"].Value,
+            _localizer["RptPartnerGeneral_TotalExpenses"].Value,
+            _localizer["RptPartnerGeneral_TotalIncomes"].Value,
+            _localizer["RptPartnerGeneral_NetFlow"].Value,
+            _localizer["RptPartnerGeneral_TransactionCount"].Value,
         ];
 
         const int headerRow = 3;

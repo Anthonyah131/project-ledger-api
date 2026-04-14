@@ -13,7 +13,9 @@ public partial class ReportExportService
     public byte[] GenerateWorkspaceReportExcel(WorkspaceReportResponse report)
     {
         using var workbook = new XLWorkbook();
-        ApplyWorkbookDefaults(workbook, "Reporte de Workspace", "Reporte consolidado de workspace.");
+        ApplyWorkbookDefaults(workbook,
+            _localizer["RptWorkspace_ReportTitle"].Value,
+            _localizer["RptWorkspace_ReportSubject"].Value);
 
         AddWorkspaceSummarySheet(workbook, report);
 
@@ -33,27 +35,27 @@ public partial class ReportExportService
     }
 
     /// <summary>Adds the consolidated workspace summary worksheet.</summary>
-    private static void AddWorkspaceSummarySheet(XLWorkbook workbook, WorkspaceReportResponse report)
+    private void AddWorkspaceSummarySheet(XLWorkbook workbook, WorkspaceReportResponse report)
     {
-        var ws = workbook.Worksheets.Add("Resumen");
+        var ws = workbook.Worksheets.Add(_localizer["RptSheet_Summary"].Value);
 
         // ── Summary block ───────────────────────────────────
-        ws.Cell(1, 1).Value = "Workspace";   ws.Cell(1, 2).Value = report.WorkspaceName;
-        ws.Cell(2, 1).Value = "Período";     ws.Cell(2, 2).Value = FormatDateRange(report.DateFrom, report.DateTo);
-        ws.Cell(3, 1).Value = "Proyectos";   ws.Cell(3, 2).Value = report.ProjectCount;
-        ws.Cell(4, 1).Value = "Generado";    ws.Cell(4, 2).Value = report.GeneratedAt.ToString("yyyy-MM-dd HH:mm UTC");
+        ws.Cell(1, 1).Value = _localizer["RptWorkspace_Workspace"].Value; ws.Cell(1, 2).Value = report.WorkspaceName;
+        ws.Cell(2, 1).Value = _localizer["RptCommon_Period"].Value;       ws.Cell(2, 2).Value = FormatDateRange(report.DateFrom, report.DateTo);
+        ws.Cell(3, 1).Value = _localizer["RptCommon_Projects"].Value;     ws.Cell(3, 2).Value = report.ProjectCount;
+        ws.Cell(4, 1).Value = _localizer["RptCommon_Generated"].Value;    ws.Cell(4, 2).Value = report.GeneratedAt.ToString("yyyy-MM-dd HH:mm UTC");
 
         if (report.ConsolidatedTotals is not null)
         {
-            ws.Cell(5,  1).Value = "Moneda Ref.";   ws.Cell(5,  2).Value = report.ReferenceCurrency ?? "—";
-            ws.Cell(6,  1).Value = "Total Gastado"; ws.Cell(6,  2).Value = report.ConsolidatedTotals.TotalSpent;
+            ws.Cell(5,  1).Value = _localizer["RptWorkspace_RefCurrency"].Value;  ws.Cell(5,  2).Value = report.ReferenceCurrency ?? "—";
+            ws.Cell(6,  1).Value = _localizer["RptCommon_TotalSpent"].Value;      ws.Cell(6,  2).Value = report.ConsolidatedTotals.TotalSpent;
             ws.Cell(6,  2).Style.NumberFormat.Format = ExcelCurrencyFormat;
-            ws.Cell(7,  1).Value = "Total Ingresos"; ws.Cell(7, 2).Value = report.ConsolidatedTotals.TotalIncome;
+            ws.Cell(7,  1).Value = _localizer["RptCommon_TotalIncome"].Value;     ws.Cell(7,  2).Value = report.ConsolidatedTotals.TotalIncome;
             ws.Cell(7,  2).Style.NumberFormat.Format = ExcelCurrencyFormat;
-            ws.Cell(8,  1).Value = "Balance Neto";   ws.Cell(8, 2).Value = report.ConsolidatedTotals.NetBalance;
+            ws.Cell(8,  1).Value = _localizer["RptCommon_NetBalance"].Value;      ws.Cell(8,  2).Value = report.ConsolidatedTotals.NetBalance;
             ws.Cell(8,  2).Style.NumberFormat.Format = ExcelCurrencyFormat;
-            ws.Cell(9,  1).Value = "# Gastos";       ws.Cell(9, 2).Value = report.ConsolidatedTotals.TotalExpenseCount;
-            ws.Cell(10, 1).Value = "# Ingresos";     ws.Cell(10, 2).Value = report.ConsolidatedTotals.TotalIncomeCount;
+            ws.Cell(9,  1).Value = _localizer["RptCommon_ExpenseCount"].Value;    ws.Cell(9,  2).Value = report.ConsolidatedTotals.TotalExpenseCount;
+            ws.Cell(10, 1).Value = _localizer["RptCommon_IncomeCount"].Value;     ws.Cell(10, 2).Value = report.ConsolidatedTotals.TotalIncomeCount;
         }
 
         StyleHeaderRange(ws.Range(1, 1, 10, 1));
@@ -62,16 +64,16 @@ public partial class ReportExportService
         if (report.Projects.Count > 0)
         {
             var topProject = report.Projects.OrderByDescending(p => p.TotalSpent).First();
-            ws.Cell(1, 4).Value = "Proyecto Mayor Gasto";
+            ws.Cell(1, 4).Value = _localizer["RptWorkspace_TopExpenseProject"].Value;
             ws.Cell(1, 5).Value = $"{topProject.ProjectName} ({topProject.TotalSpent:N2} {topProject.CurrencyCode})";
 
             var topIncomeProject = report.Projects.OrderByDescending(p => p.TotalIncome).First();
-            ws.Cell(2, 4).Value = "Proyecto Mayor Ingreso";
+            ws.Cell(2, 4).Value = _localizer["RptWorkspace_TopIncomeProject"].Value;
             ws.Cell(2, 5).Value = $"{topIncomeProject.ProjectName} ({topIncomeProject.TotalIncome:N2} {topIncomeProject.CurrencyCode})";
 
             var totalExpenses = report.Projects.Sum(p => p.ExpenseCount);
             var totalIncomes  = report.Projects.Sum(p => p.IncomeCount);
-            ws.Cell(3, 4).Value = "Total Transacciones";
+            ws.Cell(3, 4).Value = _localizer["RptWorkspace_TotalTransactions"].Value;
             ws.Cell(3, 5).Value = totalExpenses + totalIncomes;
         }
 
@@ -81,8 +83,14 @@ public partial class ReportExportService
         const int headerRow = 13;
         string[] headers =
         [
-            "Proyecto", "Moneda", "Total Gastado", "Total Ingresos",
-            "Balance Neto", "# Gastos", "# Ingresos", "% del Workspace"
+            _localizer["RptCommon_Projects"].Value,
+            _localizer["RptCommon_Currency"].Value,
+            _localizer["RptCommon_TotalSpent"].Value,
+            _localizer["RptCommon_TotalIncome"].Value,
+            _localizer["RptCommon_NetBalance"].Value,
+            _localizer["RptCommon_ExpenseCount"].Value,
+            _localizer["RptCommon_IncomeCount"].Value,
+            _localizer["RptWorkspace_PctOfWorkspace"].Value,
         ];
 
         for (var c = 0; c < headers.Length; c++)
@@ -143,11 +151,19 @@ public partial class ReportExportService
     }
 
     /// <summary>Adds a worksheet for category-based summary across all projects in the workspace.</summary>
-    private static void AddWorkspaceCategorySheet(XLWorkbook workbook, WorkspaceReportResponse report)
+    private void AddWorkspaceCategorySheet(XLWorkbook workbook, WorkspaceReportResponse report)
     {
-        var ws = workbook.Worksheets.Add("Categorías");
+        var ws = workbook.Worksheets.Add(_localizer["RptSheet_Categories"].Value);
 
-        string[] headers = ["Categoría", "Total Gastado", "% del Workspace", "# Proyectos", "# Gastos", "Prom. por Proyecto"];
+        string[] headers =
+        [
+            _localizer["RptCommon_Category"].Value,
+            _localizer["RptCommon_TotalSpent"].Value,
+            _localizer["RptWorkspace_PctOfWorkspace"].Value,
+            _localizer["RptCommon_Projects"].Value,
+            _localizer["RptCommon_ExpenseCount"].Value,
+            _localizer["RptWorkspace_AvgPerProject"].Value,
+        ];
 
         for (var c = 0; c < headers.Length; c++)
             ws.Cell(1, c + 1).Value = headers[c];
@@ -182,14 +198,18 @@ public partial class ReportExportService
     }
 
     /// <summary>Adds a worksheet for monthly trend tracking at the workspace level.</summary>
-    private static void AddWorkspaceTrendSheet(XLWorkbook workbook, WorkspaceReportResponse report)
+    private void AddWorkspaceTrendSheet(XLWorkbook workbook, WorkspaceReportResponse report)
     {
-        var ws = workbook.Worksheets.Add("Tendencia Mensual");
+        var ws = workbook.Worksheets.Add(_localizer["RptSheet_MonthlyTrend"].Value);
 
         string[] headers =
         [
-            "Mes", "Total Gastado", "Total Ingresos", "Balance",
-            "# Gastos", "# Ingresos"
+            _localizer["RptCommon_Month"].Value,
+            _localizer["RptCommon_TotalSpent"].Value,
+            _localizer["RptCommon_TotalIncome"].Value,
+            _localizer["RptCommon_Balance"].Value,
+            _localizer["RptCommon_ExpenseCount"].Value,
+            _localizer["RptCommon_IncomeCount"].Value,
         ];
 
         for (var c = 0; c < headers.Length; c++)
@@ -236,11 +256,19 @@ public partial class ReportExportService
     }
 
     /// <summary>Adds a worksheet for detailed monthly breakdown by project.</summary>
-    private static void AddWorkspaceMonthlyByProjectSheet(XLWorkbook workbook, WorkspaceReportResponse report)
+    private void AddWorkspaceMonthlyByProjectSheet(XLWorkbook workbook, WorkspaceReportResponse report)
     {
-        var ws = workbook.Worksheets.Add("Desglose por Proyecto");
+        var ws = workbook.Worksheets.Add(_localizer["RptSheet_ByProjectMonthly"].Value);
 
-        string[] headers = ["Mes", "Proyecto", "Moneda", "Total Gastado", "Total Ingresos", "Balance"];
+        string[] headers =
+        [
+            _localizer["RptCommon_Month"].Value,
+            _localizer["RptCommon_Projects"].Value,
+            _localizer["RptCommon_Currency"].Value,
+            _localizer["RptCommon_TotalSpent"].Value,
+            _localizer["RptCommon_TotalIncome"].Value,
+            _localizer["RptCommon_Balance"].Value,
+        ];
 
         for (var c = 0; c < headers.Length; c++)
             ws.Cell(1, c + 1).Value = headers[c];

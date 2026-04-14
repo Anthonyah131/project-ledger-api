@@ -33,49 +33,50 @@ public partial class ReportExportService
     }
 
     /// <summary>Composes the visual header for the expense report.</summary>
-    private static void ComposeExpenseReportHeader(IContainer container, DetailedExpenseReportResponse report)
+    private void ComposeExpenseReportHeader(IContainer container, DetailedExpenseReportResponse report)
     {
         container.Column(col =>
         {
-            col.Item().Text($"Reporte de Gastos — {report.ProjectName}")
+            col.Item().Text(_localizer["RptFmt_ExpenseReportTitle", report.ProjectName].Value)
                 .FontSize(16).Bold().FontColor(Colors.Blue.Darken3);
 
             col.Item().Row(row =>
             {
-                row.RelativeItem().Text($"Moneda: {report.CurrencyCode}").FontSize(9);
-                row.RelativeItem().Text($"Período: {FormatDateRange(report.DateFrom, report.DateTo)}").FontSize(9);
+                row.RelativeItem().Text($"{_localizer["RptCommon_Currency"].Value}: {report.CurrencyCode}").FontSize(9);
+                row.RelativeItem().Text($"{_localizer["RptCommon_Period"].Value}: {FormatDateRange(report.DateFrom, report.DateTo)}").FontSize(9);
                 row.RelativeItem().AlignRight()
-                    .Text($"Generado: {report.GeneratedAt:yyyy-MM-dd HH:mm} UTC").FontSize(8);
+                    .Text($"{_localizer["RptCommon_Generated"].Value}: {report.GeneratedAt:yyyy-MM-dd HH:mm} UTC").FontSize(8);
             });
 
             col.Item().PaddingTop(5).Row(row =>
             {
                 row.RelativeItem().Background(Colors.Blue.Lighten4).Padding(8).Column(c =>
                 {
-                    c.Item().Text("Total Gastado").FontSize(8).FontColor(Colors.Grey.Darken2);
+                    c.Item().Text(_localizer["RptCommon_TotalSpent"].Value).FontSize(8).FontColor(Colors.Grey.Darken2);
                     c.Item().Text($"{report.CurrencyCode} {report.TotalSpent:N2}").FontSize(14).Bold();
                 });
                 row.ConstantItem(10);
                 row.RelativeItem().Background(Colors.Grey.Lighten3).Padding(8).Column(c =>
                 {
-                    c.Item().Text("Transacciones").FontSize(8).FontColor(Colors.Grey.Darken2);
+                    c.Item().Text(_localizer["RptCommon_Transactions"].Value).FontSize(8).FontColor(Colors.Grey.Darken2);
                     c.Item().Text($"{report.TotalExpenseCount}").FontSize(14).Bold();
                 });
                 row.ConstantItem(10);
                 row.RelativeItem().Background(Colors.Grey.Lighten3).Padding(8).Column(c =>
                 {
-                    c.Item().Text("Mes Pico").FontSize(8).FontColor(Colors.Grey.Darken2);
+                    c.Item().Text(_localizer["RptCommon_PeakMonth"].Value).FontSize(8).FontColor(Colors.Grey.Darken2);
                     c.Item().Text(GetPeakExpenseMonthLabel(report)).FontSize(10).Bold();
                 });
             });
 
             col.Item().PaddingTop(6)
-                .Text($"Top categoría: {GetTopExpenseCategoryLabel(report)}")
+                .Text(_localizer["RptFmt_TopCategoryLine", GetTopExpenseCategoryLabel(report)].Value)
                 .FontSize(8).FontColor(Colors.Grey.Darken1);
 
             col.Item().PaddingTop(2)
-                .Text($"Total ingresos: {FormatCurrency(report.CurrencyCode, report.TotalIncome)}" +
-                      $"  ·  Balance neto: {FormatCurrency(report.CurrencyCode, report.NetBalance)}")
+                .Text(_localizer["RptFmt_TotalIncomeLine",
+                    FormatCurrency(report.CurrencyCode, report.TotalIncome),
+                    FormatCurrency(report.CurrencyCode, report.NetBalance)].Value)
                 .FontSize(8).FontColor(Colors.Grey.Darken1);
 
             // Alternative currency totals
@@ -84,9 +85,8 @@ public partial class ReportExportService
                 foreach (var alt in report.AlternativeCurrencies)
                 {
                     col.Item().PaddingTop(1)
-                        .Text($"[{alt.CurrencyCode}]  Gastado: {alt.TotalSpent:N2}" +
-                              $"  ·  Ingresos: {alt.TotalIncome:N2}" +
-                              $"  ·  Balance: {alt.NetBalance:N2}")
+                        .Text(_localizer["RptFmt_AltCurrencyExpenseLine",
+                            alt.CurrencyCode, alt.TotalSpent, alt.TotalIncome, alt.NetBalance].Value)
                         .FontSize(8).FontColor(Colors.Grey.Darken1);
                 }
             }
@@ -96,13 +96,13 @@ public partial class ReportExportService
     }
 
     /// <summary>Composes the main body sections of the expense report.</summary>
-    private static void ComposeExpenseReportContent(IContainer container, DetailedExpenseReportResponse report)
+    private void ComposeExpenseReportContent(IContainer container, DetailedExpenseReportResponse report)
     {
         container.Column(col =>
         {
             if (report.Sections.Count == 0)
             {
-                ComposePdfEmptyState(col, "No se encontraron gastos para el período seleccionado.");
+                ComposePdfEmptyState(col, _localizer["RptExpense_NoDataMessage"].Value);
                 return;
             }
 
@@ -120,7 +120,7 @@ public partial class ReportExportService
     }
 
     /// <summary>Composes a monthly breakdown table for expenses.</summary>
-    private static void ComposeExpenseSection(
+    private void ComposeExpenseSection(
         ColumnDescriptor col,
         MonthlyExpenseSection section,
         string currencyCode,
@@ -130,7 +130,8 @@ public partial class ReportExportService
             .FontSize(12).Bold().FontColor(Colors.Blue.Darken2);
 
         // Section subtitle with alternative currency subtotals
-        var subtotalText = $"Subtotal: {FormatCurrency(currencyCode, section.SectionTotal)}  ·  {section.SectionCount} gastos";
+        var subtotalText = _localizer["RptFmt_SubtotalExpenses",
+            FormatCurrency(currencyCode, section.SectionTotal), section.SectionCount].Value;
         if (section.AlternativeCurrencies is { Count: > 0 })
         {
             foreach (var alt in section.AlternativeCurrencies)
@@ -153,11 +154,11 @@ public partial class ReportExportService
 
             table.Header(header =>
             {
-                PdfTableHeaderCell(header, "Fecha");
-                PdfTableHeaderCell(header, "Título");
-                PdfTableHeaderCell(header, "Categoría");
-                PdfTableHeaderCell(header, "Método de Pago");
-                PdfTableHeaderCell(header, "Monto", true);
+                PdfTableHeaderCell(header, _localizer["RptCommon_Date"].Value);
+                PdfTableHeaderCell(header, _localizer["RptCommon_Title"].Value);
+                PdfTableHeaderCell(header, _localizer["RptCommon_Category"].Value);
+                PdfTableHeaderCell(header, _localizer["RptCommon_PaymentMethod"].Value);
+                PdfTableHeaderCell(header, _localizer["RptCommon_Amount"].Value, true);
                 foreach (var code in altCodes)
                     PdfTableHeaderCell(header, code, true);
             });
@@ -182,11 +183,11 @@ public partial class ReportExportService
     }
 
     /// <summary>Composes the category-based budgetary analysis section.</summary>
-    private static void ComposeCategoryAnalysisSection(
+    private void ComposeCategoryAnalysisSection(
         ColumnDescriptor col,
         DetailedExpenseReportResponse report)
     {
-        col.Item().PaddingTop(15).Text("Análisis por Categoría")
+        col.Item().PaddingTop(15).Text(_localizer["RptExpense_CategoryAnalysis"].Value)
             .FontSize(14).Bold().FontColor(Colors.Blue.Darken3);
 
         col.Item().PaddingTop(4).Table(table =>
@@ -203,12 +204,12 @@ public partial class ReportExportService
 
             table.Header(header =>
             {
-                PdfTableHeaderCell(header, "Categoría");
-                PdfTableHeaderCell(header, "Presupuesto", true);
-                PdfTableHeaderCell(header, "Gastado", true);
+                PdfTableHeaderCell(header, _localizer["RptCommon_Category"].Value);
+                PdfTableHeaderCell(header, _localizer["RptExpense_Budget"].Value, true);
+                PdfTableHeaderCell(header, _localizer["RptExpense_Spent"].Value, true);
                 PdfTableHeaderCell(header, "%", true);
-                PdfTableHeaderCell(header, "Restante", true);
-                PdfTableHeaderCell(header, "Estado");
+                PdfTableHeaderCell(header, _localizer["RptExpense_Remaining"].Value, true);
+                PdfTableHeaderCell(header, _localizer["RptCommon_Status"].Value);
             });
 
             foreach (var cat in report.CategoryAnalysis)
@@ -224,7 +225,7 @@ public partial class ReportExportService
                 table.Cell()
                     .BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2)
                     .PaddingVertical(3).PaddingHorizontal(4)
-                    .Text(cat.BudgetExceeded == true ? "⚠ Excedido" : "OK")
+                    .Text(cat.BudgetExceeded == true ? _localizer["RptExpense_ExceededMark"].Value : "OK")
                     .FontSize(8)
                     .FontColor(cat.BudgetExceeded == true ? Colors.Red.Darken1 : Colors.Green.Darken2);
             }
@@ -232,13 +233,13 @@ public partial class ReportExportService
     }
 
     /// <summary>Composes the summary and detailed breakdown of obligations related to expenses.</summary>
-    private static void ComposeObligationsSummarySection(
+    private void ComposeObligationsSummarySection(
         ColumnDescriptor col,
         DetailedExpenseReportResponse report)
     {
         var obl = report.ObligationSummary!;
 
-        col.Item().PaddingTop(15).Text("Resumen de Obligaciones")
+        col.Item().PaddingTop(15).Text(_localizer["RptExpense_ObligationSummary"].Value)
             .FontSize(14).Bold().FontColor(Colors.Blue.Darken3);
 
         col.Item().PaddingTop(4).Row(row =>
@@ -250,13 +251,13 @@ public partial class ReportExportService
                     inner.Item().Text(value).FontSize(11).Bold();
                 });
 
-            row.RelativeItem().Element(c => SummaryBox(c, "Total",     FormatCurrency(report.CurrencyCode, obl.TotalAmount),   Colors.Grey.Lighten3));
+            row.RelativeItem().Element(c => SummaryBox(c, _localizer["RptCommon_Total"].Value,   FormatCurrency(report.CurrencyCode, obl.TotalAmount),   Colors.Grey.Lighten3));
             row.ConstantItem(6);
-            row.RelativeItem().Element(c => SummaryBox(c, "Pagado",    FormatCurrency(report.CurrencyCode, obl.TotalPaid),     Colors.Green.Lighten4));
+            row.RelativeItem().Element(c => SummaryBox(c, _localizer["RptCommon_Paid"].Value,    FormatCurrency(report.CurrencyCode, obl.TotalPaid),     Colors.Green.Lighten4));
             row.ConstantItem(6);
-            row.RelativeItem().Element(c => SummaryBox(c, "Pendiente", FormatCurrency(report.CurrencyCode, obl.TotalPending),  Colors.Orange.Lighten4));
+            row.RelativeItem().Element(c => SummaryBox(c, _localizer["RptCommon_Pending"].Value, FormatCurrency(report.CurrencyCode, obl.TotalPending),  Colors.Orange.Lighten4));
             row.ConstantItem(6);
-            row.RelativeItem().Element(c => SummaryBox(c, "Vencidas",  $"{obl.OverdueCount}",                                  Colors.Red.Lighten4));
+            row.RelativeItem().Element(c => SummaryBox(c, _localizer["RptCommon_Overdue"].Value, $"{obl.OverdueCount}",                                  Colors.Red.Lighten4));
         });
 
         col.Item().PaddingTop(6).Table(table =>
@@ -273,12 +274,12 @@ public partial class ReportExportService
 
             table.Header(header =>
             {
-                PdfTableHeaderCell(header, "Estado");
-                PdfTableHeaderCell(header, "Título");
-                PdfTableHeaderCell(header, "Total",    true);
-                PdfTableHeaderCell(header, "Pagado",   true);
-                PdfTableHeaderCell(header, "Restante", true);
-                PdfTableHeaderCell(header, "Vence");
+                PdfTableHeaderCell(header, _localizer["RptCommon_Status"].Value);
+                PdfTableHeaderCell(header, _localizer["RptCommon_Title"].Value);
+                PdfTableHeaderCell(header, _localizer["RptCommon_Total"].Value,    true);
+                PdfTableHeaderCell(header, _localizer["RptCommon_Paid"].Value,     true);
+                PdfTableHeaderCell(header, _localizer["RptExpense_Remaining"].Value, true);
+                PdfTableHeaderCell(header, _localizer["RptExpense_DueDate"].Value);
             });
 
             foreach (var group in obl.ByStatus)

@@ -518,4 +518,729 @@
     <value>pageSize must be between 1 and 100.</value>
   </data>
 
+  <!-- ══ Report Labels — Common ══ -->
+  <data name="RptCommon_Project" xml:space="preserve">
+    <value>Project</value>
+  </data>
+  <data name="RptCommon_Currency" xml:space="preserve">
+    <value>Currency</value>
+  </data>
+  <data name="RptCommon_Period" xml:space="preserve">
+    <value>Period</value>
+  </data>
+  <data name="RptCommon_Generated" xml:space="preserve">
+    <value>Generated</value>
+  </data>
+  <data name="RptCommon_NoData" xml:space="preserve">
+    <value>No data to display</value>
+  </data>
+  <data name="RptCommon_TotalSpent" xml:space="preserve">
+    <value>Total Spent</value>
+  </data>
+  <data name="RptCommon_TotalIncome" xml:space="preserve">
+    <value>Total Income</value>
+  </data>
+  <data name="RptCommon_NetBalance" xml:space="preserve">
+    <value>Net Balance</value>
+  </data>
+  <data name="RptCommon_ExpenseCount" xml:space="preserve">
+    <value># Expenses</value>
+  </data>
+  <data name="RptCommon_IncomeCount" xml:space="preserve">
+    <value># Incomes</value>
+  </data>
+  <data name="RptCommon_Date" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="RptCommon_Title" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="RptCommon_Category" xml:space="preserve">
+    <value>Category</value>
+  </data>
+  <data name="RptCommon_PaymentMethod" xml:space="preserve">
+    <value>Payment Method</value>
+  </data>
+  <data name="RptCommon_Amount" xml:space="preserve">
+    <value>Amount</value>
+  </data>
+  <data name="RptCommon_Subtotal" xml:space="preserve">
+    <value>Subtotal:</value>
+  </data>
+  <data name="RptCommon_YesLabel" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="RptCommon_NoLabel" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="RptCommon_Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="RptCommon_Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="RptCommon_Notes" xml:space="preserve">
+    <value>Notes</value>
+  </data>
+  <data name="RptCommon_Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="RptCommon_Transactions" xml:space="preserve">
+    <value>Transactions</value>
+  </data>
+  <data name="RptCommon_Total" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="RptCommon_Paid" xml:space="preserve">
+    <value>Paid</value>
+  </data>
+  <data name="RptCommon_Pending" xml:space="preserve">
+    <value>Pending</value>
+  </data>
+  <data name="RptCommon_Overdue" xml:space="preserve">
+    <value>Overdue</value>
+  </data>
+  <data name="RptCommon_Projects" xml:space="preserve">
+    <value>Projects</value>
+  </data>
+  <data name="RptCommon_Partner" xml:space="preserve">
+    <value>Partner</value>
+  </data>
+  <data name="RptCommon_Email" xml:space="preserve">
+    <value>Email</value>
+  </data>
+  <data name="RptCommon_Month" xml:space="preserve">
+    <value>Month</value>
+  </data>
+  <data name="RptCommon_Balance" xml:space="preserve">
+    <value>Balance</value>
+  </data>
+  <data name="RptCommon_Settlements" xml:space="preserve">
+    <value>Settlements</value>
+  </data>
+  <data name="RptCommon_PeakMonth" xml:space="preserve">
+    <value>Peak Month</value>
+  </data>
+  <data name="RptCommon_Direction" xml:space="preserve">
+    <value>Direction</value>
+  </data>
+
+  <!-- ══ Report Labels — Status ══ -->
+  <data name="RptStatus_Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="RptStatus_PartiallyPaid" xml:space="preserve">
+    <value>Partial</value>
+  </data>
+  <data name="RptStatus_Paid" xml:space="preserve">
+    <value>Paid</value>
+  </data>
+  <data name="RptStatus_Overdue" xml:space="preserve">
+    <value>Overdue</value>
+  </data>
+
+  <!-- ══ Report Labels — Expense ══ -->
+  <data name="RptExpense_ReportTitle" xml:space="preserve">
+    <value>Expense Report</value>
+  </data>
+  <data name="RptExpense_ReportSubject" xml:space="preserve">
+    <value>Detailed financial expense report by project.</value>
+  </data>
+  <data name="RptExpense_AvgExpense" xml:space="preserve">
+    <value>Avg. Expense</value>
+  </data>
+  <data name="RptExpense_AvgMonthly" xml:space="preserve">
+    <value>Monthly Average</value>
+  </data>
+  <data name="RptExpense_PeakMonth" xml:space="preserve">
+    <value>Peak Expense Month</value>
+  </data>
+  <data name="RptExpense_TopCategory" xml:space="preserve">
+    <value>Top Category</value>
+  </data>
+  <data name="RptExpense_OverdueObligs" xml:space="preserve">
+    <value>Overdue Obligations</value>
+  </data>
+  <data name="RptExpense_OverdueAmount" xml:space="preserve">
+    <value>Overdue Amount</value>
+  </data>
+  <data name="RptExpense_LargestExpense" xml:space="preserve">
+    <value>Largest Expense</value>
+  </data>
+  <data name="RptExpense_LargestExpenseDate" xml:space="preserve">
+    <value>Largest Expense Date</value>
+  </data>
+  <data name="RptExpense_AltCurrency" xml:space="preserve">
+    <value>Alt. Currency</value>
+  </data>
+  <data name="RptExpense_OriginalAmount" xml:space="preserve">
+    <value>Original Amount</value>
+  </data>
+  <data name="RptExpense_OrigCurrency" xml:space="preserve">
+    <value>Orig. Currency</value>
+  </data>
+  <data name="RptExpense_ExchangeRate" xml:space="preserve">
+    <value>Exchange Rate</value>
+  </data>
+  <data name="RptExpense_ConvertedAmount" xml:space="preserve">
+    <value>Converted Amount</value>
+  </data>
+  <data name="RptExpense_AccountAmount" xml:space="preserve">
+    <value>Account Amount</value>
+  </data>
+  <data name="RptExpense_AccountCurrency" xml:space="preserve">
+    <value>Account Currency</value>
+  </data>
+  <data name="RptExpense_ReceiptNo" xml:space="preserve">
+    <value>Receipt No.</value>
+  </data>
+  <data name="RptExpense_IsObligPayment" xml:space="preserve">
+    <value>Obligation Payment</value>
+  </data>
+  <data name="RptExpense_Obligation" xml:space="preserve">
+    <value>Obligation</value>
+  </data>
+  <data name="RptExpense_IsDefault" xml:space="preserve">
+    <value>Is Default</value>
+  </data>
+  <data name="RptExpense_Budget" xml:space="preserve">
+    <value>Budget</value>
+  </data>
+  <data name="RptExpense_Spent" xml:space="preserve">
+    <value>Spent</value>
+  </data>
+  <data name="RptExpense_Remaining" xml:space="preserve">
+    <value>Remaining</value>
+  </data>
+  <data name="RptExpense_UsedPct" xml:space="preserve">
+    <value>% Used</value>
+  </data>
+  <data name="RptExpense_Exceeded" xml:space="preserve">
+    <value>Exceeded</value>
+  </data>
+  <data name="RptExpense_ExceededMark" xml:space="preserve">
+    <value>⚠ Yes</value>
+  </data>
+  <data name="RptExpense_ObligTotalObligs" xml:space="preserve">
+    <value>Total Obligations</value>
+  </data>
+  <data name="RptExpense_ObligTotalAmount" xml:space="preserve">
+    <value>Total Amount</value>
+  </data>
+  <data name="RptExpense_ObligTotalPaid" xml:space="preserve">
+    <value>Total Paid</value>
+  </data>
+  <data name="RptExpense_ObligTotalPending" xml:space="preserve">
+    <value>Total Pending</value>
+  </data>
+  <data name="RptExpense_ObligOverdue" xml:space="preserve">
+    <value>Overdue</value>
+  </data>
+  <data name="RptExpense_DueDate" xml:space="preserve">
+    <value>Due Date</value>
+  </data>
+  <data name="RptExpense_NoDataMessage" xml:space="preserve">
+    <value>No expenses were found for the selected period.</value>
+  </data>
+  <data name="RptExpense_PaymentCount" xml:space="preserve">
+    <value># Payments</value>
+  </data>
+  <data name="RptExpense_LastPayment" xml:space="preserve">
+    <value>Last Payment</value>
+  </data>
+  <data name="RptExpense_CategoryAnalysis" xml:space="preserve">
+    <value>Category Analysis</value>
+  </data>
+  <data name="RptExpense_ObligationSummary" xml:space="preserve">
+    <value>Obligation Summary</value>
+  </data>
+
+  <!-- ══ Report Labels — Income ══ -->
+  <data name="RptIncome_ReportTitle" xml:space="preserve">
+    <value>Income Report</value>
+  </data>
+  <data name="RptIncome_ReportSubject" xml:space="preserve">
+    <value>Detailed financial income report by project.</value>
+  </data>
+  <data name="RptIncome_AvgIncome" xml:space="preserve">
+    <value>Avg. Income</value>
+  </data>
+  <data name="RptIncome_AvgMonthly" xml:space="preserve">
+    <value>Monthly Average</value>
+  </data>
+  <data name="RptIncome_PeakMonth" xml:space="preserve">
+    <value>Peak Income Month</value>
+  </data>
+  <data name="RptIncome_LargestIncome" xml:space="preserve">
+    <value>Largest Income</value>
+  </data>
+  <data name="RptIncome_LargestIncomeDate" xml:space="preserve">
+    <value>Largest Income Date</value>
+  </data>
+  <data name="RptIncome_TopCategory" xml:space="preserve">
+    <value>Top Category</value>
+  </data>
+  <data name="RptIncome_AltCurrency" xml:space="preserve">
+    <value>Alt. Currency</value>
+  </data>
+  <data name="RptIncome_OrigCurrency" xml:space="preserve">
+    <value>Original Currency</value>
+  </data>
+  <data name="RptIncome_ExchangeRate" xml:space="preserve">
+    <value>Exchange Rate</value>
+  </data>
+  <data name="RptIncome_Receipt" xml:space="preserve">
+    <value>Receipt</value>
+  </data>
+  <data name="RptIncome_AvgAmount" xml:space="preserve">
+    <value>Average</value>
+  </data>
+  <data name="RptIncome_CategoryAnalysis" xml:space="preserve">
+    <value>Category Analysis</value>
+  </data>
+  <data name="RptIncome_PaymentMethodAnalysis" xml:space="preserve">
+    <value>Payment Method Analysis</value>
+  </data>
+  <data name="RptIncome_NoDataMessage" xml:space="preserve">
+    <value>No incomes were found for the selected period.</value>
+  </data>
+
+  <!-- ══ Report Labels — Partner Balance ══ -->
+  <data name="RptPartnerBalance_ReportTitle" xml:space="preserve">
+    <value>Partner Balance Report</value>
+  </data>
+  <data name="RptPartnerBalance_ReportSubject" xml:space="preserve">
+    <value>Partner balances and settlements for the project.</value>
+  </data>
+  <data name="RptPartnerBalance_OwesMore" xml:space="preserve">
+    <value>Owes Most</value>
+  </data>
+  <data name="RptPartnerBalance_OwedMore" xml:space="preserve">
+    <value>Owed Most</value>
+  </data>
+  <data name="RptPartnerBalance_TotalSettlements" xml:space="preserve">
+    <value>Total Settlements</value>
+  </data>
+  <data name="RptPartnerBalance_AltCurrencyTotals" xml:space="preserve">
+    <value>Alt. Currency Totals</value>
+  </data>
+  <data name="RptPartnerBalance_NoActivity" xml:space="preserve">
+    <value>No partners with activity in the selected period.</value>
+  </data>
+  <data name="RptPartnerBalance_PdfTitle" xml:space="preserve">
+    <value>Partner Balances</value>
+  </data>
+  <data name="RptPartnerBalance_PairsWithBalance" xml:space="preserve">
+    <value>Pairs with Balance</value>
+  </data>
+  <data name="RptPartnerBalance_PairwiseTitle" xml:space="preserve">
+    <value>Partner Pair Balances</value>
+  </data>
+  <data name="RptPartnerBalance_Settled" xml:space="preserve">
+    <value>✓ Settled</value>
+  </data>
+  <data name="RptPartnerBalance_Saldado" xml:space="preserve">
+    <value>Settled</value>
+  </data>
+  <data name="RptPartnerBalance_Pending" xml:space="preserve">
+    <value>Pending</value>
+  </data>
+  <data name="RptPartnerBalance_WarningsNote" xml:space="preserve">
+    <value>The following transactions do not have exchange rates configured for all project currencies.</value>
+  </data>
+  <data name="RptPartnerBalance_AOwesB" xml:space="preserve">
+    <value>A owes B</value>
+  </data>
+  <data name="RptPartnerBalance_BOwesA" xml:space="preserve">
+    <value>B owes A</value>
+  </data>
+  <data name="RptPartnerBalance_OthersOwe" xml:space="preserve">
+    <value>Others Owe</value>
+  </data>
+  <data name="RptPartnerBalance_HeOwes" xml:space="preserve">
+    <value>He Owes</value>
+  </data>
+  <data name="RptPartnerBalance_StlPaid" xml:space="preserve">
+    <value>Stl. Paid</value>
+  </data>
+  <data name="RptPartnerBalance_StlReceived" xml:space="preserve">
+    <value>Stl. Received</value>
+  </data>
+  <data name="RptPartnerBalance_PaidPhysically" xml:space="preserve">
+    <value>Paid Phys.</value>
+  </data>
+  <data name="RptPartnerBalance_From" xml:space="preserve">
+    <value>From</value>
+  </data>
+  <data name="RptPartnerBalance_To" xml:space="preserve">
+    <value>To</value>
+  </data>
+
+  <!-- ══ Report Labels — Partner General ══ -->
+  <data name="RptPartnerGeneral_ReportSubject" xml:space="preserve">
+    <value>Consolidated partner activity by project and payment method.</value>
+  </data>
+  <data name="RptPartnerGeneral_PaymentMethods" xml:space="preserve">
+    <value>Payment Methods</value>
+  </data>
+  <data name="RptPartnerGeneral_NoActivity" xml:space="preserve">
+    <value>No activity in the selected period.</value>
+  </data>
+  <data name="RptPartnerGeneral_MultiCurrencyNote" xml:space="preserve">
+    <value>Note: projects have different base currencies — global totals are not shown.</value>
+  </data>
+  <data name="RptPartnerGeneral_BalanceSummary" xml:space="preserve">
+    <value>Balance Summary</value>
+  </data>
+  <data name="RptPartnerGeneral_AltCurrencyTotals" xml:space="preserve">
+    <value>Totals in Alternative Currencies</value>
+  </data>
+  <data name="RptPartnerGeneral_PaidPhysically" xml:space="preserve">
+    <value>Paid Physically</value>
+  </data>
+  <data name="RptPartnerGeneral_OthersOwe" xml:space="preserve">
+    <value>Others Owe Him</value>
+  </data>
+  <data name="RptPartnerGeneral_HeOwes" xml:space="preserve">
+    <value>He Owes Others</value>
+  </data>
+  <data name="RptPartnerGeneral_HeOwesShort" xml:space="preserve">
+    <value>He Owes</value>
+  </data>
+  <data name="RptPartnerGeneral_StlPaid" xml:space="preserve">
+    <value>Settlements Paid</value>
+  </data>
+  <data name="RptPartnerGeneral_StlReceived" xml:space="preserve">
+    <value>Settlements Received</value>
+  </data>
+  <data name="RptPartnerGeneral_PaidTo" xml:space="preserve">
+    <value>Paid to</value>
+  </data>
+  <data name="RptPartnerGeneral_ReceivedFrom" xml:space="preserve">
+    <value>Received from</value>
+  </data>
+  <data name="RptPartnerGeneral_SplitType" xml:space="preserve">
+    <value>Split Type</value>
+  </data>
+  <data name="RptPartnerGeneral_SplitValue" xml:space="preserve">
+    <value>Split Value</value>
+  </data>
+  <data name="RptPartnerGeneral_PayingPartner" xml:space="preserve">
+    <value>Pays</value>
+  </data>
+  <data name="RptPartnerGeneral_Counterparty" xml:space="preserve">
+    <value>Counterparty</value>
+  </data>
+  <data name="RptPartnerGeneral_OriginalAmount" xml:space="preserve">
+    <value>Original Amount</value>
+  </data>
+  <data name="RptPartnerGeneral_TotalExpenses" xml:space="preserve">
+    <value>Total Expenses</value>
+  </data>
+  <data name="RptPartnerGeneral_TotalIncomes" xml:space="preserve">
+    <value>Total Incomes</value>
+  </data>
+  <data name="RptPartnerGeneral_NetFlow" xml:space="preserve">
+    <value>Net Flow</value>
+  </data>
+  <data name="RptPartnerGeneral_TransactionCount" xml:space="preserve">
+    <value># Transactions</value>
+  </data>
+  <data name="RptPartnerGeneral_BankName" xml:space="preserve">
+    <value>Bank</value>
+  </data>
+  <data name="RptPartnerGeneral_ReportFilter" xml:space="preserve">
+    <value>Per report filters</value>
+  </data>
+  <data name="RptPartnerGeneral_PmNote" xml:space="preserve">
+    <value>Note: amounts are in each payment method's native currency.</value>
+  </data>
+
+  <!-- ══ Report Labels — Payment Method ══ -->
+  <data name="RptPaymentMethod_ReportTitle" xml:space="preserve">
+    <value>Payment Method Report</value>
+  </data>
+  <data name="RptPaymentMethod_ReportSubject" xml:space="preserve">
+    <value>Report by user payment methods.</value>
+  </data>
+  <data name="RptPaymentMethod_BankName" xml:space="preserve">
+    <value>Bank</value>
+  </data>
+  <data name="RptPaymentMethod_OwnerPartner" xml:space="preserve">
+    <value>Owner Partner</value>
+  </data>
+  <data name="RptPaymentMethod_FirstUse" xml:space="preserve">
+    <value>First Use</value>
+  </data>
+  <data name="RptPaymentMethod_LastUse" xml:space="preserve">
+    <value>Last Use</value>
+  </data>
+  <data name="RptPaymentMethod_DaysUnused" xml:space="preserve">
+    <value>Days Unused</value>
+  </data>
+  <data name="RptPaymentMethod_Inactive" xml:space="preserve">
+    <value>Inactive</value>
+  </data>
+  <data name="RptPaymentMethod_AvgExpense" xml:space="preserve">
+    <value>Avg. Expense</value>
+  </data>
+  <data name="RptPaymentMethod_AvgIncome" xml:space="preserve">
+    <value>Avg. Income</value>
+  </data>
+  <data name="RptPaymentMethod_TopCategories" xml:space="preserve">
+    <value>Top Categories</value>
+  </data>
+  <data name="RptPaymentMethod_MonthlyTrend" xml:space="preserve">
+    <value>Monthly Trend by Method</value>
+  </data>
+  <data name="RptPaymentMethod_NoActivity" xml:space="preserve">
+    <value>No payment method movements found for the selected period.</value>
+  </data>
+  <data name="RptPaymentMethod_PctOfMethod" xml:space="preserve">
+    <value>% of Method</value>
+  </data>
+  <data name="RptPaymentMethod_MethodCurrency" xml:space="preserve">
+    <value>Method Currency</value>
+  </data>
+  <data name="RptPaymentMethod_ProjectCurrency" xml:space="preserve">
+    <value>Project Currency</value>
+  </data>
+  <data name="RptPaymentMethod_AbbrevCurrency" xml:space="preserve">
+    <value>Curr.</value>
+  </data>
+  <data name="RptPaymentMethod_AbbrevExpenses" xml:space="preserve">
+    <value># Exp.</value>
+  </data>
+  <data name="RptPaymentMethod_AbbrevIncomes" xml:space="preserve">
+    <value># Inc.</value>
+  </data>
+
+  <!-- ══ Report Labels — Workspace ══ -->
+  <data name="RptWorkspace_ReportTitle" xml:space="preserve">
+    <value>Workspace Report</value>
+  </data>
+  <data name="RptWorkspace_ReportSubject" xml:space="preserve">
+    <value>Consolidated workspace report.</value>
+  </data>
+  <data name="RptWorkspace_Workspace" xml:space="preserve">
+    <value>Workspace</value>
+  </data>
+  <data name="RptWorkspace_RefCurrency" xml:space="preserve">
+    <value>Ref. Currency</value>
+  </data>
+  <data name="RptWorkspace_TopExpenseProject" xml:space="preserve">
+    <value>Highest Spend Project</value>
+  </data>
+  <data name="RptWorkspace_TopIncomeProject" xml:space="preserve">
+    <value>Highest Income Project</value>
+  </data>
+  <data name="RptWorkspace_TotalTransactions" xml:space="preserve">
+    <value>Total Transactions</value>
+  </data>
+  <data name="RptWorkspace_MultiCurrencies" xml:space="preserve">
+    <value>Multiple Currencies</value>
+  </data>
+  <data name="RptWorkspace_NotConsolidated" xml:space="preserve">
+    <value>Not consolidated</value>
+  </data>
+  <data name="RptWorkspace_ProjectSummary" xml:space="preserve">
+    <value>Project Summary</value>
+  </data>
+  <data name="RptWorkspace_CrossCategories" xml:space="preserve">
+    <value>Categories (Cross-Project)</value>
+  </data>
+  <data name="RptWorkspace_MonthlyTrend" xml:space="preserve">
+    <value>Monthly Trend</value>
+  </data>
+  <data name="RptWorkspace_PctOfWorkspace" xml:space="preserve">
+    <value>% of Workspace</value>
+  </data>
+  <data name="RptWorkspace_AvgPerProject" xml:space="preserve">
+    <value>Avg. per Project</value>
+  </data>
+  <data name="RptWorkspace_ByProjectBreakdown" xml:space="preserve">
+    <value>Breakdown by Project</value>
+  </data>
+  <data name="RptWorkspace_NoProjects" xml:space="preserve">
+    <value>No projects in this workspace.</value>
+  </data>
+  <data name="RptWorkspace_AbbrevExpenses" xml:space="preserve">
+    <value># Exp.</value>
+  </data>
+  <data name="RptWorkspace_AbbrevIncomes" xml:space="preserve">
+    <value># Inc.</value>
+  </data>
+
+  <!-- ══ Report Labels — Sheet Names ══ -->
+  <data name="RptSheet_Expenses" xml:space="preserve">
+    <value>Expenses</value>
+  </data>
+  <data name="RptSheet_Incomes" xml:space="preserve">
+    <value>Incomes</value>
+  </data>
+  <data name="RptSheet_Categories" xml:space="preserve">
+    <value>Categories</value>
+  </data>
+  <data name="RptSheet_PaymentMethod" xml:space="preserve">
+    <value>By Payment Method</value>
+  </data>
+  <data name="RptSheet_Obligations" xml:space="preserve">
+    <value>Obligations</value>
+  </data>
+  <data name="RptSheet_Summary" xml:space="preserve">
+    <value>Summary</value>
+  </data>
+  <data name="RptSheet_Balances" xml:space="preserve">
+    <value>Balances</value>
+  </data>
+  <data name="RptSheet_Settlements" xml:space="preserve">
+    <value>Settlements</value>
+  </data>
+  <data name="RptSheet_Warnings" xml:space="preserve">
+    <value>Warnings</value>
+  </data>
+  <data name="RptSheet_MonthlyTrend" xml:space="preserve">
+    <value>Monthly Trend</value>
+  </data>
+  <data name="RptSheet_PaymentMethods" xml:space="preserve">
+    <value>Payment Methods</value>
+  </data>
+  <data name="RptSheet_ByProject" xml:space="preserve">
+    <value>By Project</value>
+  </data>
+  <data name="RptSheet_TopCategories" xml:space="preserve">
+    <value>Top Categories</value>
+  </data>
+  <data name="RptSheet_PairwiseBalances" xml:space="preserve">
+    <value>Partner Pair Balances</value>
+  </data>
+  <data name="RptSheet_ByProjectMonthly" xml:space="preserve">
+    <value>Breakdown by Project</value>
+  </data>
+
+  <!-- ══ Report Labels — Format Strings ══ -->
+  <data name="RptFmt_FooterPagePrefix" xml:space="preserve">
+    <value>Project Ledger — Page </value>
+  </data>
+  <data name="RptFmt_FooterPageMiddle" xml:space="preserve">
+    <value> of </value>
+  </data>
+  <data name="RptFmt_DateFrom" xml:space="preserve">
+    <value>From {0}</value>
+  </data>
+  <data name="RptFmt_DateTo" xml:space="preserve">
+    <value>Through {0}</value>
+  </data>
+  <data name="RptFmt_AllHistory" xml:space="preserve">
+    <value>All history</value>
+  </data>
+  <data name="RptFmt_ExpenseSectionLabel" xml:space="preserve">
+    <value>── {0}  |  {1} expenses  |  {2:N1}% of total  |  Avg: {3:N2}</value>
+  </data>
+  <data name="RptFmt_IncomeSectionLabel" xml:space="preserve">
+    <value>── {0}  |  {1} incomes  |  {2:N1}% of total  |  Avg: {3:N2}</value>
+  </data>
+  <data name="RptFmt_SectionTopItem" xml:space="preserve">
+    <value>  |  Largest: {0} ({1:N2})</value>
+  </data>
+  <data name="RptFmt_PaidPhysicallyCurrency" xml:space="preserve">
+    <value>Paid Physically ({0})</value>
+  </data>
+  <data name="RptFmt_OthersOweCurrency" xml:space="preserve">
+    <value>Others Owe ({0})</value>
+  </data>
+  <data name="RptFmt_HeOwesCurrency" xml:space="preserve">
+    <value>He Owes ({0})</value>
+  </data>
+  <data name="RptFmt_StlPaidCurrency" xml:space="preserve">
+    <value>Stl. Paid ({0})</value>
+  </data>
+  <data name="RptFmt_StlReceivedCurrency" xml:space="preserve">
+    <value>Stl. Received ({0})</value>
+  </data>
+  <data name="RptFmt_NetBalanceCurrency" xml:space="preserve">
+    <value>Net Balance ({0})</value>
+  </data>
+  <data name="RptFmt_AOwesB" xml:space="preserve">
+    <value>A owes B ({0})</value>
+  </data>
+  <data name="RptFmt_BOwesA" xml:space="preserve">
+    <value>B owes A ({0})</value>
+  </data>
+  <data name="RptFmt_StlAtoB" xml:space="preserve">
+    <value>Stl. A→B ({0})</value>
+  </data>
+  <data name="RptFmt_StlBtoA" xml:space="preserve">
+    <value>Stl. B→A ({0})</value>
+  </data>
+  <data name="RptFmt_TransactionsCurrency" xml:space="preserve">
+    <value>Transactions — {0} (base currency)</value>
+  </data>
+  <data name="RptFmt_SplitAmountCurrency" xml:space="preserve">
+    <value>Split Amount ({0})</value>
+  </data>
+  <data name="RptFmt_AltCurrencyRef" xml:space="preserve">
+    <value>{0} (ref)</value>
+  </data>
+  <data name="RptFmt_ConvertedAmountCurrency" xml:space="preserve">
+    <value>Converted Amount ({0})</value>
+  </data>
+  <data name="RptFmt_ExpenseReportTitle" xml:space="preserve">
+    <value>Expense Report — {0}</value>
+  </data>
+  <data name="RptFmt_IncomeReportTitle" xml:space="preserve">
+    <value>Income Report — {0}</value>
+  </data>
+  <data name="RptFmt_PartnerBalanceTitle" xml:space="preserve">
+    <value>Partner Balances — {0}</value>
+  </data>
+  <data name="RptFmt_WorkspaceReportTitle" xml:space="preserve">
+    <value>Workspace Report — {0}</value>
+  </data>
+  <data name="RptFmt_PartnerReportTitle" xml:space="preserve">
+    <value>Partner Report — {0}</value>
+  </data>
+  <data name="RptFmt_WarningsCount" xml:space="preserve">
+    <value>Warnings ({0})</value>
+  </data>
+  <data name="RptFmt_PaymentMethodCount" xml:space="preserve">
+    <value>{0} payment method(s)  ·  {1} active</value>
+  </data>
+  <data name="RptFmt_SubtotalExpenses" xml:space="preserve">
+    <value>Subtotal: {0}  ·  {1} expenses</value>
+  </data>
+  <data name="RptFmt_SubtotalIncomes" xml:space="preserve">
+    <value>Subtotal: {0}  ·  {1} incomes</value>
+  </data>
+  <data name="RptFmt_BaseCurrency" xml:space="preserve">
+    <value>Base currency: {0}</value>
+  </data>
+  <data name="RptFmt_GastosShown" xml:space="preserve">
+    <value>Expenses ({0} of {1})</value>
+  </data>
+  <data name="RptFmt_IncomesShown" xml:space="preserve">
+    <value>Incomes ({0} of {1})</value>
+  </data>
+  <data name="RptFmt_OwnerSuffix" xml:space="preserve">
+    <value>  ·  Owner: {0}</value>
+  </data>
+  <data name="RptFmt_TopCategoryLine" xml:space="preserve">
+    <value>Top category: {0}</value>
+  </data>
+  <data name="RptFmt_TotalIncomeLine" xml:space="preserve">
+    <value>Total income: {0}  ·  Net balance: {1}</value>
+  </data>
+  <data name="RptFmt_AltCurrencyExpenseLine" xml:space="preserve">
+    <value>[{0}]  Spent: {1:N2}  ·  Income: {2:N2}  ·  Balance: {3:N2}</value>
+  </data>
+  <data name="RptFmt_AltCurrencyIncomeLine" xml:space="preserve">
+    <value>[{0}]  Income: {1:N2}  ·  Monthly avg: {2:N2}</value>
+  </data>
+  <data name="RptFmt_PeakMonthLine" xml:space="preserve">
+    <value>Peak month: {0} ({1})</value>
+  </data>
+  <data name="RptFmt_ExpenseIncomeCount" xml:space="preserve">
+    <value>{0} expenses · {1} incomes</value>
+  </data>
+
 </root>

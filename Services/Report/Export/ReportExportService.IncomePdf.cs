@@ -30,38 +30,38 @@ public partial class ReportExportService
     }
 
     /// <summary>Composes the visual header for the income report.</summary>
-    private static void ComposeIncomeReportHeader(IContainer container, DetailedIncomeReportResponse report)
+    private void ComposeIncomeReportHeader(IContainer container, DetailedIncomeReportResponse report)
     {
         container.Column(col =>
         {
-            col.Item().Text($"Reporte de Ingresos — {report.ProjectName}")
+            col.Item().Text(_localizer["RptFmt_IncomeReportTitle", report.ProjectName].Value)
                 .FontSize(16).Bold().FontColor(Colors.Blue.Darken3);
 
             col.Item().Row(row =>
             {
-                row.RelativeItem().Text($"Moneda: {report.CurrencyCode}").FontSize(9);
-                row.RelativeItem().Text($"Período: {FormatDateRange(report.DateFrom, report.DateTo)}").FontSize(9);
+                row.RelativeItem().Text($"{_localizer["RptCommon_Currency"].Value}: {report.CurrencyCode}").FontSize(9);
+                row.RelativeItem().Text($"{_localizer["RptCommon_Period"].Value}: {FormatDateRange(report.DateFrom, report.DateTo)}").FontSize(9);
                 row.RelativeItem().AlignRight()
-                    .Text($"Generado: {report.GeneratedAt:yyyy-MM-dd HH:mm} UTC").FontSize(8);
+                    .Text($"{_localizer["RptCommon_Generated"].Value}: {report.GeneratedAt:yyyy-MM-dd HH:mm} UTC").FontSize(8);
             });
 
             col.Item().PaddingTop(5).Row(row =>
             {
                 row.RelativeItem().Background(Colors.Green.Lighten4).Padding(8).Column(c =>
                 {
-                    c.Item().Text("Total Ingresos").FontSize(8).FontColor(Colors.Grey.Darken2);
+                    c.Item().Text(_localizer["RptCommon_TotalIncome"].Value).FontSize(8).FontColor(Colors.Grey.Darken2);
                     c.Item().Text($"{report.CurrencyCode} {report.TotalIncome:N2}").FontSize(14).Bold();
                 });
                 row.ConstantItem(10);
                 row.RelativeItem().Background(Colors.Grey.Lighten3).Padding(8).Column(c =>
                 {
-                    c.Item().Text("Transacciones").FontSize(8).FontColor(Colors.Grey.Darken2);
+                    c.Item().Text(_localizer["RptCommon_Transactions"].Value).FontSize(8).FontColor(Colors.Grey.Darken2);
                     c.Item().Text($"{report.TotalIncomeCount}").FontSize(14).Bold();
                 });
                 row.ConstantItem(10);
                 row.RelativeItem().Background(Colors.Grey.Lighten3).Padding(8).Column(c =>
                 {
-                    c.Item().Text("Promedio Mensual").FontSize(8).FontColor(Colors.Grey.Darken2);
+                    c.Item().Text(_localizer["RptIncome_AvgMonthly"].Value).FontSize(8).FontColor(Colors.Grey.Darken2);
                     c.Item().Text(FormatCurrency(report.CurrencyCode, report.AverageMonthlyIncome)).FontSize(10).Bold();
                 });
             });
@@ -69,7 +69,9 @@ public partial class ReportExportService
             if (report.PeakMonth is not null)
             {
                 col.Item().PaddingTop(6)
-                    .Text($"Mes pico: {report.PeakMonth.MonthLabel} ({FormatCurrency(report.CurrencyCode, report.PeakMonth.Total)})")
+                    .Text(_localizer["RptFmt_PeakMonthLine",
+                        report.PeakMonth.MonthLabel,
+                        FormatCurrency(report.CurrencyCode, report.PeakMonth.Total)].Value)
                     .FontSize(8).FontColor(Colors.Grey.Darken1);
             }
 
@@ -79,8 +81,8 @@ public partial class ReportExportService
                 foreach (var alt in report.AlternativeCurrencies)
                 {
                     col.Item().PaddingTop(1)
-                        .Text($"[{alt.CurrencyCode}]  Ingresos: {alt.TotalIncome:N2}" +
-                              $"  ·  Promedio mensual: {alt.AverageMonthlySpend:N2}")
+                        .Text(_localizer["RptFmt_AltCurrencyIncomeLine",
+                            alt.CurrencyCode, alt.TotalIncome, alt.AverageMonthlySpend].Value)
                         .FontSize(8).FontColor(Colors.Grey.Darken1);
                 }
             }
@@ -90,13 +92,13 @@ public partial class ReportExportService
     }
 
     /// <summary>Composes the main body sections of the income report.</summary>
-    private static void ComposeIncomeReportContent(IContainer container, DetailedIncomeReportResponse report)
+    private void ComposeIncomeReportContent(IContainer container, DetailedIncomeReportResponse report)
     {
         container.Column(col =>
         {
             if (report.Sections.Count == 0)
             {
-                ComposePdfEmptyState(col, "No se encontraron ingresos para el período seleccionado.");
+                ComposePdfEmptyState(col, _localizer["RptIncome_NoDataMessage"].Value);
                 return;
             }
 
@@ -114,7 +116,7 @@ public partial class ReportExportService
     }
 
     /// <summary>Composes a monthly breakdown table for incomes.</summary>
-    private static void ComposeIncomeSection(
+    private void ComposeIncomeSection(
         ColumnDescriptor col,
         MonthlyIncomeSection section,
         string currencyCode,
@@ -124,7 +126,8 @@ public partial class ReportExportService
             .FontSize(12).Bold().FontColor(Colors.Blue.Darken2);
 
         // Section subtitle with alternative currency subtotals
-        var subtotalText = $"Subtotal: {FormatCurrency(currencyCode, section.SectionTotal)}  ·  {section.SectionCount} ingresos";
+        var subtotalText = _localizer["RptFmt_SubtotalIncomes",
+            FormatCurrency(currencyCode, section.SectionTotal), section.SectionCount].Value;
         if (section.AlternativeCurrencies is { Count: > 0 })
         {
             foreach (var alt in section.AlternativeCurrencies)
@@ -147,11 +150,11 @@ public partial class ReportExportService
 
             table.Header(header =>
             {
-                PdfTableHeaderCell(header, "Fecha");
-                PdfTableHeaderCell(header, "Título");
-                PdfTableHeaderCell(header, "Categoría");
-                PdfTableHeaderCell(header, "Método de Pago");
-                PdfTableHeaderCell(header, "Monto", true);
+                PdfTableHeaderCell(header, _localizer["RptCommon_Date"].Value);
+                PdfTableHeaderCell(header, _localizer["RptCommon_Title"].Value);
+                PdfTableHeaderCell(header, _localizer["RptCommon_Category"].Value);
+                PdfTableHeaderCell(header, _localizer["RptCommon_PaymentMethod"].Value);
+                PdfTableHeaderCell(header, _localizer["RptCommon_Amount"].Value, true);
                 foreach (var code in altCodes)
                     PdfTableHeaderCell(header, code, true);
             });
@@ -176,11 +179,11 @@ public partial class ReportExportService
     }
 
     /// <summary>Composes the category-based distribution analysis section for incomes.</summary>
-    private static void ComposeIncomeCategoryAnalysisSection(
+    private void ComposeIncomeCategoryAnalysisSection(
         ColumnDescriptor col,
         DetailedIncomeReportResponse report)
     {
-        col.Item().PaddingTop(15).Text("Análisis por Categoría")
+        col.Item().PaddingTop(15).Text(_localizer["RptIncome_CategoryAnalysis"].Value)
             .FontSize(14).Bold().FontColor(Colors.Blue.Darken3);
 
         col.Item().PaddingTop(4).Table(table =>
@@ -196,11 +199,11 @@ public partial class ReportExportService
 
             table.Header(header =>
             {
-                PdfTableHeaderCell(header, "Categoría");
-                PdfTableHeaderCell(header, "Total", true);
-                PdfTableHeaderCell(header, "Cantidad", true);
+                PdfTableHeaderCell(header, _localizer["RptCommon_Category"].Value);
+                PdfTableHeaderCell(header, _localizer["RptCommon_Total"].Value, true);
+                PdfTableHeaderCell(header, _localizer["RptCommon_IncomeCount"].Value, true);
                 PdfTableHeaderCell(header, "%", true);
-                PdfTableHeaderCell(header, "Promedio", true);
+                PdfTableHeaderCell(header, _localizer["RptIncome_AvgAmount"].Value, true);
             });
 
             foreach (var cat in report.CategoryAnalysis!)
@@ -215,11 +218,11 @@ public partial class ReportExportService
     }
 
     /// <summary>Composes the payment method distribution analysis section for incomes.</summary>
-    private static void ComposeIncomePaymentMethodAnalysisSection(
+    private void ComposeIncomePaymentMethodAnalysisSection(
         ColumnDescriptor col,
         DetailedIncomeReportResponse report)
     {
-        col.Item().PaddingTop(15).Text("Análisis por Método de Pago")
+        col.Item().PaddingTop(15).Text(_localizer["RptIncome_PaymentMethodAnalysis"].Value)
             .FontSize(14).Bold().FontColor(Colors.Blue.Darken3);
 
         col.Item().PaddingTop(4).Table(table =>
@@ -236,12 +239,12 @@ public partial class ReportExportService
 
             table.Header(header =>
             {
-                PdfTableHeaderCell(header, "Método");
-                PdfTableHeaderCell(header, "Tipo");
-                PdfTableHeaderCell(header, "Total", true);
-                PdfTableHeaderCell(header, "Cantidad", true);
+                PdfTableHeaderCell(header, _localizer["RptCommon_PaymentMethod"].Value);
+                PdfTableHeaderCell(header, _localizer["RptCommon_Type"].Value);
+                PdfTableHeaderCell(header, _localizer["RptCommon_Total"].Value, true);
+                PdfTableHeaderCell(header, _localizer["RptCommon_IncomeCount"].Value, true);
                 PdfTableHeaderCell(header, "%", true);
-                PdfTableHeaderCell(header, "Promedio", true);
+                PdfTableHeaderCell(header, _localizer["RptIncome_AvgAmount"].Value, true);
             });
 
             foreach (var pm in report.PaymentMethodAnalysis!)

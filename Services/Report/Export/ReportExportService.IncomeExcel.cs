@@ -13,7 +13,9 @@ public partial class ReportExportService
     public byte[] GenerateIncomeReportExcel(DetailedIncomeReportResponse report)
     {
         using var workbook = new XLWorkbook();
-        ApplyWorkbookDefaults(workbook, "Reporte de Ingresos", "Reporte financiero detallado de ingresos por proyecto.");
+        ApplyWorkbookDefaults(workbook,
+            _localizer["RptIncome_ReportTitle"].Value,
+            _localizer["RptIncome_ReportSubject"].Value);
 
         AddIncomeSheet(workbook, report);
 
@@ -27,39 +29,39 @@ public partial class ReportExportService
     }
 
     /// <summary>Adds the main detailed income tracking worksheet.</summary>
-    private static void AddIncomeSheet(XLWorkbook workbook, DetailedIncomeReportResponse report)
+    private void AddIncomeSheet(XLWorkbook workbook, DetailedIncomeReportResponse report)
     {
-        var ws = workbook.Worksheets.Add("Ingresos");
+        var ws = workbook.Worksheets.Add(_localizer["RptSheet_Incomes"].Value);
 
         // ── Summary block (columns A-B) ─────────────────────
-        ws.Cell(1,  1).Value = "Proyecto";           ws.Cell(1,  2).Value = report.ProjectName;
-        ws.Cell(2,  1).Value = "Moneda";             ws.Cell(2,  2).Value = report.CurrencyCode;
-        ws.Cell(3,  1).Value = "Período";            ws.Cell(3,  2).Value = FormatDateRange(report.DateFrom, report.DateTo);
-        ws.Cell(4,  1).Value = "Total Ingresos";     ws.Cell(4,  2).Value = report.TotalIncome;
+        ws.Cell(1,  1).Value = _localizer["RptCommon_Project"].Value;    ws.Cell(1,  2).Value = report.ProjectName;
+        ws.Cell(2,  1).Value = _localizer["RptCommon_Currency"].Value;   ws.Cell(2,  2).Value = report.CurrencyCode;
+        ws.Cell(3,  1).Value = _localizer["RptCommon_Period"].Value;     ws.Cell(3,  2).Value = FormatDateRange(report.DateFrom, report.DateTo);
+        ws.Cell(4,  1).Value = _localizer["RptCommon_TotalIncome"].Value; ws.Cell(4,  2).Value = report.TotalIncome;
         ws.Cell(4,  2).Style.NumberFormat.Format = ExcelCurrencyFormat;
-        ws.Cell(5,  1).Value = "# Ingresos";         ws.Cell(5,  2).Value = report.TotalIncomeCount;
-        ws.Cell(6,  1).Value = "Promedio Ingreso";   ws.Cell(6,  2).Value = report.AverageIncomeAmount;
+        ws.Cell(5,  1).Value = _localizer["RptCommon_IncomeCount"].Value; ws.Cell(5,  2).Value = report.TotalIncomeCount;
+        ws.Cell(6,  1).Value = _localizer["RptIncome_AvgIncome"].Value;  ws.Cell(6,  2).Value = report.AverageIncomeAmount;
         ws.Cell(6,  2).Style.NumberFormat.Format = ExcelCurrencyFormat;
-        ws.Cell(7,  1).Value = "Promedio Mensual";   ws.Cell(7,  2).Value = report.AverageMonthlyIncome;
+        ws.Cell(7,  1).Value = _localizer["RptIncome_AvgMonthly"].Value; ws.Cell(7,  2).Value = report.AverageMonthlyIncome;
         ws.Cell(7,  2).Style.NumberFormat.Format = ExcelCurrencyFormat;
-        ws.Cell(8,  1).Value = "Generado";           ws.Cell(8,  2).Value = report.GeneratedAt.ToString("yyyy-MM-dd HH:mm UTC");
+        ws.Cell(8,  1).Value = _localizer["RptCommon_Generated"].Value;  ws.Cell(8,  2).Value = report.GeneratedAt.ToString("yyyy-MM-dd HH:mm UTC");
 
         StyleHeaderRange(ws.Range(1, 1, 8, 1));
 
         // ── Insights block (columns D-E) ────────────────────
         if (report.PeakMonth is not null)
         {
-            ws.Cell(1, 4).Value = "Mes Mayor Ingreso";
+            ws.Cell(1, 4).Value = _localizer["RptIncome_PeakMonth"].Value;
             ws.Cell(1, 5).Value = $"{report.PeakMonth.MonthLabel} ({report.PeakMonth.Total:N2})";
         }
 
         if (report.LargestIncome is not null)
         {
-            ws.Cell(2, 4).Value = "Mayor Ingreso";
+            ws.Cell(2, 4).Value = _localizer["RptIncome_LargestIncome"].Value;
             ws.Cell(2, 5).Value = $"{report.LargestIncome.Title} ({report.LargestIncome.Amount:N2})";
-            ws.Cell(3, 4).Value = "Fecha Mayor Ingreso";
+            ws.Cell(3, 4).Value = _localizer["RptIncome_LargestIncomeDate"].Value;
             ws.Cell(3, 5).Value = report.LargestIncome.IncomeDate.ToString("yyyy-MM-dd");
-            ws.Cell(4, 4).Value = "Categoría Mayor";
+            ws.Cell(4, 4).Value = _localizer["RptIncome_TopCategory"].Value;
             ws.Cell(4, 5).Value = report.LargestIncome.CategoryName;
         }
 
@@ -70,9 +72,9 @@ public partial class ReportExportService
         if (altCurrencies.Count > 0)
         {
             var altRow = 1;
-            ws.Cell(altRow, 7).Value = "Moneda Alternativa";
-            ws.Cell(altRow, 8).Value = "Total Ingresos";
-            ws.Cell(altRow, 9).Value = "Promedio Mensual";
+            ws.Cell(altRow, 7).Value = _localizer["RptIncome_AltCurrency"].Value;
+            ws.Cell(altRow, 8).Value = _localizer["RptCommon_TotalIncome"].Value;
+            ws.Cell(altRow, 9).Value = _localizer["RptIncome_AvgMonthly"].Value;
             StyleTableHeader(ws.Range(altRow, 7, altRow, 9));
             altRow++;
 
@@ -89,16 +91,27 @@ public partial class ReportExportService
 
         // ── Detail table ────────────────────────────────────
         const int headerRow = 11;
+        var altCodes = altCurrencies.Select(a => a.CurrencyCode).ToList();
+
         var baseHeaders = new List<string>
         {
-            "Fecha", "Título", "Categoría", "Método de Pago", "Tipo",
-            "Monto Original", "Moneda Original", "Tipo Cambio", "Monto Convertido",
-            "Monto Cuenta", "Moneda Cuenta",
-            "Descripción", "Recibo", "Notas"
+            _localizer["RptCommon_Date"].Value,
+            _localizer["RptCommon_Title"].Value,
+            _localizer["RptCommon_Category"].Value,
+            _localizer["RptCommon_PaymentMethod"].Value,
+            _localizer["RptCommon_Type"].Value,
+            _localizer["RptExpense_OriginalAmount"].Value,
+            _localizer["RptIncome_OrigCurrency"].Value,
+            _localizer["RptIncome_ExchangeRate"].Value,
+            _localizer["RptExpense_ConvertedAmount"].Value,
+            _localizer["RptExpense_AccountAmount"].Value,
+            _localizer["RptExpense_AccountCurrency"].Value,
+            _localizer["RptCommon_Description"].Value,
+            _localizer["RptIncome_Receipt"].Value,
+            _localizer["RptCommon_Notes"].Value,
         };
-        var altCodes = altCurrencies.Select(a => a.CurrencyCode).ToList();
         foreach (var code in altCodes)
-            baseHeaders.Add($"Monto {code}");
+            baseHeaders.Add($"{_localizer["RptCommon_Amount"].Value} {code}");
         var headers = baseHeaders.ToArray();
 
         for (var c = 0; c < headers.Length; c++)
@@ -110,9 +123,12 @@ public partial class ReportExportService
         foreach (var section in report.Sections)
         {
             // Section header (enriched with stats)
-            var sectionLabel = $"── {section.MonthLabel}  |  {section.SectionCount} ingresos  |  {section.PercentageOfTotal:N1}% del total  |  Prom: {section.AverageIncomeAmount:N2}";
+            var sectionLabel = _localizer["RptFmt_IncomeSectionLabel",
+                section.MonthLabel, section.SectionCount,
+                section.PercentageOfTotal, section.AverageIncomeAmount].Value;
             if (section.TopIncome is not null)
-                sectionLabel += $"  |  Mayor: {section.TopIncome.Title} ({section.TopIncome.Amount:N2})";
+                sectionLabel += _localizer["RptFmt_SectionTopItem",
+                    section.TopIncome.Title, section.TopIncome.Amount].Value;
 
             ws.Cell(row, 1).Value = sectionLabel;
             ws.Cell(row, 1).Style.Font.Bold = true;
@@ -172,7 +188,7 @@ public partial class ReportExportService
             }
 
             // Section subtotal row
-            ws.Cell(row, 8).Value = "Subtotal:";
+            ws.Cell(row, 8).Value = _localizer["RptCommon_Subtotal"].Value;
             ws.Cell(row, 8).Style.Font.Bold = true;
             ws.Cell(row, 9).Value = section.SectionTotal;
             ws.Cell(row, 9).Style.NumberFormat.Format = ExcelCurrencyFormat;
@@ -197,11 +213,18 @@ public partial class ReportExportService
     }
 
     /// <summary>Adds a worksheet for category-based income analysis.</summary>
-    private static void AddIncomeCategoryAnalysisSheet(XLWorkbook workbook, DetailedIncomeReportResponse report)
+    private void AddIncomeCategoryAnalysisSheet(XLWorkbook workbook, DetailedIncomeReportResponse report)
     {
-        var ws = workbook.Worksheets.Add("Categorías");
+        var ws = workbook.Worksheets.Add(_localizer["RptSheet_Categories"].Value);
 
-        string[] headers = ["Categoría", "Total Ingresos", "# Ingresos", "% del Total", "Promedio"];
+        string[] headers =
+        [
+            _localizer["RptCommon_Category"].Value,
+            _localizer["RptCommon_TotalIncome"].Value,
+            _localizer["RptCommon_IncomeCount"].Value,
+            "% " + _localizer["RptCommon_Total"].Value,
+            _localizer["RptIncome_AvgAmount"].Value,
+        ];
 
         for (var c = 0; c < headers.Length; c++)
             ws.Cell(1, c + 1).Value = headers[c];
@@ -235,13 +258,18 @@ public partial class ReportExportService
     }
 
     /// <summary>Adds a worksheet for payment method distribution analysis for incomes.</summary>
-    private static void AddIncomePaymentMethodAnalysisSheet(XLWorkbook workbook, DetailedIncomeReportResponse report)
+    private void AddIncomePaymentMethodAnalysisSheet(XLWorkbook workbook, DetailedIncomeReportResponse report)
     {
-        var ws = workbook.Worksheets.Add("Por Método de Pago");
+        var ws = workbook.Worksheets.Add(_localizer["RptSheet_PaymentMethod"].Value);
 
         string[] headers =
         [
-            "Método de Pago", "Tipo", "Total Ingresos", "# Ingresos", "% del Total", "Promedio Ingreso"
+            _localizer["RptCommon_PaymentMethod"].Value,
+            _localizer["RptCommon_Type"].Value,
+            _localizer["RptCommon_TotalIncome"].Value,
+            _localizer["RptCommon_IncomeCount"].Value,
+            "% " + _localizer["RptCommon_Total"].Value,
+            _localizer["RptIncome_AvgAmount"].Value,
         ];
 
         for (var c = 0; c < headers.Length; c++)

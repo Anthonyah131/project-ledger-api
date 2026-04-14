@@ -30,23 +30,24 @@ public partial class ReportExportService
     }
 
     /// <summary>Composes the visual header for the payment method report.</summary>
-    private static void ComposePaymentMethodHeader(IContainer container, PaymentMethodReportResponse report)
+    private void ComposePaymentMethodHeader(IContainer container, PaymentMethodReportResponse report)
     {
         container.Column(col =>
         {
-            col.Item().Text("Reporte de Métodos de Pago")
+            col.Item().Text(_localizer["RptPaymentMethod_ReportTitle"].Value)
                 .FontSize(16).Bold().FontColor(Colors.Blue.Darken3);
 
             col.Item().Row(row =>
             {
-                row.RelativeItem().Text($"Período: {FormatDateRange(report.DateFrom, report.DateTo)}").FontSize(9);
+                row.RelativeItem().Text($"{_localizer["RptCommon_Period"].Value}: {FormatDateRange(report.DateFrom, report.DateTo)}").FontSize(9);
                 row.RelativeItem().AlignRight()
-                    .Text($"Generado: {report.GeneratedAt:yyyy-MM-dd HH:mm} UTC").FontSize(8);
+                    .Text($"{_localizer["RptCommon_Generated"].Value}: {report.GeneratedAt:yyyy-MM-dd HH:mm} UTC").FontSize(8);
             });
 
             col.Item().PaddingTop(4)
-                .Text($"{report.PaymentMethods.Count} método(s) de pago  ·  " +
-                      $"{report.PaymentMethods.Count(pm => !pm.IsInactive)} activo(s)")
+                .Text(_localizer["RptFmt_PaymentMethodCount",
+                    report.PaymentMethods.Count,
+                    report.PaymentMethods.Count(pm => !pm.IsInactive)].Value)
                 .FontSize(9).FontColor(Colors.Grey.Darken1);
 
             col.Item().PaddingVertical(8).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
@@ -54,17 +55,16 @@ public partial class ReportExportService
     }
 
     /// <summary>Composes the main body sections of the payment method report.</summary>
-    private static void ComposePaymentMethodContent(IContainer container, PaymentMethodReportResponse report)
+    private void ComposePaymentMethodContent(IContainer container, PaymentMethodReportResponse report)
     {
         container.Column(col =>
         {
             if (report.PaymentMethods.Count == 0)
             {
-                ComposePdfEmptyState(col, "No se encontraron movimientos para métodos de pago en el período seleccionado.");
+                ComposePdfEmptyState(col, _localizer["RptPaymentMethod_NoActivity"].Value);
                 return;
             }
 
-            // Una sección por cada método de pago
             foreach (var pm in report.PaymentMethods)
                 ComposePaymentMethodSection(col, pm);
 
@@ -74,49 +74,51 @@ public partial class ReportExportService
     }
 
     /// <summary>Composes a detailed summary section for a specific payment method.</summary>
-    private static void ComposePaymentMethodSection(ColumnDescriptor col, PaymentMethodReportRow pm)
+    private void ComposePaymentMethodSection(ColumnDescriptor col, PaymentMethodReportRow pm)
     {
-        // ── Encabezado del método ──
+        // ── Method header ──
         col.Item().PaddingTop(10).Text($"{pm.Name}")
             .FontSize(13).Bold().FontColor(Colors.Blue.Darken2);
 
         col.Item().Text($"{pm.Type}  ·  {pm.Currency}" +
                         (pm.BankName is not null ? $"  ·  {pm.BankName}" : "") +
-                        (pm.OwnerPartnerName is not null ? $"  ·  Dueño: {pm.OwnerPartnerName}" : ""))
+                        (pm.OwnerPartnerName is not null
+                            ? _localizer["RptFmt_OwnerSuffix", pm.OwnerPartnerName].Value
+                            : ""))
             .FontSize(8).FontColor(Colors.Grey.Darken1);
 
-        // ── Métricas del método ──
+        // ── Method metrics ──
         col.Item().PaddingTop(4).Row(row =>
         {
             row.RelativeItem().Background(Colors.Blue.Lighten4).Padding(6).Column(c =>
             {
-                c.Item().Text("Total Gastado").FontSize(7).FontColor(Colors.Grey.Darken2);
+                c.Item().Text(_localizer["RptCommon_TotalSpent"].Value).FontSize(7).FontColor(Colors.Grey.Darken2);
                 c.Item().Text(FormatCurrency(pm.Currency, pm.TotalSpent)).FontSize(11).Bold();
             });
             row.ConstantItem(6);
             row.RelativeItem().Background(Colors.Green.Lighten4).Padding(6).Column(c =>
             {
-                c.Item().Text("Total Ingresos").FontSize(7).FontColor(Colors.Grey.Darken2);
+                c.Item().Text(_localizer["RptCommon_TotalIncome"].Value).FontSize(7).FontColor(Colors.Grey.Darken2);
                 c.Item().Text(FormatCurrency(pm.Currency, pm.TotalIncome)).FontSize(11).Bold();
             });
             row.ConstantItem(6);
             row.RelativeItem().Background(Colors.Orange.Lighten4).Padding(6).Column(c =>
             {
-                c.Item().Text("Balance Neto").FontSize(7).FontColor(Colors.Grey.Darken2);
+                c.Item().Text(_localizer["RptCommon_NetBalance"].Value).FontSize(7).FontColor(Colors.Grey.Darken2);
                 c.Item().Text(FormatCurrency(pm.Currency, pm.NetFlow)).FontSize(11).Bold();
             });
             row.ConstantItem(6);
             row.RelativeItem().Background(Colors.Grey.Lighten3).Padding(6).Column(c =>
             {
-                c.Item().Text("Transacciones").FontSize(7).FontColor(Colors.Grey.Darken2);
-                c.Item().Text($"{pm.ExpenseCount} gastos · {pm.IncomeCount} ingresos").FontSize(9).Bold();
+                c.Item().Text(_localizer["RptCommon_Transactions"].Value).FontSize(7).FontColor(Colors.Grey.Darken2);
+                c.Item().Text(_localizer["RptFmt_ExpenseIncomeCount", pm.ExpenseCount, pm.IncomeCount].Value).FontSize(9).Bold();
             });
         });
 
         // ── Top categories ──
         if (pm.TopCategories.Count > 0)
         {
-            col.Item().PaddingTop(6).Text("Top Categorías").FontSize(9).Bold();
+            col.Item().PaddingTop(6).Text(_localizer["RptPaymentMethod_TopCategories"].Value).FontSize(9).Bold();
             col.Item().PaddingTop(2).Table(table =>
             {
                 table.ColumnsDefinition(cols =>
@@ -129,9 +131,9 @@ public partial class ReportExportService
 
                 table.Header(header =>
                 {
-                    PdfTableHeaderCell(header, "Categoría");
-                    PdfTableHeaderCell(header, "Total", true);
-                    PdfTableHeaderCell(header, "Gastos", true);
+                    PdfTableHeaderCell(header, _localizer["RptCommon_Category"].Value);
+                    PdfTableHeaderCell(header, _localizer["RptCommon_Total"].Value, true);
+                    PdfTableHeaderCell(header, _localizer["RptCommon_ExpenseCount"].Value, true);
                     PdfTableHeaderCell(header, "%", true);
                 });
 
@@ -145,10 +147,10 @@ public partial class ReportExportService
             });
         }
 
-        // ── Desglose por proyecto ──
+        // ── Projects breakdown ──
         if (pm.Projects.Count > 0)
         {
-            col.Item().PaddingTop(6).Text("Proyectos").FontSize(9).Bold();
+            col.Item().PaddingTop(6).Text(_localizer["RptCommon_Projects"].Value).FontSize(9).Bold();
             col.Item().PaddingTop(2).Table(table =>
             {
                 table.ColumnsDefinition(cols =>
@@ -162,10 +164,10 @@ public partial class ReportExportService
 
                 table.Header(header =>
                 {
-                    PdfTableHeaderCell(header, "Proyecto");
-                    PdfTableHeaderCell(header, "Moneda");
-                    PdfTableHeaderCell(header, "Total", true);
-                    PdfTableHeaderCell(header, "Gastos", true);
+                    PdfTableHeaderCell(header, _localizer["RptCommon_Projects"].Value);
+                    PdfTableHeaderCell(header, _localizer["RptPaymentMethod_AbbrevCurrency"].Value);
+                    PdfTableHeaderCell(header, _localizer["RptCommon_Total"].Value, true);
+                    PdfTableHeaderCell(header, _localizer["RptPaymentMethod_AbbrevExpenses"].Value, true);
                     PdfTableHeaderCell(header, "%", true);
                 });
 
@@ -180,10 +182,10 @@ public partial class ReportExportService
             });
         }
 
-        // ── Gastos ──
+        // ── Expenses ──
         if (pm.Expenses.Count > 0)
         {
-            col.Item().PaddingTop(6).Text($"Gastos ({pm.ExpensesShown} de {pm.TotalExpensesInPeriod})")
+            col.Item().PaddingTop(6).Text(_localizer["RptFmt_GastosShown", pm.ExpensesShown, pm.TotalExpensesInPeriod].Value)
                 .FontSize(9).Bold();
             col.Item().PaddingTop(2).Table(table =>
             {
@@ -198,11 +200,11 @@ public partial class ReportExportService
 
                 table.Header(header =>
                 {
-                    PdfTableHeaderCell(header, "Fecha");
-                    PdfTableHeaderCell(header, "Título");
-                    PdfTableHeaderCell(header, "Proyecto");
-                    PdfTableHeaderCell(header, "Categoría");
-                    PdfTableHeaderCell(header, "Monto", true);
+                    PdfTableHeaderCell(header, _localizer["RptCommon_Date"].Value);
+                    PdfTableHeaderCell(header, _localizer["RptCommon_Title"].Value);
+                    PdfTableHeaderCell(header, _localizer["RptCommon_Projects"].Value);
+                    PdfTableHeaderCell(header, _localizer["RptCommon_Category"].Value);
+                    PdfTableHeaderCell(header, _localizer["RptCommon_Amount"].Value, true);
                 });
 
                 foreach (var exp in pm.Expenses)
@@ -216,10 +218,10 @@ public partial class ReportExportService
             });
         }
 
-        // ── Ingresos ──
+        // ── Incomes ──
         if (pm.Incomes.Count > 0)
         {
-            col.Item().PaddingTop(6).Text($"Ingresos ({pm.IncomesShown} de {pm.TotalIncomesInPeriod})")
+            col.Item().PaddingTop(6).Text(_localizer["RptFmt_IncomesShown", pm.IncomesShown, pm.TotalIncomesInPeriod].Value)
                 .FontSize(9).Bold();
             col.Item().PaddingTop(2).Table(table =>
             {
@@ -234,11 +236,11 @@ public partial class ReportExportService
 
                 table.Header(header =>
                 {
-                    PdfTableHeaderCell(header, "Fecha");
-                    PdfTableHeaderCell(header, "Título");
-                    PdfTableHeaderCell(header, "Proyecto");
-                    PdfTableHeaderCell(header, "Categoría");
-                    PdfTableHeaderCell(header, "Monto", true);
+                    PdfTableHeaderCell(header, _localizer["RptCommon_Date"].Value);
+                    PdfTableHeaderCell(header, _localizer["RptCommon_Title"].Value);
+                    PdfTableHeaderCell(header, _localizer["RptCommon_Projects"].Value);
+                    PdfTableHeaderCell(header, _localizer["RptCommon_Category"].Value);
+                    PdfTableHeaderCell(header, _localizer["RptCommon_Amount"].Value, true);
                 });
 
                 foreach (var inc in pm.Incomes)
@@ -256,9 +258,9 @@ public partial class ReportExportService
     }
 
     /// <summary>Composes the monthly trend analysis section for payment methods.</summary>
-    private static void ComposePaymentMethodMonthlyTrendSection(ColumnDescriptor col, PaymentMethodReportResponse report)
+    private void ComposePaymentMethodMonthlyTrendSection(ColumnDescriptor col, PaymentMethodReportResponse report)
     {
-        col.Item().PaddingTop(12).Text("Tendencia Mensual por Método")
+        col.Item().PaddingTop(12).Text(_localizer["RptPaymentMethod_MonthlyTrend"].Value)
             .FontSize(12).Bold().FontColor(Colors.Blue.Darken3);
 
         col.Item().PaddingTop(4).Table(table =>
@@ -277,14 +279,14 @@ public partial class ReportExportService
 
             table.Header(header =>
             {
-                PdfTableHeaderCell(header, "Mes");
-                PdfTableHeaderCell(header, "Método");
-                PdfTableHeaderCell(header, "Mon.");
-                PdfTableHeaderCell(header, "Gastado", true);
-                PdfTableHeaderCell(header, "# G.", true);
-                PdfTableHeaderCell(header, "Ingresos", true);
-                PdfTableHeaderCell(header, "# I.", true);
-                PdfTableHeaderCell(header, "Balance", true);
+                PdfTableHeaderCell(header, _localizer["RptCommon_Month"].Value);
+                PdfTableHeaderCell(header, _localizer["RptCommon_PaymentMethod"].Value);
+                PdfTableHeaderCell(header, _localizer["RptPaymentMethod_AbbrevCurrency"].Value);
+                PdfTableHeaderCell(header, _localizer["RptCommon_TotalSpent"].Value, true);
+                PdfTableHeaderCell(header, _localizer["RptPaymentMethod_AbbrevExpenses"].Value, true);
+                PdfTableHeaderCell(header, _localizer["RptCommon_TotalIncome"].Value, true);
+                PdfTableHeaderCell(header, _localizer["RptPaymentMethod_AbbrevIncomes"].Value, true);
+                PdfTableHeaderCell(header, _localizer["RptCommon_Balance"].Value, true);
             });
 
             foreach (var m in report.MonthlyTrend)
