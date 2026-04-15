@@ -27,7 +27,12 @@ public class SplitCurrencyExchangeConfiguration : IEntityTypeConfiguration<Split
         builder.Property(e => e.SceConvertedAmount).HasColumnName("sce_converted_amount").HasColumnType("numeric(18,4)").IsRequired();
         builder.Property(e => e.SceCreatedAt).HasColumnName("sce_created_at").HasDefaultValueSql("now()");
 
-        // Unique filtered indexes — avoids duplicate currency records per source
+        // Three-way XOR mutex: exactly one of SceExpenseSplitId / SceIncomeSplitId / SceSettlementId
+        // must be NOT NULL per row, tying each currency-conversion record to exactly one parent.
+        // Filtered unique indexes enforce one record per currency per parent:
+        //   • (expense_split_id, currency_code) unique where expense_split_id IS NOT NULL
+        //   • (income_split_id,  currency_code) unique where income_split_id  IS NOT NULL
+        //   • (settlement_id,    currency_code) unique where settlement_id    IS NOT NULL
         builder.HasIndex(e => new { e.SceExpenseSplitId, e.SceCurrencyCode })
             .IsUnique()
             .HasFilter("sce_expense_split_id IS NOT NULL");

@@ -100,6 +100,10 @@ public class McpAuthMiddleware
         await _next(context);
     }
 
+    /// <summary>
+    /// Extracts the raw token value from an <c>Authorization: Bearer &lt;token&gt;</c> header.
+    /// Returns false if the header is absent, malformed, or empty.
+    /// </summary>
     private static bool TryGetBearerToken(IHeaderDictionary headers, out string token)
     {
         token = string.Empty;
@@ -116,6 +120,10 @@ public class McpAuthMiddleware
         return !string.IsNullOrWhiteSpace(token);
     }
 
+    /// <summary>
+    /// Parses the user GUID from the <c>X-User-Id</c> request header.
+    /// Returns false if the header is absent or not a valid GUID.
+    /// </summary>
     private static bool TryGetUserId(IHeaderDictionary headers, out Guid userId)
     {
         userId = Guid.Empty;
@@ -126,6 +134,11 @@ public class McpAuthMiddleware
         return Guid.TryParse(userIdValues.ToString(), out userId);
     }
 
+    /// <summary>
+    /// Compares two tokens using a constant-time equality check to prevent timing-based side-channel attacks.
+    /// Uses <see cref="CryptographicOperations.FixedTimeEquals"/> so that the comparison time does not
+    /// vary with the number of matching bytes.
+    /// </summary>
     private static bool TokensMatch(string providedToken, string configuredToken)
     {
         var providedBytes = Encoding.UTF8.GetBytes(providedToken);
@@ -135,6 +148,7 @@ public class McpAuthMiddleware
             && CryptographicOperations.FixedTimeEquals(providedBytes, configuredBytes);
     }
 
+    /// <summary>Writes a 401 Unauthorized JSON response and short-circuits the pipeline.</summary>
     private static Task WriteUnauthorizedAsync(HttpContext context, string message)
     {
         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
@@ -146,6 +160,7 @@ public class McpAuthMiddleware
         });
     }
 
+    /// <summary>Writes a 403 Forbidden JSON response and short-circuits the pipeline.</summary>
     private static Task WriteForbiddenAsync(HttpContext context, string message)
     {
         context.Response.StatusCode = StatusCodes.Status403Forbidden;

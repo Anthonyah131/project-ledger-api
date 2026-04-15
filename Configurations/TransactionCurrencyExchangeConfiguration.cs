@@ -26,7 +26,11 @@ public class TransactionCurrencyExchangeConfiguration : IEntityTypeConfiguration
         builder.Property(e => e.TceConvertedAmount).HasColumnName("tce_converted_amount").HasColumnType("numeric(14,2)").IsRequired();
         builder.Property(e => e.TceCreatedAt).HasColumnName("tce_created_at").HasDefaultValueSql("now()");
 
-        // Indexes — filtered to avoid null duplicates
+        // XOR mutex: exactly one of TceExpenseId / TceIncomeId must be NOT NULL per row.
+        // Filtered unique indexes enforce one conversion record per currency per transaction:
+        //   • (expense_id, currency_code) is unique among rows where expense_id IS NOT NULL
+        //   • (income_id,  currency_code) is unique among rows where income_id  IS NOT NULL
+        // Using filters avoids spurious constraint violations from NULL values.
         builder.HasIndex(e => new { e.TceExpenseId, e.TceCurrencyCode })
             .IsUnique()
             .HasFilter("tce_expense_id IS NOT NULL");

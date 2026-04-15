@@ -67,6 +67,11 @@ public class PartnerSettlementConfiguration : IEntityTypeConfiguration<PartnerSe
         builder.Property(p => p.PstDeletedByUserId).HasColumnName("pst_deleted_by_user_id");
 
         // ── Foreign keys ─────────────────────────────────────
+        // Restrict (not NoAction or Cascade) is intentional: a settlement record must never be
+        // orphaned silently. Restrict causes the database to raise an error immediately if an
+        // attempt is made to delete a referenced project, partner, currency, or user while
+        // settlements still reference them. This prevents silent data loss and makes the
+        // constraint violation visible at the application level before the transaction commits.
         builder.HasOne(p => p.Project)
             .WithMany()
             .HasForeignKey(p => p.PstProjectId)

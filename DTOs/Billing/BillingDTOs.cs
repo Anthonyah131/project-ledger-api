@@ -2,12 +2,14 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ProjectLedger.API.DTOs.Billing;
 
+/// <summary>Indicates whether Stripe billing is enabled and the reason if it is not.</summary>
 public class BillingStatusResponse
 {
     public bool StripeEnabled { get; set; }
     public string? Reason { get; set; }
 }
 
+/// <summary>Standard error response returned by billing endpoints when Stripe is disabled by configuration.</summary>
 public class BillingUnavailableResponse
 {
     public string Code { get; set; } = "STRIPE_DISABLED";
@@ -58,6 +60,7 @@ public class CancelSubscriptionRequest
 
 // ── Sync Plans ──────────────────────────────────────────────
 
+/// <summary>Result for a single plan synced from Stripe: contains the Stripe product, price, and payment link IDs.</summary>
 public class StripePlanSyncItemResponse
 {
     public Guid PlanId { get; set; }
@@ -71,11 +74,16 @@ public class StripePlanSyncItemResponse
     public string StripePaymentLinkUrl { get; set; } = null!;
 }
 
+/// <summary>Response from the admin plan-sync endpoint: list of all plans updated from Stripe.</summary>
 public class StripePlanSyncResponse
 {
     public IReadOnlyList<StripePlanSyncItemResponse> Items { get; set; } = [];
 }
 
+/// <summary>
+/// Current subscription details for the authenticated user, including plan info,
+/// billing cycle dates, cancellation state, and Stripe identifiers.
+/// </summary>
 public class MySubscriptionResponse
 {
     public Guid? UserId { get; set; }

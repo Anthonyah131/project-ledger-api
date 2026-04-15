@@ -14,7 +14,7 @@ using QuestPDF.Infrastructure;
 QuestPDF.Settings.License = LicenseType.Community;
 
 // ── Load .env file into environment variables ───────────────
-// ASP.NET Core no carga .env automáticamente — lo hacemos aquí.
+// ASP.NET Core does not load .env files automatically — we do it here.
 var envFile = Path.Combine(Directory.GetCurrentDirectory(), ".env");
 if (File.Exists(envFile))
 {
@@ -33,8 +33,8 @@ if (File.Exists(envFile))
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Data Protection (persistent keys for OAuth state cookie) ─
-// En Azure App Service el sistema de archivos bajo /home es persistente.
-// Esto evita el error 500 en /signin-google al reiniciar la app.
+// On Azure App Service the filesystem under /home is persistent across restarts.
+// Persisting keys there prevents a 500 error on /signin-google after an app restart.
 var keysPath = Environment.GetEnvironmentVariable("HOME") is { } home
     ? Path.Combine(home, "site", "dataprotection-keys")
     : Path.Combine(builder.Environment.ContentRootPath, "dataprotection-keys");
@@ -49,9 +49,9 @@ builder.Services.AddLocalization();
 // ── Service Registration ────────────────────────────────────
 builder.Services.AddControllers(options =>
 {
-    // Filtro global: usuarios desactivados solo pueden leer (GET)
+    // Global filter: deactivated users can only read (GET)
     options.Filters.Add<ActiveUserWriteFilter>();
-    // Filtro global: admin solo puede acceder a rutas de administración
+    // Global filter: admin accounts can only access administration routes
     options.Filters.Add<AdminIsolationFilter>();
 });
 builder.Services.AddEndpointsApiExplorer();
@@ -61,7 +61,7 @@ builder.Services.AddSwaggerGen(options =>
     {
         Title       = "Project Ledger API",
         Version     = "v1",
-        Description = "API multi-tenant de contabilidad SaaS."
+        Description = "Multi-tenant SaaS accounting API."
     });
 
     // Botón Authorize en Swagger UI para JWT
@@ -72,7 +72,7 @@ builder.Services.AddSwaggerGen(options =>
         Scheme       = "bearer",
         BearerFormat = "JWT",
         In           = ParameterLocation.Header,
-        Description  = "Pega el access token JWT aquí."
+        Description  = "Paste the JWT access token here."
     });
     options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
     {
@@ -94,7 +94,7 @@ builder.Services.Configure<AzureDocumentIntelligenceSettings>(
     builder.Configuration.GetSection(AzureDocumentIntelligenceSettings.SectionName));
 builder.Services.Configure<GoogleAuthSettings>(
     builder.Configuration.GetSection(GoogleAuthSettings.SectionName));
-// Resolver placeholders ${ENV_VAR} en las settings de email
+// Resolve ${ENV_VAR} placeholders in email settings
 builder.Services.PostConfigure<EmailSettings>(settings =>
 {
     settings.SmtpUser     = Resolve(settings.SmtpUser);
@@ -274,7 +274,7 @@ builder.Services.PostConfigure<GoogleAuthSettings>(settings =>
             : value;
 });
 
-// Resolver placeholder ${JWT_SECRET_KEY} en JwtSettings (igual que EmailSettings)
+// Resolve ${JWT_SECRET_KEY} placeholder in JwtSettings (same pattern as EmailSettings)
 builder.Services.PostConfigure<JwtSettings>(settings =>
 {
     if (!string.IsNullOrEmpty(settings.SecretKey)
@@ -288,7 +288,7 @@ builder.Services.PostConfigure<JwtSettings>(settings =>
 
 builder.Services.Configure<ChatbotSettings>(
     builder.Configuration.GetSection(ChatbotSettings.SectionName));
-// Resolver placeholders ${ENV_VAR} en los API keys del chatbot
+// Resolve ${ENV_VAR} placeholders in chatbot API keys
 builder.Services.PostConfigure<ChatbotSettings>(settings =>
 {
     settings.OpenRouter = ResolveProviderSettings(settings.OpenRouter);
@@ -339,9 +339,9 @@ builder.Services.AddHttpClient<IExchangeRateService, ExchangeRateService>((servi
     client.Timeout = TimeSpan.FromSeconds(Math.Clamp(settings.TimeoutSeconds, 1, 60));
 });
 
-// ── Chatbot HTTP clients (uno por proveedor, OpenAI-compatible) ──────────────
-// Cada cliente tiene su BaseAddress y Authorization pre-configurados.
-// IHttpClientFactory reutiliza los handlers internos (socket pooling).
+// ── Chatbot HTTP clients (one per provider, OpenAI-compatible) ───────────────
+// Each client has its BaseAddress and Authorization header pre-configured.
+// IHttpClientFactory reuses the underlying handlers (socket pooling).
 builder.Services.AddHttpClient("Chatbot.OpenRouter", (sp, client) =>
 {
     var s = sp.GetRequiredService<IOptions<ChatbotSettings>>().Value.OpenRouter;
@@ -407,7 +407,7 @@ app.UseRequestLocalization(new RequestLocalizationOptions
 // 2. Global error handler
 app.UseGlobalExceptionHandler();
 
-// 3. Security headers en todas las respuestas
+// 3. Security headers on all responses
 app.UseSecurityHeaders();
 
 if (app.Environment.IsDevelopment())
@@ -422,10 +422,10 @@ app.UseHttpsRedirection();
 // 4. Rate Limiting
 app.UseRateLimiter();
 
-// 5. CORS (antes de auth)
+// 5. CORS (before auth)
 app.UseCors(CorsSettings.PolicyName);
 
-// 6. MCP auth aislado (solo /api/mcp)
+// 6. MCP auth isolated (only /api/mcp)
 app.UseWhen(
     context => context.Request.Path.StartsWithSegments("/api/mcp"),
     branch => branch.UseMiddleware<McpAuthMiddleware>());

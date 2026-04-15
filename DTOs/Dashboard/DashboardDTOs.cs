@@ -1,5 +1,9 @@
 namespace ProjectLedger.API.DTOs.Dashboard;
 
+/// <summary>
+/// Full monthly overview for the dashboard: summary, comparison, trends, categories,
+/// payment method split, project health, and alerts — all in the project's currency.
+/// </summary>
 public class MonthlyOverviewResponse
 {
     public string Month { get; set; } = null!;
@@ -15,6 +19,10 @@ public class MonthlyOverviewResponse
     public List<DashboardAlertResponse> Alerts { get; set; } = [];
 }
 
+/// <summary>
+/// Compact monthly summary for a specific project (or all projects when <c>ProjectId</c> is null).
+/// Returns executive totals, comparison with the previous month, and active alerts.
+/// </summary>
 public class MonthlySummaryDashboardResponse
 {
     public string Month { get; set; } = null!;
@@ -27,6 +35,7 @@ public class MonthlySummaryDashboardResponse
     public List<DashboardAlertResponse> Alerts { get; set; } = [];
 }
 
+/// <summary>High-level financial totals for a given month: total spent, total income, and net balance.</summary>
 public class ExecutiveMonthlySummaryResponse
 {
     public decimal TotalSpent { get; set; }
@@ -34,6 +43,7 @@ public class ExecutiveMonthlySummaryResponse
     public decimal NetBalance { get; set; }
 }
 
+/// <summary>Daily spending/income trend data for a given month and optional project filter.</summary>
 public class MonthlyDailyTrendResponse
 {
     public string Month { get; set; } = null!;
@@ -42,6 +52,7 @@ public class MonthlyDailyTrendResponse
     public List<DailyTrendPointResponse> TrendByDay { get; set; } = [];
 }
 
+/// <summary>Top expense categories for a given month and optional project filter.</summary>
 public class MonthlyTopCategoriesResponse
 {
     public string Month { get; set; } = null!;
@@ -50,6 +61,7 @@ public class MonthlyTopCategoriesResponse
     public List<TopCategoryRowResponse> TopCategories { get; set; } = [];
 }
 
+/// <summary>Payment method spending breakdown for a given month and optional project filter.</summary>
 public class MonthlyPaymentMethodsResponse
 {
     public string Month { get; set; } = null!;
@@ -58,6 +70,7 @@ public class MonthlyPaymentMethodsResponse
     public List<PaymentMethodSplitRowResponse> PaymentMethodSplit { get; set; } = [];
 }
 
+/// <summary>Navigation context for month-based dashboard views: links to adjacent months and whether data exists.</summary>
 public class MonthlyNavigationResponse
 {
     public string PreviousMonth { get; set; } = null!;
@@ -68,6 +81,10 @@ public class MonthlyNavigationResponse
     public bool HasNextData { get; set; }
 }
 
+/// <summary>
+/// Extended monthly summary including active project count, pending obligations,
+/// and budget utilization percentage — used on the full overview dashboard.
+/// </summary>
 public class MonthlySummaryResponse
 {
     public decimal TotalSpent { get; set; }
@@ -79,6 +96,7 @@ public class MonthlySummaryResponse
     public decimal BudgetUsedPercentage { get; set; }
 }
 
+/// <summary>Month-over-month comparison deltas for spending, income, and net balance.</summary>
 public class MonthlyComparisonResponse
 {
     public string PreviousMonth { get; set; } = null!;
@@ -89,6 +107,7 @@ public class MonthlyComparisonResponse
     public decimal NetDelta { get; set; }
 }
 
+/// <summary>Aggregated spending and income totals for a single calendar day.</summary>
 public class DailyTrendPointResponse
 {
     public DateOnly Date { get; set; }
@@ -100,6 +119,7 @@ public class DailyTrendPointResponse
     public int IncomeCount { get; set; }
 }
 
+/// <summary>A single row in the top-categories breakdown: category totals and its share of overall spending.</summary>
 public class TopCategoryRowResponse
 {
     public Guid CategoryId { get; set; }
@@ -110,6 +130,7 @@ public class TopCategoryRowResponse
     public List<Guid> ProjectIds { get; set; } = [];
 }
 
+/// <summary>A single row in the payment-method breakdown: totals per method and its share of overall spending.</summary>
 public class PaymentMethodSplitRowResponse
 {
     public Guid PaymentMethodId { get; set; }
@@ -119,6 +140,7 @@ public class PaymentMethodSplitRowResponse
     public decimal Percentage { get; set; }
 }
 
+/// <summary>Health snapshot for a single project: net balance and optional budget utilization.</summary>
 public class ProjectHealthRowResponse
 {
     public Guid ProjectId { get; set; }
@@ -130,6 +152,10 @@ public class ProjectHealthRowResponse
     public decimal? BudgetUsedPercentage { get; set; }
 }
 
+/// <summary>
+/// A dashboard alert surfaced to the user (e.g. overdue obligations, budget exceeded).
+/// Alerts are prioritized and may reference a specific project or payment method.
+/// </summary>
 public class DashboardAlertResponse
 {
     public string Type { get; set; } = null!;

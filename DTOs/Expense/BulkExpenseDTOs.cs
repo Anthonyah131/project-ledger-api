@@ -89,12 +89,14 @@ public class BulkExpenseItemRequest
 
 // ── Responses ───────────────────────────────────────────────
 
+/// <summary>Response returned after a bulk expense creation: total count and summary of each created expense.</summary>
 public class BulkCreateExpenseResponse
 {
     public int Created { get; set; }
     public List<BulkCreatedItemResponse> Items { get; set; } = [];
 }
 
+/// <summary>Lightweight summary of a single expense created during a bulk-create operation.</summary>
 public class BulkCreatedItemResponse
 {
     public Guid Id { get; set; }

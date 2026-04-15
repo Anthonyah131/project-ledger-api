@@ -35,7 +35,9 @@ public class ProjectMemberConfiguration : IEntityTypeConfiguration<ProjectMember
         builder.HasIndex(pm => pm.PrmUserId);
         builder.HasIndex(pm => pm.PrmIsDeleted);
 
-        // Partial UNIQUE: one active member per project
+        // Partial UNIQUE: one active membership per user per project.
+        // Soft-deleted rows are excluded from the constraint, which allows a user
+        // to be re-added to a project after being removed.
         builder.HasIndex(pm => new { pm.PrmProjectId, pm.PrmUserId })
             .IsUnique()
             .HasFilter("prm_is_deleted = false");

@@ -41,26 +41,32 @@ public class IncomeService : IIncomeService
         _exchangeService = exchangeService;
     }
 
+    /// <inheritdoc />
     public async Task<Income?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         var income = await _incomeRepo.GetByIdAsync(id, ct);
         return income is { IncIsDeleted: false } ? income : null;
     }
 
+    /// <inheritdoc />
     public async Task<IEnumerable<Income>> GetByProjectIdAsync(Guid projectId, CancellationToken ct = default)
         => await _incomeRepo.GetByProjectIdAsync(projectId, ct);
 
+    /// <inheritdoc />
     public async Task<IEnumerable<Income>> GetByProjectIdAsync(Guid projectId, bool includeDeleted, CancellationToken ct = default)
         => await _incomeRepo.GetByProjectIdAsync(projectId, includeDeleted, ct);
 
+    /// <inheritdoc />
     public async Task<(IReadOnlyList<Income> Items, int TotalCount)> GetByProjectIdPagedAsync(
         Guid projectId, bool includeDeleted, bool? isActive, int skip, int take, string? sortBy, bool descending, DateOnly? from, DateOnly? to, CancellationToken ct = default)
         => await _incomeRepo.GetByProjectIdPagedAsync(projectId, includeDeleted, isActive, skip, take, sortBy, descending, from, to, ct);
 
+    /// <inheritdoc />
     public async Task<IEnumerable<Income>> GetByPaymentMethodIdAsync(
         Guid paymentMethodId, CancellationToken ct = default)
         => await _incomeRepo.GetByPaymentMethodIdAsync(paymentMethodId, ct);
 
+    /// <inheritdoc />
     public async Task<(IReadOnlyList<Income> Items, int TotalCount, decimal TotalActiveAmount)> GetByPaymentMethodIdPagedAsync(
         Guid paymentMethodId,
         bool? isActive,
@@ -84,6 +90,7 @@ public class IncomeService : IIncomeService
             projectId,
             ct);
 
+    /// <inheritdoc />
     public async Task<Income> CreateAsync(Income income, IReadOnlyList<SplitInput>? splits = null, CancellationToken ct = default)
     {
         if (income.IncIsActive)

@@ -44,31 +44,39 @@ public class ExpenseService : IExpenseService
         _exchangeService = exchangeService;
     }
 
+    /// <inheritdoc />
     public async Task<Expense?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         var expense = await _expenseRepo.GetByIdAsync(id, ct);
         return expense is { ExpIsDeleted: false } ? expense : null;
     }
 
+    /// <inheritdoc />
     public async Task<IEnumerable<Expense>> GetByProjectIdAsync(Guid projectId, CancellationToken ct = default)
         => await _expenseRepo.GetByProjectIdAsync(projectId, ct);
 
+    /// <inheritdoc />
     public async Task<IEnumerable<Expense>> GetByProjectIdAsync(Guid projectId, bool includeDeleted, CancellationToken ct = default)
         => await _expenseRepo.GetByProjectIdAsync(projectId, includeDeleted, ct);
 
+    /// <inheritdoc />
     public async Task<(IReadOnlyList<Expense> Items, int TotalCount)> GetByProjectIdPagedAsync(
         Guid projectId, bool includeDeleted, bool? isActive, int skip, int take, string? sortBy, bool descending, DateOnly? from, DateOnly? to, CancellationToken ct = default)
         => await _expenseRepo.GetByProjectIdPagedAsync(projectId, includeDeleted, isActive, skip, take, sortBy, descending, from, to, ct);
 
+    /// <inheritdoc />
     public async Task<IEnumerable<Expense>> GetByCategoryIdAsync(Guid categoryId, CancellationToken ct = default)
         => await _expenseRepo.GetByCategoryIdAsync(categoryId, ct);
 
+    /// <inheritdoc />
     public async Task<IEnumerable<Expense>> GetByObligationIdAsync(Guid obligationId, CancellationToken ct = default)
         => await _expenseRepo.GetByObligationIdAsync(obligationId, ct);
 
+    /// <inheritdoc />
     public async Task<IEnumerable<Expense>> GetTemplatesByProjectIdAsync(Guid projectId, CancellationToken ct = default)
         => await _expenseRepo.GetTemplatesByProjectIdAsync(projectId, ct);
 
+    /// <inheritdoc />
     public async Task<Expense> CreateAsync(Expense expense, IReadOnlyList<SplitInput>? splits = null, CancellationToken ct = default)
     {
         if (expense.ExpIsActive)

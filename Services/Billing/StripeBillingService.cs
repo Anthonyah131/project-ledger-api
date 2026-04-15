@@ -8,6 +8,17 @@ using AppPlan = ProjectLedger.API.Models.Plan;
 
 namespace ProjectLedger.API.Services;
 
+/// <summary>
+/// Handles Stripe billing operations: Checkout Session creation, subscription management,
+/// webhook event processing, and plan synchronization.
+/// <para>
+/// Subscription state is stored in two places kept in sync by <c>UpsertSubscriptionAsync</c>:
+/// <list type="bullet">
+///   <item><description><c>user_subscriptions</c> table — authoritative source of truth, updated by webhooks.</description></item>
+///   <item><description><c>User.UsrPlanId</c> field — fast-path cache read by authorization handlers without a join.</description></item>
+/// </list>
+/// </para>
+/// </summary>
 public class StripeBillingService : IStripeBillingService
 {
     private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> CheckoutCustomerLocks = new();

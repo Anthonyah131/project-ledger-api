@@ -49,10 +49,10 @@ public class PaymentMethodController : ControllerBase
     // ── GET /api/payment-methods/lookup ────────────────────────
 
     /// <summary>
-    /// Lista ligera y paginada de métodos de pago del usuario autenticado.
-    /// Diseñado para command palette, formularios de gastos/ingresos y selectores.
+    /// Lightweight paginated list of the authenticated user's payment methods.
+    /// Designed for command palette, expense/income forms, and selectors.
     /// </summary>
-    /// <response code="200">Lookup paginado de métodos de pago.</response>
+    /// <response code="200">Paginated payment method lookup.</response>
     [HttpGet("lookup")]
     [ProducesResponseType(typeof(PaymentMethodLookupResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetLookup(

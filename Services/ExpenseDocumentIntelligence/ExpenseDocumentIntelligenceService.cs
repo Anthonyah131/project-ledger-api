@@ -48,6 +48,7 @@ public class ExpenseDocumentIntelligenceService : IExpenseDocumentIntelligenceSe
         _logger = logger;
     }
 
+    /// <inheritdoc />
     public async Task<ExtractExpenseFromDocumentResponse> ExtractDraftAsync(
         Guid projectId,
         IFormFile file,
