@@ -9,14 +9,13 @@ using ProjectLedger.API.Services.Chatbot.Interfaces;
 namespace ProjectLedger.API.Services.Chatbot;
 
 /// <summary>
-/// Orchestrates the 2-step intent-based pipeline:
+/// Orchestrates the intent-based chatbot pipeline:
+/// 1. LLM Call #1 (Intent Parser): classifies the user's query into domain/action/filters as structured JSON.
+/// 2. IntentRouter: maps the parsed intent to an <see cref="IMcpService"/> method and fetches live financial data.
+/// 3. LLM Call #2 (Response Formatter, streaming): generates a natural language response from the retrieved data.
 ///
-/// LLM Call #1 (Intent Parser): classifies domain + action + filters as structured JSON.
-/// Backend (IntentRouter): maps the intent to IMcpService and executes the query.
-/// LLM Call #2 (Response Formatter): generates the final natural language response.
-///
-/// For greeting/context_only/off_topic, it skips the tools step (0 tool executions).
-/// Uses round-robin provider rotation (max 2 providers per request).
+/// Short-circuit path: greeting/context_only/off_topic domains skip the router (no live data fetch).
+/// Uses round-robin provider rotation across up to 2 providers per request.
 /// </summary>
 public class ChatbotService : IChatbotService
 {
@@ -79,7 +78,7 @@ public class ChatbotService : IChatbotService
             _logger.LogDebug("Intent Parser — provider: {Provider}", parserProvider.ProviderName);
             var parserResponse = await parserProvider.SendMessageAsync(parserMessages, ct);
 
-            _logger.LogInformation("Intent Parser raw response: {R}", parserResponse);
+            _logger.LogDebug("Intent Parser raw response: {R}", parserResponse);
             intent = ParseIntent(parserResponse);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -115,7 +114,7 @@ public class ChatbotService : IChatbotService
             _logger.LogDebug("IntentRouter: {Domain}/{Action}", intent.Domain, intent.Action);
             dataOrContext            = await _intentRouter.ExecuteAsync(userId, intent, ct);
             toolCallsExecuted        = 1;
-            formatterHistory         = null;
+            formatterHistory         = history; // Pass history so the formatter can contextualize follow-up questions
             finalUsedFinancialContext = true;
         }
 
@@ -154,11 +153,23 @@ public class ChatbotService : IChatbotService
         var today = DateTime.UtcNow;
         var lang  = intent.Lang == "en" ? "English" : "Spanish";
 
-        var baseRules =
-            "Be concise and direct — answer the question in 1-3 sentences when possible. " +
+        // Base rules for simple/conversational responses (greetings, context questions)
+        var conversationalRules =
+            "Be concise and direct. Answer in 1-3 sentences. " +
             "Do not add extra explanations or suggestions unless the user asked. " +
             "Do not use markdown formatting (no **, no *, no #, no ---). " +
-            "Write plain conversational text. For lists use simple line breaks, not bullet points or tables.";
+            "Write plain conversational text.";
+
+        // Rules for structured financial data responses
+        var financialRules =
+            "Do not use markdown formatting (no **, no *, no #, no ---). " +
+            "Do not add unsolicited suggestions or advice. " +
+            "Always use the EXACT currency code from the data (e.g. 10,000 CRC, 500 USD). Never assume a currency. " +
+            "For a single value, answer in 1-2 sentences. " +
+            "For multiple items (several projects, categories, periods), present each on its own line using plain text. " +
+            "Lead with the direct answer, then list the breakdown. " +
+            "If the data contains no records, say so clearly in one sentence. " +
+            "If the previous conversation provides context (period, project, category), use it to frame your answer.";
 
         string systemPrompt;
         string formatterUserMessage;
@@ -166,7 +177,7 @@ public class ChatbotService : IChatbotService
         if (intent.Domain is "greeting" or "off_topic")
         {
             systemPrompt =
-                $"You are a financial assistant. Today is {today:yyyy-MM-dd}. Answer in {lang}. {baseRules} " +
+                $"You are a financial assistant. Today is {today:yyyy-MM-dd}. Answer in {lang}. {conversationalRules} " +
                 "If the user greets you, greet them back briefly. " +
                 "If the question is off-topic, say in one sentence that you only help with finances.";
             formatterUserMessage = userMessage;
@@ -174,7 +185,7 @@ public class ChatbotService : IChatbotService
         else if (intent.Domain == "context_only")
         {
             systemPrompt =
-                $"You are a financial assistant. Today is {today:yyyy-MM-dd}. Answer in {lang}. {baseRules} " +
+                $"You are a financial assistant. Today is {today:yyyy-MM-dd}. Answer in {lang}. {conversationalRules} " +
                 "Use ONLY the pre-loaded financial context below. Do not invent data. " +
                 "If the information requested is not in the context, say so in one sentence.\n\n" +
                 "Pre-loaded context:\n" + dataOrContext;
@@ -183,9 +194,8 @@ public class ChatbotService : IChatbotService
         else
         {
             systemPrompt =
-                $"You are a financial assistant. Today is {today:yyyy-MM-dd}. Answer in {lang}. {baseRules} " +
-                "Use ONLY the data provided below. Do not invent numbers. " +
-                "For amounts, include the currency code next to the number (e.g. 10,000 CRC).";
+                $"You are a financial assistant. Today is {today:yyyy-MM-dd}. Answer in {lang}. {financialRules} " +
+                "Use ONLY the financial data provided below. Do not invent numbers or dates.";
             formatterUserMessage = $"User question: {userMessage}\n\nFinancial data:\n{dataOrContext}";
         }
 
@@ -220,13 +230,11 @@ public class ChatbotService : IChatbotService
     private static ChatbotStreamEvent DoneEvent() =>
         new() { Type = "done" };
 
-    /// <summary>Creates a metadata event detailing the provider and execution stats.</summary>
+    /// <summary>Creates a metadata event with pipeline execution stats.</summary>
     private static ChatbotStreamEvent MetaEvent(IChatProvider provider, bool usedFinancialContext, int toolCalls) =>
         new()
         {
             Type                 = "meta",
-            Provider             = provider.ProviderName,
-            Model                = provider.Model,
             UsedFinancialContext = usedFinancialContext,
             ToolCallsExecuted    = toolCalls
         };
@@ -334,12 +342,40 @@ public class ChatbotService : IChatbotService
         sb.AppendLine("- If the user is greeting or making small talk, use domain: \"greeting\"");
         sb.AppendLine("- If the question is unrelated to finances, use domain: \"off_topic\"");
         sb.AppendLine("- Extract filters from the user's natural language (project names, dates, categories, etc.)");
-        sb.AppendLine("- Convert relative dates to YYYY-MM-DD (e.g. 'this month' -> first/last day of current month)");
-        sb.AppendLine("- Convert relative months to YYYY-MM format for the 'month' filter");
         sb.AppendLine("- Only include filters the user explicitly mentions. Omit all others.");
         sb.AppendLine("- Detect the user's language: set \"lang\" to \"es\" for Spanish or \"en\" for English");
-        sb.AppendLine("- IMPORTANT: Only include 'from'/'to' when the user mentions a specific time period.");
-        sb.AppendLine("  For 'total', 'all time', or general questions without dates, OMIT from/to entirely.");
+        sb.AppendLine("- PROJECT NAMES: Match project names from 'Visible Projects' in the context. Use the exact name listed.");
+        sb.AppendLine("  If the user mentions a partial name (e.g. 'miravalles'), match it to the full project name ('Miravalles').");
+        sb.AppendLine();
+        sb.AppendLine("## Date conversion rules (today = " + today.ToString("yyyy-MM-dd") + ")");
+        sb.AppendLine("Always convert relative expressions to absolute YYYY-MM-DD dates:");
+        sb.AppendLine($"- 'this month'      → from: {new DateTime(today.Year, today.Month, 1):yyyy-MM-dd}, to: {today:yyyy-MM-dd}");
+        sb.AppendLine($"- 'last month'      → from: {new DateTime(today.Year, today.Month, 1).AddMonths(-1):yyyy-MM-dd}, to: {new DateTime(today.Year, today.Month, 1).AddDays(-1):yyyy-MM-dd}");
+        sb.AppendLine($"- 'this year' / 'YTD' → from: {new DateTime(today.Year, 1, 1):yyyy-MM-dd}, to: {today:yyyy-MM-dd}");
+        sb.AppendLine($"- 'last year'       → from: {new DateTime(today.Year - 1, 1, 1):yyyy-MM-dd}, to: {new DateTime(today.Year - 1, 12, 31):yyyy-MM-dd}");
+        sb.AppendLine($"- 'last 7 days' / 'last week' → from: {today.AddDays(-7):yyyy-MM-dd}, to: {today:yyyy-MM-dd}");
+        sb.AppendLine($"- 'last 30 days'    → from: {today.AddDays(-30):yyyy-MM-dd}, to: {today:yyyy-MM-dd}");
+        sb.AppendLine($"- 'last 3 months'   → from: {today.AddMonths(-3):yyyy-MM-dd}, to: {today:yyyy-MM-dd}");
+        sb.AppendLine($"- 'last 6 months'   → from: {today.AddMonths(-6):yyyy-MM-dd}, to: {today:yyyy-MM-dd}");
+        sb.AppendLine("- 'today'           → from: today, to: today");
+        sb.AppendLine("- 'yesterday'       → from: yesterday, to: yesterday");
+        sb.AppendLine("- 'YYYY-MM' month format → use the 'month' filter, not from/to");
+        sb.AppendLine("- ONLY include 'from'/'to' when a time period is explicitly mentioned. For 'total', 'all time', or general questions, OMIT them.");
+        sb.AppendLine();
+        sb.AppendLine("## Intent disambiguation");
+        sb.AppendLine("BALANCE / RESUMEN:");
+        sb.AppendLine("  'balance general', 'resumen de proyecto X', 'cuánto he gastado en total en X', 'estado de mi proyecto X'");
+        sb.AppendLine("  → domain: 'projects', action: 'portfolio', filters: { projectName: 'X' }   [ALL-TIME totals]");
+        sb.AppendLine("  'balance de este mes', 'cómo voy en enero', 'resumen de marzo'");
+        sb.AppendLine("  → domain: 'summary', action: 'monthly_overview', filters: { month: 'YYYY-MM' }   [month-scoped]");
+        sb.AppendLine("TOTALS vs LISTING:");
+        sb.AppendLine("  'cuánto gasté' / 'total de gastos' / 'cuánto fue'  → expenses/totals or summary");
+        sb.AppendLine("  'ver mis gastos' / 'últimas transacciones' / 'listar movimientos'  → movements/recent");
+        sb.AppendLine("COMPARISON:");
+        sb.AppendLine("  'comparado con el mes anterior' / 'vs last month' → set comparePreviousPeriod: true");
+        sb.AppendLine("FOLLOW-UP QUESTIONS:");
+        sb.AppendLine("  If the previous assistant message answered a question about period/project/category,");
+        sb.AppendLine("  and the user says 'y para X?' or 'what about X?' — keep all other filters from the previous intent");
         sb.AppendLine();
 
         sb.AppendLine("## Output format");
@@ -350,13 +386,38 @@ public class ChatbotService : IChatbotService
 
     // ── Context pre-loading (unchanged) ──────────────────────────────────────
 
-    /// <summary>Fetch the user's monthly overview and overdue payments to inject into context.</summary>
+    /// <summary>
+    /// Builds the financial context injected into the Intent Parser's system prompt.
+    /// Loads: project list (names + currencies), current month overview, and overdue payments.
+    /// Having project names in context allows the parser to detect project name filters
+    /// and correctly route project-specific questions.
+    /// </summary>
     private async Task<(string Summary, bool UsedFinancialContext)> BuildContextSummaryAsync(
         Guid userId,
         CancellationToken ct)
     {
         var sb = new StringBuilder();
         var usedFinancialContext = false;
+
+        // ── Project list (names + currencies) ──────────────────────────────────
+        // Gives the parser awareness of available project names and their currencies.
+        try
+        {
+            var ctx = await _mcpService.GetContextAsync(userId, ct);
+
+            if (ctx.VisibleProjects.Count > 0)
+            {
+                sb.AppendLine("## Visible Projects (use exact names for projectName filter)");
+                foreach (var p in ctx.VisibleProjects)
+                    sb.AppendLine($"- \"{p.ProjectName}\" (currency: {p.CurrencyCode}, role: {p.UserRole})");
+                sb.AppendLine();
+                usedFinancialContext = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not load project list into context (userId={UserId})", userId);
+        }
 
         try
         {

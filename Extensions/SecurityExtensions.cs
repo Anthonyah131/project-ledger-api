@@ -250,6 +250,14 @@ public static class SecurityExtensions
                 limiter.QueueLimit  = 0;
             });
 
+            // Chatbot: 20 messages / 60s — each request triggers 2 LLM calls + 1 DB query
+            options.AddFixedWindowLimiter("ChatbotRateLimit", limiter =>
+            {
+                limiter.PermitLimit = 20;
+                limiter.Window      = TimeSpan.FromSeconds(60);
+                limiter.QueueLimit  = 0;
+            });
+
             // Custom response when exceeding limit
             options.OnRejected = async (context, ct) =>
             {

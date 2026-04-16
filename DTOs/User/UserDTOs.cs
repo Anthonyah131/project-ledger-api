@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using ProjectLedger.API.DTOs.Plan;
 
 namespace ProjectLedger.API.DTOs.User;
 
@@ -59,12 +60,13 @@ public class UserProfileResponse
     public UserPlanSummaryDto Plan { get; set; } = null!;
 }
 
-/// <summary>Summary of the plan assigned to the user.</summary>
+/// <summary>Summary of the plan assigned to the user, including feature permissions.</summary>
 public class UserPlanSummaryDto
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = null!;
     public string Slug { get; set; } = null!;
+    public PlanPermissionsDto Permissions { get; set; } = null!;
 }
 
 /// <summary>Minimal user response (for lists, members, etc.).</summary>

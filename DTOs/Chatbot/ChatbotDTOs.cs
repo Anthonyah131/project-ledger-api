@@ -24,6 +24,7 @@ public class ChatbotHistoryEntry
 {
     /// <summary>Message role: "user" or "assistant".</summary>
     [Required]
+    [AllowedValues("user", "assistant")]
     public string Role { get; set; } = string.Empty;
 
     /// <summary>Message content.</summary>
@@ -35,7 +36,7 @@ public class ChatbotHistoryEntry
 /// <summary>
 /// SSE event emitted by the streaming endpoint (POST /message/stream).
 /// The <see cref="Type"/> field acts as a discriminator:
-/// - "meta"  → sent once before the first chunk; contains provider, model, and pipeline metadata.
+/// - "meta"  → sent once before the first chunk; contains pipeline metadata.
 /// - "chunk" → one partial text token per event; read <see cref="Content"/>.
 /// - "done"  → sent once after the last chunk to signal stream completion.
 /// - "error" → sent if the pipeline fails; read <see cref="Content"/> for the message.
@@ -44,8 +45,6 @@ public class ChatbotStreamEvent
 {
     public string  Type                  { get; set; } = string.Empty;
     public string? Content               { get; set; }
-    public string? Provider              { get; set; }
-    public string? Model                 { get; set; }
     public bool?   UsedFinancialContext  { get; set; }
     public int?    ToolCallsExecuted     { get; set; }
 }

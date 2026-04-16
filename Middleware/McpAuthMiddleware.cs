@@ -66,7 +66,9 @@ public class McpAuthMiddleware
 
         var user = await dbContext.Users
             .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.UsrId == userId && !u.UsrIsDeleted, context.RequestAborted);
+            .FirstOrDefaultAsync(
+                u => u.UsrId == userId && !u.UsrIsDeleted && u.UsrIsActive,
+                context.RequestAborted);
 
         if (user is null)
         {

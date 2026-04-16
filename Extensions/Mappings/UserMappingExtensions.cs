@@ -1,6 +1,7 @@
 using ProjectLedger.API.Models;
-using ProjectLedger.API.DTOs.User;
 using ProjectLedger.API.DTOs.Auth;
+using ProjectLedger.API.DTOs.Plan;
+using ProjectLedger.API.DTOs.User;
 
 namespace ProjectLedger.API.Extensions.Mappings;
 
@@ -24,9 +25,23 @@ public static class UserMappingExtensions
         Plan = entity.Plan is not null
             ? new UserPlanSummaryDto
             {
-                Id = entity.Plan.PlnId,
+                Id   = entity.Plan.PlnId,
                 Name = entity.Plan.PlnName,
-                Slug = entity.Plan.PlnSlug
+                Slug = entity.Plan.PlnSlug,
+                Permissions = new PlanPermissionsDto
+                {
+                    CanCreateProjects       = entity.Plan.PlnCanCreateProjects,
+                    CanEditProjects         = entity.Plan.PlnCanEditProjects,
+                    CanDeleteProjects       = entity.Plan.PlnCanDeleteProjects,
+                    CanShareProjects        = entity.Plan.PlnCanShareProjects,
+                    CanExportData           = entity.Plan.PlnCanExportData,
+                    CanUseAdvancedReports   = entity.Plan.PlnCanUseAdvancedReports,
+                    CanUseOcr               = entity.Plan.PlnCanUseOcr,
+                    CanUseApi               = entity.Plan.PlnCanUseApi,
+                    CanUseMultiCurrency     = entity.Plan.PlnCanUseMultiCurrency,
+                    CanSetBudgets           = entity.Plan.PlnCanSetBudgets,
+                    CanUsePartners          = entity.Plan.PlnCanUsePartners
+                }
             }
             : null!
     };

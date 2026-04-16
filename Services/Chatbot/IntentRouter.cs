@@ -96,6 +96,7 @@ public class IntentRouter : IIntentRouter
                 // ── Projects ──────────────────────────────────────────────
                 "projects/portfolio" => await _mcpService.GetProjectPortfolioAsync(userId, new McpProjectPortfolioQuery
                 {
+                    ProjectName  = f.ProjectName,
                     Status       = f.Status,
                     ActivityDays = f.ActivityDays
                 }, ct),
@@ -202,17 +203,20 @@ public class IntentRouter : IIntentRouter
 
                 "summary/monthly_overview" => await _mcpService.GetMonthlyOverviewAsync(userId, new McpMonthlyOverviewQuery
                 {
-                    Month       = f.Month,
+                    Month       = ValidateMonth(f.Month),
                     ProjectName = f.ProjectName
                 }, ct),
 
                 "summary/alerts" => await _mcpService.GetAlertsAsync(userId, new McpAlertsQuery
                 {
-                    Month       = f.Month,
+                    Month       = ValidateMonth(f.Month),
                     ProjectName = f.ProjectName,
                     MinPriority = f.MinPriority
                 }, ct),
 
+                // Unrecognized domain/action combinations fall through here.
+                // The formatter receives the error object and tells the user
+                // it couldn't find information for the requested query.
                 _ => new { error = $"Unknown intent: {key}" }
             };
 
@@ -221,7 +225,8 @@ public class IntentRouter : IIntentRouter
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogWarning(ex, "Error executing intent {Key}", key);
-            return JsonSerializer.Serialize(new { error = ex.Message }, JsonOptions);
+            // Use a generic message — never forward raw exception details to the LLM context.
+            return JsonSerializer.Serialize(new { error = "No data available for this query." }, JsonOptions);
         }
     }
 
@@ -232,5 +237,17 @@ public class IntentRouter : IIntentRouter
     {
         if (string.IsNullOrWhiteSpace(value)) return null;
         return DateOnly.TryParse(value, out var d) ? d : null;
+    }
+
+    /// <summary>
+    /// Validates a month string against the YYYY-MM format required by MCP queries.
+    /// Returns null if the value is missing or does not match the expected format.
+    /// </summary>
+    private static string? ValidateMonth(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        return System.Text.RegularExpressions.Regex.IsMatch(value, @"^\d{4}-(0[1-9]|1[0-2])$")
+            ? value
+            : null;
     }
 }
