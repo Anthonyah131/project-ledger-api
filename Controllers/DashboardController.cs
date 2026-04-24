@@ -43,6 +43,7 @@ public class DashboardController : ControllerBase
     public async Task<IActionResult> GetMonthlySummary(
         [FromQuery] string? month,
         [FromQuery] Guid? projectId,
+        [FromQuery] int comparisonMonths = 1,
         CancellationToken ct = default)
     {
         if (!TryParseMonth(month, out var monthStart))
@@ -62,7 +63,12 @@ public class DashboardController : ControllerBase
                 {
                     PreviousMonth = ToMonthKey(monthStart.AddMonths(-1))
                 },
-                Alerts = []
+                Alerts = [],
+                DaysElapsed = DateTime.UtcNow.Day,
+                DaysTotal = DateTime.DaysInMonth(monthStart.Year, monthStart.Month),
+                AverageDailySpend = 0,
+                ComparisonHistory = [],
+                LastYearMonth = null
             });
         }
 
@@ -70,7 +76,7 @@ public class DashboardController : ControllerBase
             return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["ProjectIdRequired"]));
 
         var userId = User.GetRequiredUserId();
-        var response = await _dashboardService.GetMonthlySummaryAsync(userId, monthStart, projectId.Value, ct);
+        var response = await _dashboardService.GetMonthlySummaryAsync(userId, monthStart, projectId.Value, comparisonMonths, ct);
         return Ok(response);
     }
 
@@ -253,6 +259,48 @@ public class DashboardController : ControllerBase
 
         var userId = User.GetRequiredUserId();
         var response = await _dashboardService.GetDashboardProjectsAsync(userId, page, pageSize, q, ct);
+        return Ok(response);
+    }
+
+    /// <summary>
+    /// Returns the top N individual transactions (by absolute amount) for a given month and project.
+    /// </summary>
+    [HttpGet("monthly-top-transactions")]
+    [ProducesResponseType(typeof(MonthlyTopTransactionsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetMonthlyTopTransactions(
+        [FromQuery] string? month,
+        [FromQuery] Guid? projectId,
+        [FromQuery] int limit = 5,
+        [FromQuery] string type = "all",
+        CancellationToken ct = default)
+    {
+        if (!TryParseMonth(month, out var monthStart))
+            return InvalidMonth();
+
+        if (limit is < 1 or > 20)
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["InvalidLimit"]));
+
+        if (type != "all" && type != "expense" && type != "income")
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["InvalidType"]));
+
+        if (IsAdminUser())
+        {
+            return Ok(new MonthlyTopTransactionsResponse
+            {
+                Month = ToMonthKey(monthStart),
+                CurrencyCode = "USD",
+                ProjectId = projectId,
+                Transactions = []
+            });
+        }
+
+        if (!projectId.HasValue)
+            return BadRequest(LocalizedResponse.Create("VALIDATION_ERROR", _localizer["ProjectIdRequired"]));
+
+        var userId = User.GetRequiredUserId();
+        var response = await _dashboardService.GetMonthlyTopTransactionsAsync(userId, monthStart, projectId.Value, limit, type, ct);
         return Ok(response);
     }
 

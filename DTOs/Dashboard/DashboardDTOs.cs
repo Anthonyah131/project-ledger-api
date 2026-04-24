@@ -33,6 +33,11 @@ public class MonthlySummaryDashboardResponse
     public ExecutiveMonthlySummaryResponse Summary { get; set; } = new();
     public MonthlyComparisonResponse Comparison { get; set; } = new();
     public List<DashboardAlertResponse> Alerts { get; set; } = [];
+    public int DaysElapsed { get; set; }
+    public int DaysTotal { get; set; }
+    public decimal AverageDailySpend { get; set; }
+    public List<ComparisonHistoryItemResponse> ComparisonHistory { get; set; } = [];
+    public LastYearMonthResponse? LastYearMonth { get; set; }
 }
 
 /// <summary>High-level financial totals for a given month: total spent, total income, and net balance.</summary>
@@ -50,6 +55,9 @@ public class MonthlyDailyTrendResponse
     public string CurrencyCode { get; set; } = null!;
     public Guid? ProjectId { get; set; }
     public List<DailyTrendPointResponse> TrendByDay { get; set; } = [];
+    public decimal? DailyBudgetRate { get; set; }
+    public decimal? MonthlyBudget { get; set; }
+    public int? BudgetAlertPercentage { get; set; }
 }
 
 /// <summary>Top expense categories for a given month and optional project filter.</summary>
@@ -196,4 +204,55 @@ public record DashboardProjectsPagedResponse
     public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
     public bool HasNextPage => Page < TotalPages;
     public bool HasPreviousPage => Page > 1;
+}
+
+// ── Top Transactions ─────────────────────────────────────────
+
+public class MonthlyTopTransactionsResponse
+{
+    public string Month { get; set; } = null!;
+    public string CurrencyCode { get; set; } = null!;
+    public Guid? ProjectId { get; set; }
+    public List<TopTransactionRowResponse> Transactions { get; set; } = [];
+}
+
+public class TopTransactionRowResponse
+{
+    public Guid Id { get; set; }
+    public string Type { get; set; } = null!;
+    public string Description { get; set; } = null!;
+    public decimal Amount { get; set; }
+    public DateOnly Date { get; set; }
+    public Guid CategoryId { get; set; }
+    public string CategoryName { get; set; } = null!;
+    public Guid PaymentMethodId { get; set; }
+    public string PaymentMethodName { get; set; } = null!;
+}
+
+// ── Extended Monthly Summary Fields ─────────────────────────
+
+public class ComparisonHistoryItemResponse
+{
+    public string Month { get; set; } = null!;
+    public ComparisonSummaryResponse Summary { get; set; } = new();
+}
+
+public class ComparisonSummaryResponse
+{
+    public decimal TotalSpent { get; set; }
+    public decimal TotalIncome { get; set; }
+    public decimal NetBalance { get; set; }
+}
+
+public class LastYearMonthResponse
+{
+    public string Month { get; set; } = null!;
+    public ComparisonSummaryResponse Summary { get; set; } = new();
+    public LastYearComparisonResponse Comparison { get; set; } = new();
+}
+
+public class LastYearComparisonResponse
+{
+    public decimal SpentDelta { get; set; }
+    public decimal SpentDeltaPercentage { get; set; }
 }

@@ -33,7 +33,7 @@ public class DashboardService : IDashboardService
 
     /// <inheritdoc />
     public async Task<MonthlySummaryDashboardResponse> GetMonthlySummaryAsync(
-        Guid userId, DateOnly monthStart, Guid projectId, CancellationToken ct = default)
+        Guid userId, DateOnly monthStart, Guid projectId, int comparisonMonths, CancellationToken ct = default)
     {
         var monthEnd = monthStart.AddMonths(1).AddDays(-1);
         var previousMonthStart = monthStart.AddMonths(-1);
@@ -66,6 +66,62 @@ public class DashboardService : IDashboardService
         var projectHealth = BuildProjectHealthRows(scopedProjects, monthData.Expenses, monthData.Incomes, budgetByProject);
         var obligationSummary = await ComputePendingObligationsAsync(scopedProjects, monthEnd, ct);
 
+        var today = DateTime.UtcNow;
+        var daysElapsed = monthStart.Year == today.Year && monthStart.Month == today.Month
+            ? today.Day
+            : DateTime.DaysInMonth(monthStart.Year, monthStart.Month);
+        var daysTotal = DateTime.DaysInMonth(monthStart.Year, monthStart.Month);
+        var averageDailySpend = daysElapsed > 0 ? Math.Round(totalSpent / daysElapsed, 2) : 0m;
+
+        var comparisonHistory = new List<ComparisonHistoryItemResponse>();
+        if (comparisonMonths > 1)
+        {
+            for (var i = 1; i <= comparisonMonths - 1; i++)
+            {
+                var histMonthStart = monthStart.AddMonths(-i);
+                var histMonthEnd = histMonthStart.AddMonths(1).AddDays(-1);
+                var histData = await LoadMonthDataAsync(selectedProjectIds, histMonthStart, histMonthEnd, ct);
+                var histSpent = histData.Expenses.Sum(e => e.ExpConvertedAmount);
+                var histIncome = histData.Incomes.Sum(i => i.IncConvertedAmount);
+                comparisonHistory.Add(new ComparisonHistoryItemResponse
+                {
+                    Month = ToMonthKey(histMonthStart),
+                    Summary = new ComparisonSummaryResponse
+                    {
+                        TotalSpent = histSpent,
+                        TotalIncome = histIncome,
+                        NetBalance = histIncome - histSpent
+                    }
+                });
+            }
+        }
+
+        var lastYearMonthStart = monthStart.AddYears(-1);
+        var lastYearMonthEnd = lastYearMonthStart.AddMonths(1).AddDays(-1);
+        var lastYearData = await LoadMonthDataAsync(selectedProjectIds, lastYearMonthStart, lastYearMonthEnd, ct);
+        var lastYearSpent = lastYearData.Expenses.Sum(e => e.ExpConvertedAmount);
+        var lastYearIncome = lastYearData.Incomes.Sum(i => i.IncConvertedAmount);
+        LastYearMonthResponse? lastYearMonth = null;
+        if (lastYearSpent > 0 || lastYearData.Expenses.Count > 0 || lastYearData.Incomes.Count > 0)
+        {
+            var lastYearNet = lastYearIncome - lastYearSpent;
+            lastYearMonth = new LastYearMonthResponse
+            {
+                Month = ToMonthKey(lastYearMonthStart),
+                Summary = new ComparisonSummaryResponse
+                {
+                    TotalSpent = lastYearSpent,
+                    TotalIncome = lastYearIncome,
+                    NetBalance = lastYearNet
+                },
+                Comparison = new LastYearComparisonResponse
+                {
+                    SpentDelta = totalSpent - lastYearSpent,
+                    SpentDeltaPercentage = ComputeDeltaPercentage(totalSpent - lastYearSpent, lastYearSpent)
+                }
+            };
+        }
+
         return new MonthlySummaryDashboardResponse
         {
             Month = ToMonthKey(monthStart),
@@ -92,7 +148,12 @@ public class DashboardService : IDashboardService
                 IncomeDeltaPercentage = ComputeDeltaPercentage(totalIncome - previousIncome, previousIncome),
                 NetDelta = netBalance - previousNet
             },
-            Alerts = BuildAlerts(projectHealth, obligationSummary)
+            Alerts = BuildAlerts(projectHealth, obligationSummary),
+            DaysElapsed = daysElapsed,
+            DaysTotal = daysTotal,
+            AverageDailySpend = averageDailySpend,
+            ComparisonHistory = comparisonHistory,
+            LastYearMonth = lastYearMonth
         };
     }
 
@@ -109,13 +170,24 @@ public class DashboardService : IDashboardService
         var monthData = await LoadMonthDataAsync(selectedProjectIds, monthStart, monthEnd, ct);
 
         var scopedProjects = scope.VisibleProjects.Where(p => selectedProjectIds.Contains(p.PrjId)).ToList();
+        var budgetByProject = await LoadBudgetsByProjectAsync(scopedProjects, ct);
+        var budget = budgetByProject.GetValueOrDefault(projectId);
+        var daysInMonth = DateTime.DaysInMonth(monthStart.Year, monthStart.Month);
+        var dailyBudgetRate = budget?.PjbTotalBudget > 0
+            ? Math.Round(budget.PjbTotalBudget / daysInMonth, 2)
+            : (decimal?)null;
 
         return new MonthlyDailyTrendResponse
         {
             Month = ToMonthKey(monthStart),
             CurrencyCode = ResolveCurrencyCode(scopedProjects),
             ProjectId = projectId,
-            TrendByDay = BuildTrendByDay(monthStart, monthData.Expenses, monthData.Incomes)
+            TrendByDay = BuildTrendByDay(monthStart, monthData.Expenses, monthData.Incomes),
+            DailyBudgetRate = dailyBudgetRate,
+            MonthlyBudget = budget?.PjbTotalBudget,
+            BudgetAlertPercentage = budget?.PjbAlertPercentage is not null
+                ? (int?)budget.PjbAlertPercentage
+                : null
         };
     }
 
@@ -308,6 +380,73 @@ public class DashboardService : IDashboardService
             PaymentMethodSplit = BuildPaymentMethodSplit(monthExpenses, totalSpent),
             ProjectHealth = projectHealth,
             Alerts = BuildAlerts(projectHealth, obligationSummary)
+        };
+    }
+
+    /// <inheritdoc />
+    public async Task<MonthlyTopTransactionsResponse> GetMonthlyTopTransactionsAsync(
+        Guid userId, DateOnly monthStart, Guid projectId, int limit, string type, CancellationToken ct = default)
+    {
+        var scope = await GetVisibleProjectScopeAsync(userId, ct);
+        if (!scope.VisibleProjectIds.Contains(projectId))
+            throw new ForbiddenAccessException("ProjectAccessDenied");
+
+        var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+        var monthData = await LoadMonthDataAsync(new List<Guid> { projectId }, monthStart, monthEnd, ct);
+
+        var scopedProjects = scope.VisibleProjects.Where(p => p.PrjId == projectId).ToList();
+
+        var transactions = new List<TopTransactionRowResponse>();
+
+        if (type == "all" || type == "expense")
+        {
+            foreach (var expense in monthData.Expenses.Where(e => !e.ExpIsDeleted && e.ExpIsActive))
+            {
+                transactions.Add(new TopTransactionRowResponse
+                {
+                    Id = expense.ExpId,
+                    Type = "expense",
+                    Description = expense.ExpTitle,
+                    Amount = expense.ExpConvertedAmount,
+                    Date = expense.ExpExpenseDate,
+                    CategoryId = expense.ExpCategoryId,
+                    CategoryName = expense.Category?.CatName ?? "Unknown",
+                    PaymentMethodId = expense.ExpPaymentMethodId,
+                    PaymentMethodName = expense.PaymentMethod?.PmtName ?? "Unknown"
+                });
+            }
+        }
+
+        if (type == "all" || type == "income")
+        {
+            foreach (var income in monthData.Incomes.Where(i => !i.IncIsDeleted && i.IncIsActive))
+            {
+                transactions.Add(new TopTransactionRowResponse
+                {
+                    Id = income.IncId,
+                    Type = "income",
+                    Description = income.IncTitle,
+                    Amount = income.IncConvertedAmount,
+                    Date = income.IncIncomeDate,
+                    CategoryId = income.IncCategoryId,
+                    CategoryName = income.Category?.CatName ?? "Unknown",
+                    PaymentMethodId = income.IncPaymentMethodId,
+                    PaymentMethodName = income.PaymentMethod?.PmtName ?? "Unknown"
+                });
+            }
+        }
+
+        var sortedTransactions = transactions
+            .OrderByDescending(t => Math.Abs((double)t.Amount))
+            .Take(limit)
+            .ToList();
+
+        return new MonthlyTopTransactionsResponse
+        {
+            Month = ToMonthKey(monthStart),
+            CurrencyCode = ResolveCurrencyCode(scopedProjects),
+            ProjectId = projectId,
+            Transactions = sortedTransactions
         };
     }
 

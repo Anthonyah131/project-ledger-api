@@ -8,7 +8,7 @@ public interface IDashboardService
     /// Gets a monthly financial summary (Income, Expense, Balance) for a project.
     /// </summary>
     Task<MonthlySummaryDashboardResponse> GetMonthlySummaryAsync(
-        Guid userId, DateOnly monthStart, Guid projectId, CancellationToken ct = default);
+        Guid userId, DateOnly monthStart, Guid projectId, int comparisonMonths, CancellationToken ct = default);
 
     /// <summary>
     /// Gets a daily trend of expenses and income for the specific month and project.
@@ -40,4 +40,7 @@ public interface IDashboardService
     /// </summary>
     Task<DashboardProjectsPagedResponse> GetDashboardProjectsAsync(
         Guid userId, int page, int pageSize, string? q, CancellationToken ct = default);
+
+    Task<MonthlyTopTransactionsResponse> GetMonthlyTopTransactionsAsync(
+        Guid userId, DateOnly monthStart, Guid projectId, int limit, string type, CancellationToken ct = default);
 }

@@ -517,6 +517,12 @@
   <data name="InvalidPageSize" xml:space="preserve">
     <value>pageSize must be between 1 and 100.</value>
   </data>
+  <data name="InvalidLimit" xml:space="preserve">
+    <value>limit must be between 1 and 20.</value>
+  </data>
+  <data name="InvalidType" xml:space="preserve">
+    <value>type must be 'all', 'expense', or 'income'.</value>
+  </data>
 
   <!-- ══ Report Labels — Common ══ -->
   <data name="RptCommon_Project" xml:space="preserve">
